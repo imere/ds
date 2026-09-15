@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!--
+  用法三：Vue 2 绑定层（@ds/vue2）
+  -------------------------------------------------------------
+  老项目典型形态：Vue 2 UMD + script 标签，没有构建步骤。
+  本页脚本同样保持 ES5，模板表达式里也不用箭头函数
+  （Vue 2 的模板表达式是 new Function 编译的，IE10 照样解析不了 ES6）。
+
+  插件装上后业务拿到三样东西：
+    this.$ds            响应式主题句柄  $ds.use / $ds.toggle / $ds.t / $ds.style
+    v-ds-theme          局部换肤指令
+    this.dsContext      provide/inject 下来的同一份句柄
+-->
+<html lang="zh-CN" data-ds-theme="light" data-ds-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ds-foundation · Vue 2 示例</title>
+
+    <script>
+      ;(function () {
+        try {
+          var KEY = 'ds-theme'
+          var v = null
+          try {
+            v = window.localStorage.getItem(KEY)
+          } catch (e) {
+            v = null
+          }
+          if (v) {
+            document.documentElement.setAttribute('data-ds-theme', v)
+            document.documentElement.setAttribute('data-ds-mode', v === 'dark' ? 'dark' : 'light')
+          }
+        } catch (e2) {}
+      })()
+    </script>
+
+    <script src="./vendor/vue.js"></script>
+    <script src="../../packages/core/dist/index.umd.cjs"></script>
+    <script src="../../packages/dom/dist/index.umd.cjs"></script>
+    <script src="../../packages/vue2/dist/index.umd.cjs"></script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ffffff;
+        background: var(--ds-color-bg, #ffffff);
+        color: #0f172a;
+        color: var(--ds-color-fg, #0f172a);
+        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      [v-cloak] {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app" v-cloak>
+      <h1 class="ds-text-2xl ds-font-bold ds-mb-2">ds-foundation · Vue 2</h1>
+
+      <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
+        <button
+          v-for="t in themes"
+          :key="t"
+          type="button"
+          class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer"
+          :class="{ 'ds-bg-brand': $ds.state.theme === t }"
+          @click="$ds.use(t)"
+        >
+          {{ t }}
+        </button>
+
+        <button type="button" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer" @click="$ds.toggle()">
+          切换明暗
+        </button>
+
+        <select v-model="accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid" @change="$ds.useAccent(accent)">
+          <option v-for="a in accentNames" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </div>
+
+      <div class="ds-p-4 ds-rounded-md ds-bg-subtle ds-mb-4">
+        <div>主题：<b>{{ $ds.state.theme }}</b> ／ 模式：<b>{{ $ds.state.mode }}</b></div>
+        <div>通道：<b>{{ $ds.state.channel }}</b> ／ 强调色：<b>{{ $ds.state.accent || '未选' }}</b></div>
+        <div>color-brand = <code>{{ $ds.t('color-brand') }}</code></div>
+        <div>color-bg = <code>{{ $ds.t('color-bg') }}</code></div>
+      </div>
+
+      <div class="ds-flex ds-gap-4" style="flex-wrap: wrap">
+        <section class="ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 260px">
+          <h2 class="ds-font-semibold ds-mb-2">$ds.style()</h2>
+          <div class="ds-p-3 ds-rounded-sm" :style="$ds.style({ 'background-color': 'color-brand', color: 'on-brand' })">
+            品牌色块：IE10 上也能拿到真实色值
+          </div>
+        </section>
+
+        <section class="ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 260px">
+          <h2 class="ds-font-semibold ds-mb-2">v-ds-theme 局部换肤</h2>
+          <div v-ds-theme="localTheme" class="ds-p-3 ds-rounded-sm ds-mt-2">
+            这一块是 {{ localTheme }}，外面跟着全局走
+            <div class="ds-text-muted ds-mt-2">IE10 下会退化成整站切换并给出告警</div>
+          </div>
+          <button type="button" class="ds-p-2 ds-mt-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer" @click="flipLocal">
+            切换局部
+          </button>
+        </section>
+      </div>
+
+      <pre class="ds-mt-4 ds-p-3 ds-rounded-md ds-bg-inset ds-text-muted ds-overflow-auto">{{ snippet }}</pre>
+    </div>
+
+    <script>
+      ;(function () {
+        Vue.use(DsVue2, {
+          channel: 'auto',
+          persist: true,
+          followSystem: true,
+        })
+
+        new Vue({
+          el: '#app',
+          data: function () {
+            return {
+              accent: 'indigo',
+              localTheme: 'dark',
+              themes: ['light', 'dark'],
+              accentNames: ['indigo', 'blue', 'green', 'orange'],
+              snippet: [
+                'Vue.use(DsVue2, { channel: "auto" })',
+                '',
+                '// 模板里',
+                '<button @click="$ds.use(\'dark\')">深色</button>',
+                '<div :style="$ds.style({ color: \'color-fg-muted\' })">…</div>',
+                '<section v-ds-theme="\'dark\'">局部深色</section>',
+                '',
+                '// 组件里',
+                'this.$ds.toggle()',
+                'this.$ds.t("color-brand")',
+              ].join('\n'),
+            }
+          },
+          created: function () {
+            var s = this.$ds.state
+            if (s.accent) this.accent = s.accent
+          },
+          methods: {
+            flipLocal: function () {
+              this.localTheme = this.localTheme === 'dark' ? 'light' : 'dark'
+            },
+          },
+        })
+      })()
+    </script>
+  </body>
+</html>

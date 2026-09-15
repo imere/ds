@@ -1,0 +1,41 @@
+{
+  "name": "@ds/dom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Design System 底层：双通道主题适配层（现代写 CSS 变量 / IE10 注入静态 CSS）",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.umd.cjs",
+  "module": "dist/index.js",
+  "browser": "dist/index.js",
+  "unpkg": "dist/index.umd.cjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs",
+      "default": "./dist/index.umd.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": true,
+  "scripts": {
+    "build": "rollup -c ../../rollup.config.js --environment PKG:dom"
+  },
+  "dependencies": {
+    "@ds/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@ds/core": "workspace:*"
+  },
+  "keywords": [
+    "design-system",
+    "theme",
+    "ie10",
+    "css-variables"
+  ],
+  "license": "MIT"
+}

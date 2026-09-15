@@ -1,0 +1,37 @@
+{
+  "name": "ds-foundation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Design System 底层包：token / class / theme，最低支持 IE10",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "clean": "node scripts/clean.mjs",
+    "rebuild": "pnpm run clean && pnpm run build",
+    "dts": "node scripts/dts.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "es5": "vitest run tests/es5.test.ts",
+    "serve": "node scripts/serve.mjs 5199",
+    "examples:standalone": "node scripts/inline-examples.mjs",
+    "check": "pnpm run typecheck && pnpm run test",
+    "verify": "pnpm run typecheck && pnpm run build && pnpm run test"
+  },
+  "devDependencies": {
+    "@ds/core": "workspace:*",
+    "@ds/dom": "workspace:*",
+    "@ds/vue2": "workspace:*",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-swc": "^0.4.1",
+    "@swc/core": "^1.16.2",
+    "@swc/helpers": "^0.5.23",
+    "@types/node": "^26.5.1",
+    "jsdom": "^30.0.1",
+    "rollup": "^4.13.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "vue": "^2.7.16"
+  }
+}

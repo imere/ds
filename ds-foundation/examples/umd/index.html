@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<!--
+  用法一：UMD 直引（IE10 可跑）
+  -------------------------------------------------------------
+  这一页本身就是"最低支持 IE10"的活标本，所以页面里的脚本：
+    · 全部 ES5 语法（var、function、字符串拼接）
+    · 不碰 Promise / classList.add(多参) / dataset / Array.includes
+  打包产物已经是 ES5 了，页面脚本也得跟着守规矩，否则整页在 IE10 上白屏。
+
+  打开方式：直接双击用浏览器打开即可（file:// 下 localStorage 不可用，
+  会自动退到 cookie 存储，刷新后主题依然记得住）。
+-->
+<html lang="zh-CN" data-ds-theme="light" data-ds-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ds-foundation · UMD 直引示例</title>
+
+    <!--
+      防闪烁脚本：必须在任何样式渲染前同步执行。
+      它的唯一职责是把 data-ds-theme 打到 <html> 上，
+      真正的令牌注入等 DOM 就绪后由 createThemeManager().init() 完成。
+    -->
+    <script>
+      (function () {
+        try {
+          var KEY = 'ds-theme'
+          var v = null
+          try {
+            v = window.localStorage.getItem(KEY)
+          } catch (e) {
+            v = null
+          }
+          if (!v) {
+            var cs = document.cookie ? document.cookie.split(';') : []
+            for (var i = 0; i < cs.length; i++) {
+              var p = cs[i]
+              var eq = p.indexOf('=')
+              var n = (eq > -1 ? p.slice(0, eq) : p).replace(/^\s+|\s+$/g, '')
+              if (n === KEY) {
+                v = decodeURIComponent((eq > -1 ? p.slice(eq + 1) : '').replace(/^\s+|\s+$/g, ''))
+                break
+              }
+            }
+          }
+          if (v) {
+            document.documentElement.setAttribute('data-ds-theme', v)
+            document.documentElement.setAttribute('data-ds-mode', v === 'dark' ? 'dark' : 'light')
+          }
+        } catch (e2) {}
+      })()
+    </script>
+
+    <script src="../../packages/core/dist/index.umd.cjs"></script>
+    <script src="../../packages/dom/dist/index.umd.cjs"></script>
+
+    <style>
+      /*
+        两条声明的降级写法：
+        第一条给 IE10（它不认 var()，整条声明会被丢弃，于是保留第一行的实色）
+        第二条给现代浏览器（取变量，随主题实时变化）
+      */
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ffffff;
+        background: var(--ds-color-bg, #ffffff);
+        color: #0f172a;
+        color: var(--ds-color-fg, #0f172a);
+        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 14px;
+      }
+      .demo-box {
+        min-height: 64px;
+        border: 1px solid #e2e8f0;
+        border-color: var(--ds-color-border, #e2e8f0);
+      }
+      code {
+        font-family: Consolas, Menlo, monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1 class="ds-text-2xl ds-font-bold ds-mb-4">ds-foundation · UMD 直引</h1>
+
+    <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
+      <button type="button" id="btn-light" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+        浅色
+      </button>
+      <button type="button" id="btn-dark" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+        深色
+      </button>
+      <button type="button" id="btn-toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+        切换明暗
+      </button>
+      <select id="sel-accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid">
+        <option value="indigo">靛蓝</option>
+        <option value="blue">天蓝</option>
+        <option value="green">青绿</option>
+        <option value="orange">暖橙</option>
+      </select>
+      <button type="button" id="btn-custom" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+        覆盖圆角
+      </button>
+    </div>
+
+    <div id="info" class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle ds-mb-4">初始化中…</div>
+
+    <div class="ds-flex ds-gap-4" style="flex-wrap: wrap">
+      <div class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 220px">
+        <div class="ds-font-semibold ds-mb-2">semantic class</div>
+        <div class="ds-text-muted">.ds-text-muted —— 随主题变</div>
+        <!--
+          注意这块没有写 style="background: var(--ds-color-brand)"。
+          那样写在 IE10 上会整条声明失效、色块变成透明。
+          正确姿势是用 ds.style() 让引擎按通道返回该给的东西：
+            vars 通道 -> var(--ds-color-brand)
+            static 通道 -> #4f46e5（真实值）
+        -->
+        <div id="brand-box" class="ds-mt-2 ds-p-2 ds-rounded-sm">品牌色块</div>
+      </div>
+
+      <div class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 220px">
+        <div class="ds-font-semibold ds-mb-2">primitive class</div>
+        <div class="ds-text-muted">.ds-p-4 / .ds-rounded-md / .ds-flex</div>
+        <div class="ds-mt-2 ds-text-muted">主题无关，只生成一份</div>
+      </div>
+    </div>
+
+    <script>
+      ;(function () {
+        // 通道自动选择：支持 CSS 变量 -> vars；IE10/IE11 -> static
+        var ds = DsDom.createThemeManager({
+          channel: 'auto',
+          persist: true,
+          followSystem: true,
+          theme: null,
+        })
+        ds.init()
+
+        function $(id) {
+          return document.getElementById(id)
+        }
+
+        function render() {
+          var s = ds.state()
+          var html = ''
+          html += '<b>通道</b>：' + s.channel
+          html += ' ｜ <b>主题</b>：' + s.theme + '（' + s.mode + '）'
+          html += ' ｜ <b>强调色</b>：' + (s.accent || '未选')
+          html += ' ｜ <b>令牌数</b>：' + Object.keys(ds.tokens()).length
+          html += '<br /><b>color-brand</b> = ' + ds.get('color-brand')
+          html += ' ｜ <b>color-bg</b> = ' + ds.get('color-bg')
+          html += ' ｜ <b>radius-md</b> = ' + ds.get('radius-md')
+          $('info').innerHTML = html
+
+          // 按通道返回合适的写法：vars 通道给 var()，static 通道给实值
+          var box = $('brand-box')
+          var st = ds.style({ 'background-color': 'color-brand', color: 'on-brand' })
+          for (var k in st) {
+            if (Object.prototype.hasOwnProperty.call(st, k)) box.style[k] = st[k]
+          }
+        }
+
+        function on(id, ev, fn) {
+          var el = $(id)
+          if (el.addEventListener) el.addEventListener(ev, fn, false)
+          else el.attachEvent('on' + ev, fn)
+        }
+
+        on('btn-light', 'click', function () {
+          ds.use('light')
+        })
+        on('btn-dark', 'click', function () {
+          ds.use('dark')
+        })
+        on('btn-toggle', 'click', function () {
+          ds.toggle()
+        })
+        on('sel-accent', 'change', function () {
+          ds.useAccent(this.value)
+        })
+        on('btn-custom', 'click', function () {
+          // 分层覆盖：分组名 + 驼峰键，或扁平键都可以
+          ds.override('radius', { md: '16px', lg: '24px' })
+        })
+
+        ds.subscribe(render)
+        render()
+      })()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+  用法二：ESM（原生 <script type="module">，无需打包器）
+  -------------------------------------------------------------
+  ES Module 在 file:// 下会被 CORS 拦掉，必须走 http：
+      pnpm run serve        -> http://localhost:5199/examples/esm/
+-->
+<html lang="zh-CN" data-ds-theme="light" data-ds-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ds-foundation · ESM 示例</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--ds-color-bg);
+        color: var(--ds-color-fg);
+        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      #size div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 4px 0;
+      }
+      #size i {
+        color: var(--ds-color-fg-muted);
+        font-style: normal;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1 class="ds-text-2xl ds-font-bold ds-mb-2">ds-foundation · ESM</h1>
+
+    <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
+      <button class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand" data-theme="light">
+        浅色
+      </button>
+      <button class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand" data-theme="dark">
+        深色
+      </button>
+      <button id="toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">切换</button>
+      <select id="accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid">
+        <option value="">默认强调色</option>
+        <option value="indigo">靛蓝</option>
+        <option value="blue">天蓝</option>
+        <option value="green">青绿</option>
+        <option value="orange">暖橙</option>
+      </select>
+      <label class="ds-p-2 ds-text-muted">
+        圆角
+        <input id="radius" type="range" min="0" max="24" value="4" />
+      </label>
+    </div>
+
+    <div id="info" class="ds-p-4 ds-rounded-md ds-bg-subtle ds-mb-4"></div>
+
+    <div class="ds-flex ds-gap-4" style="flex-wrap: wrap">
+      <section class="ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 300px">
+        <h2 class="ds-text-lg ds-font-semibold ds-mb-2">CSS 体积：为什么要拆两层 class</h2>
+        <div id="size"></div>
+      </section>
+
+      <section class="ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 300px">
+        <h2 class="ds-text-lg ds-font-semibold ds-mb-2">core 可以脱离 DOM 单独跑</h2>
+        <div id="ssr" class="ds-text-muted"></div>
+      </section>
+    </div>
+
+    <script>
+      // 原生 ES Module 在 file:// 下会被 CORS 拦掉，先自查并给出可复制的命令
+      if (location.protocol === 'file:') {
+        document.addEventListener('DOMContentLoaded', function () {
+          var tip = document.createElement('div')
+          tip.className = 'ds-p-4 ds-rounded-md ds-mb-4'
+          tip.style.background = 'var(--ds-color-warning-subtle, #fef3c7)'
+          tip.innerHTML =
+            '<b>需要 http 环境</b>：原生 ES Module 在 <code>file://</code> 下会被浏览器 CORS 拦截。' +
+            '在项目根目录执行 <code>pnpm run serve</code>，再访问 http://localhost:5199/examples/esm/'
+          document.body.insertBefore(tip, document.body.firstChild)
+        })
+      }
+    </script>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

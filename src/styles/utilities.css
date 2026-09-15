@@ -1,0 +1,249 @@
+/* =============================================================
+   Utilities —— 布局工具类（与断点系统配套）
+   命名约定：.ds-{能力}-{断点}
+   ============================================================= */
+
+/* ---------- 容器 ---------- */
+.ds-container {
+  width: 100%;
+  max-width: var(--ds-size-content-max);
+  margin: 0 auto;
+  padding: 0 var(--ds-space-5);
+}
+@media (max-width: 639px) {
+  .ds-container {
+    padding: 0 var(--ds-space-4);
+  }
+}
+
+/* ---------- 纵向堆叠 ---------- */
+.ds-stack > * + * {
+  margin-top: var(--ds-stack-gap, var(--ds-space-4));
+}
+.ds-stack-1 {
+  --ds-stack-gap: var(--ds-space-1);
+}
+.ds-stack-2 {
+  --ds-stack-gap: var(--ds-space-2);
+}
+.ds-stack-3 {
+  --ds-stack-gap: var(--ds-space-3);
+}
+.ds-stack-5 {
+  --ds-stack-gap: var(--ds-space-5);
+}
+.ds-stack-6 {
+  --ds-stack-gap: var(--ds-space-6);
+}
+.ds-stack-8 {
+  --ds-stack-gap: var(--ds-space-8);
+}
+
+/* ---------- 横向排列（自动换行） ---------- */
+.ds-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-cluster-gap, var(--ds-space-3));
+  align-items: var(--ds-cluster-align, center);
+}
+.ds-cluster-2 {
+  --ds-cluster-gap: var(--ds-space-2);
+}
+.ds-cluster-4 {
+  --ds-cluster-gap: var(--ds-space-4);
+}
+.ds-cluster-6 {
+  --ds-cluster-gap: var(--ds-space-6);
+}
+
+/* ---------- 自适应网格（真正的响应式：不写死列数） ---------- */
+.ds-grid {
+  display: grid;
+  gap: var(--ds-grid-gap, var(--ds-space-4));
+  grid-template-columns: repeat(auto-fit, minmax(var(--ds-grid-min, 240px), 1fr));
+}
+.ds-grid-sm {
+  --ds-grid-min: 160px;
+}
+.ds-grid-lg {
+  --ds-grid-min: 320px;
+}
+.ds-grid-3 {
+  --ds-grid-gap: var(--ds-space-3);
+}
+.ds-grid-6 {
+  --ds-grid-gap: var(--ds-space-6);
+}
+
+/* ---------- 弹性辅助 ---------- */
+.ds-flex {
+  display: flex;
+}
+.ds-inline-flex {
+  display: inline-flex;
+}
+.ds-items-center {
+  align-items: center;
+}
+.ds-items-start {
+  align-items: flex-start;
+}
+.ds-items-end {
+  align-items: flex-end;
+}
+.ds-justify-between {
+  justify-content: space-between;
+}
+.ds-justify-center {
+  justify-content: center;
+}
+.ds-justify-end {
+  justify-content: flex-end;
+}
+.ds-flex-1 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-flex-none {
+  flex: none;
+}
+.ds-flex-wrap {
+  flex-wrap: wrap;
+}
+.ds-gap-1 {
+  gap: var(--ds-space-1);
+}
+.ds-gap-2 {
+  gap: var(--ds-space-2);
+}
+.ds-gap-3 {
+  gap: var(--ds-space-3);
+}
+.ds-gap-4 {
+  gap: var(--ds-space-4);
+}
+.ds-gap-6 {
+  gap: var(--ds-space-6);
+}
+
+/* ---------- 文本 ---------- */
+.ds-text-xs {
+  font-size: var(--ds-font-size-xs);
+}
+.ds-text-sm {
+  font-size: var(--ds-font-size-sm);
+}
+.ds-text-md {
+  font-size: var(--ds-font-size-md);
+}
+.ds-text-lg {
+  font-size: var(--ds-font-size-lg);
+}
+.ds-text-xl {
+  font-size: var(--ds-font-size-xl);
+}
+.ds-text-2xl {
+  font-size: var(--ds-font-size-2xl);
+}
+.ds-text-3xl {
+  font-size: var(--ds-font-size-3xl);
+}
+.ds-text-muted {
+  color: var(--ds-color-fg-muted);
+}
+.ds-text-subtle {
+  color: var(--ds-color-fg-subtle);
+}
+.ds-text-brand {
+  color: var(--ds-color-brand-fg);
+}
+.ds-text-danger {
+  color: var(--ds-color-danger-fg);
+}
+.ds-text-success {
+  color: var(--ds-color-success-fg);
+}
+.ds-text-mono {
+  font-family: var(--ds-font-family-mono);
+}
+.ds-font-medium {
+  font-weight: var(--ds-font-weight-medium);
+}
+.ds-font-semibold {
+  font-weight: var(--ds-font-weight-semibold);
+}
+.ds-text-center {
+  text-align: center;
+}
+.ds-text-right {
+  text-align: right;
+}
+.ds-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ds-break-word {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 显隐（响应式） ---------- */
+.ds-hidden {
+  display: none !important;
+}
+
+/* 移动端 (<768px) 隐藏 */
+@media (max-width: 767px) {
+  .ds-hide-mobile {
+    display: none !important;
+  }
+}
+/* 平板及以上 (>=768px) 隐藏 */
+@media (min-width: 768px) {
+  .ds-hide-tablet-up {
+    display: none !important;
+  }
+}
+/* 桌面 (>=1024px) 隐藏 */
+@media (min-width: 1024px) {
+  .ds-hide-desktop {
+    display: none !important;
+  }
+}
+/* 桌面以下 (<1024px) 隐藏 */
+@media (max-width: 1023px) {
+  .ds-hide-below-desktop {
+    display: none !important;
+  }
+}
+
+/* ---------- 仅屏幕阅读器可见 ---------- */
+.ds-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- 表面 ---------- */
+.ds-surface {
+  background: var(--ds-color-bg-elevated);
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-lg);
+}
+.ds-surface-subtle {
+  background: var(--ds-color-bg-subtle);
+  border: 1px solid var(--ds-color-border-subtle);
+  border-radius: var(--ds-radius-lg);
+}

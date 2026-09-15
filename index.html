@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN" data-ds-mode="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="description" content="Vue 2 响应式设计系统与组件库 · Design Token 多主题" />
+    <title>Aurora DS · Vue 2 设计系统</title>
+    <script>
+      // 首屏防闪烁：在 Vue 挂载前先把主题模式写到 html 上
+      (function () {
+        try {
+          var raw = localStorage.getItem('aurora-ds:theme')
+          var name = raw ? JSON.parse(raw).name : 'light'
+          var modes = { light: 'light', sunrise: 'light', dark: 'dark', midnight: 'dark', violet: 'dark' }
+          var mode = modes[name] || 'light'
+          document.documentElement.setAttribute('data-ds-mode', mode)
+        } catch (e) {
+          /* noop */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
