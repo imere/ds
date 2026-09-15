@@ -77,7 +77,8 @@ renderHead(css, { prefix: 'acme' })   // 脚本写 data-acme-theme，CSS 才等�
 | 换前缀后主题色没变 | 只有 class 换了，变量没换 | 传统一的 `prefix`，不要只改 `classPrefix` |
 | 首屏闪一下白底 | JS 异步才注入主题 | `renderHead()` 内联同步脚本到 `<head>` |
 | IE10 上部分样式消失 | 撞了 4095 规则上限 | `writeStyle()` 已按 4000 切片，确认没绕过它 |
-| `file://` 下主题不记忆 | localStorage 被禁 | `store.js` 已退 cookie，确认 `persist: true` |
+| 刷新后主题跳回默认值 | 没接持久化 | 核心不碰存储，要记就得 `readTheme()` + `bindTheme(ds)` |
+| `file://` 下主题不记忆 | localStorage 被禁 | 用 `autoStorage()`：先探一次，写不进去自动退 cookie |
 | 品牌色突然不见了 | 没给默认强调色 | `defaultAccent !== false` 时会默认 `indigo`，或显式传 `accent` |
 | 局部深色区无效 | 在 static 通道 | 能力边界，退化为整站切换并告警 |
 | `require()` 报 "of ES Module" | 包是 `type: module` | UMD 产物叫 `index.umd.cjs` |

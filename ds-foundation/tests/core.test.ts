@@ -21,7 +21,7 @@ import {
   darkTheme,
   accents,
 } from '@ds/core'
-import { splitCss, getInitScript, pickChannel } from '@ds/dom'
+import { splitCss, getInitScript, pickChannel, restoreScript } from '@ds/dom'
 
 function makeRegistry() {
   var registry = createRegistry()
@@ -136,8 +136,17 @@ describe('6. SSR 防闪烁脚本', () => {
     expect(getInitScript({ theme: 'light' })).toContain('"def":"light"')
   })
 
-  it('存储 key 写进了脚本', () => {
-    expect(getInitScript()).toContain('"key":"ds-theme"')
+  // 核心不碰存储：没传 restore 就不该出现任何读取介质，SSR 下也不会去摸 localStorage
+  it('默认不含任何存储读取', () => {
+    const script = getInitScript()
+    expect(script).not.toContain('localStorage')
+    expect(script).not.toContain('cookie')
+  })
+
+  it('传了 restore 片段才有存储读取', () => {
+    const script = getInitScript({ restore: restoreScript() })
+    expect(script).toContain('localStorage')
+    expect(script).toContain('ds-theme')
   })
 
   it('无 window 时降级为 static', () => {
@@ -232,7 +241,8 @@ describe('10. SSR 防闪烁脚本跟随前缀', () => {
     expect(acmeScript).toContain('data-acme-theme')
   })
 
-  it('脚本里的存储 key 跟着换', () => {
-    expect(acmeScript).toContain('acme-theme')
+  // 存储 key 不在核心脚本里了，它只出现在可选的 restoreScript 片段中
+  it('restoreScript 的存储 key 跟着前缀换', () => {
+    expect(restoreScript({ prefix: 'acme' })).toContain('acme-theme')
   })
 })

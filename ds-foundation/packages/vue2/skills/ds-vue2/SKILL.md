@@ -23,7 +23,9 @@ Vue.use(DsVue2, options)
 
 ## 工作流
 
-1. **装插件** —— `Vue.use(DsVue2, { theme, accent, prefix, persist, followSystem })`
+1. **装插件** —— `Vue.use(DsVue2, { theme, accent, prefix, followSystem })`
+   插件不会碰 localStorage / cookie。要记住用户的选择得显式接：
+   `var saved = readTheme({ prefix })` → `Vue.use(...)` → `bindTheme(Vue.ds.manager)`
 2. **组件里用 `$ds`** —— `t()` 读令牌、`style()` 生成行内样式、`state` 拿响应式数据
 3. **跨层组件用 inject** —— `inject: ['dsContext']`，不用写 `from`
 4. **局部换肤用指令** —— `v-ds-theme`，并确认不在 static 通道

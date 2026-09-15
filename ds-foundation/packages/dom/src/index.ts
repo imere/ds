@@ -7,10 +7,11 @@
 
 export * from './env'
 export * from './emitter'
-export * from './store'
 export * from './style'
 export * from './theme'
 export * from './ssr'
+// 持久化辅助。核心一行都不引用它，只有你主动调才会碰 localStorage / cookie
+export * from './storage'
 
 import { createThemeManager } from './theme'
 import type { ThemeManagerOptions, ThemeManager } from './theme'

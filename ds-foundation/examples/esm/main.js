@@ -15,15 +15,21 @@ import {
   darkTheme,
   accents,
 } from '../../packages/core/dist/index.js'
-import { createThemeManager } from '../../packages/dom/dist/index.js'
+import { createThemeManager, readTheme, bindTheme } from '../../packages/dom/dist/index.js'
+
+// 持久化是可选的：不调 bindTheme 就完全不碰 localStorage / cookie。
+// 想记住用户的选择，就显式接上去：先读回来当初始值，再订阅变化写回去。
+const saved = readTheme()
 
 const ds = createThemeManager({
   themes: { light: lightTheme, dark: darkTheme },
   accents,
   channel: 'auto',
-  persist: true,
+  theme: saved.theme || '',
+  accent: saved.accent || '',
   followSystem: true,
 })
+bindTheme(ds) // ← 这一行才让页面开始写存储
 ds.init()
 
 const $ = (sel) => document.querySelector(sel)
