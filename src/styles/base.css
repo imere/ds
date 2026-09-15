@@ -1,0 +1,167 @@
+/* =============================================================
+   Base —— 全局重置与基础排版
+   所有颜色/间距都走 --ds-* 令牌，换主题即换肤，无需改动本文件
+   ============================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+/* 首屏防闪烁：JS 应用令牌前先给个底色 */
+html[data-ds-mode='dark'] {
+  background: #0b0f17;
+  color: #e6edf6;
+}
+html[data-ds-mode='light'] {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--ds-font-family-sans, system-ui, sans-serif);
+  font-size: var(--ds-font-size-md, 14px);
+  line-height: var(--ds-line-height-normal, 1.5);
+  color: var(--ds-color-fg, #0f172a);
+  background: var(--ds-color-bg, #ffffff);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--ds-motion-duration-base) var(--ds-motion-ease-standard),
+    color var(--ds-motion-duration-base) var(--ds-motion-ease-standard);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--ds-font-weight-semibold);
+  line-height: var(--ds-line-height-tight);
+  color: var(--ds-color-fg);
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--ds-color-brand-fg);
+  text-decoration: none;
+  transition: color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--ds-font-family-mono, monospace);
+  font-size: 0.92em;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--ds-color-border);
+  margin: var(--ds-space-6) 0;
+}
+
+/* ---------- 焦点可见性（无障碍：键盘导航必须看得见） ---------- */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--ds-color-focus);
+  outline-offset: 2px;
+  border-radius: var(--ds-radius-sm);
+}
+
+/* ---------- 选中态与滚动条 ---------- */
+::selection {
+  background: var(--ds-color-brand-subtle);
+  color: var(--ds-color-brand-fg);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--ds-color-border-strong);
+  border-radius: var(--ds-radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-color-fg-subtle);
+  background-clip: content-box;
+}
+
+/* ---------- 尊重系统「减少动效」偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- 打印 ---------- */
+@media print {
+  .ds-no-print {
+    display: none !important;
+  }
+}

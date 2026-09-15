@@ -1,0 +1,55 @@
+# ============================================================
+# 规则只有一条：忽略「能随时重建」的东西，源码和 lock 一个不留。
+# 依赖能重装、产物能重新构建、示例能重新生成 —— 这些不进版本库。
+# ============================================================
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物 ----
+dist/
+build/
+*.tsbuildinfo
+# rollup / vite 的 sourcemap 跟着产物一起，同样不进库
+*.map
+
+# ---- 生成的单文件示例 ----
+# 由 scripts/inline-examples.mjs 产出，一条命令重建：
+#   pnpm run examples:standalone
+examples/*/standalone.html
+
+# ---- 类型声明生成的临时目录 ----
+.types/
+
+# ---- 包管理器缓存 ----
+# npm 的 _cacache 能有几个 G，而且全是二进制 blob，绝不能进版本库
+.npm-cache/
+.npm/
+.pnpm-store/
+.pnpm-debug.log
+
+# ---- 日志 ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 环境变量 ----
+.env
+.env.*
+!.env.example
+
+# ---- 编辑器 / 系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---- 临时文件 ----
+*.tmp
+*.temp

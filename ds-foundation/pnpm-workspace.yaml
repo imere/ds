@@ -1,0 +1,27 @@
+# pnpm workspace
+# -------------------------------------------------------------
+# pnpm 不读 package.json 的 workspaces 字段，必须用这个文件声明。
+#
+# 和 npm workspaces 最大的区别：pnpm 的 node_modules 是严格布局的。
+# 子包 node_modules 里只有「自己显式声明过」的依赖，没声明的拿不到，
+# 靠向上冒泡到根 node_modules 只是碰巧能用 —— 所以子包之间的依赖
+# 必须老老实实写 workspace:*，不能省。
+
+packages:
+  - 'packages/*'
+
+# 只有这些包允许跑 postinstall / install 脚本。
+# pnpm 10 起默认阻断全部构建脚本（防供应链攻击），白名单要显式给。
+# @swc/core 用的是 optional 平台二进制，本身不需要 build，
+# 但留个位置，以后加了 esbuild / sharp 之类的才知道往哪填。
+onlyBuiltDependencies:
+  - '@swc/core'
+
+# 这里没有 strictPeerDependencies 之类的开关，是故意的：
+# 早先它写在 .npmrc 里，但 .npmrc 是 npm / pnpm 共用的，
+# npm 读到不认识的字段就会刷 npm warn Unknown project config，
+# 任何走 npm 的调用（比如 npx）都躲不掉。
+# 挪到本文件的 settings: 块也不行 —— 实测塞个非法值进去 pnpm 10.14 一声不吭，
+# 说明这个位置根本没被读，写了等于自我安慰（想验证：改成 12345 再 pnpm install）。
+# pnpm 默认就不严格对待 peer（只警告不失败），本仓库也不需要更严，
+# 所以什么都不写才是最诚实的写法。真要加，用 .npmrc 并接受 npm 的 warning。

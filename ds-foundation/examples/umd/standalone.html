@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<!--
+  用法一：UMD 直引（IE10 可跑）
+  -------------------------------------------------------------
+  这一页本身就是"最低支持 IE10"的活标本，所以页面里的脚本：
+    · 全部 ES5 语法（var、function、字符串拼接）
+    · 不碰 Promise / classList.add(多参) / dataset / Array.includes
+  打包产物已经是 ES5 了，页面脚本也得跟着守规矩，否则整页在 IE10 上白屏。
+
+  打开方式：直接双击用浏览器打开即可（file:// 下 localStorage 不可用，
+  会自动退到 cookie 存储，刷新后主题依然记得住）。
+-->
+<html lang="zh-CN" data-ds-theme="light" data-ds-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ds-foundation · UMD 直引示例</title>
+
+    <!--
+      防闪烁脚本：必须在任何样式渲染前同步执行。
+      它的唯一职责是把 data-ds-theme 打到 <html> 上，
+      真正的令牌注入等 DOM 就绪后由 createThemeManager().init() 完成。
+    -->
+    <script>
+      (function () {
+        try {
+          var KEY = 'ds-theme'
+          var v = null
+          try {
+            v = window.localStorage.getItem(KEY)
+          } catch (e) {
+            v = null
+          }
+          if (!v) {
+            var cs = document.cookie ? document.cookie.split(';') : []
+            for (var i = 0; i < cs.length; i++) {
+              var p = cs[i]
+              var eq = p.indexOf('=')
+              var n = (eq > -1 ? p.slice(0, eq) : p).replace(/^\s+|\s+$/g, '')
+              if (n === KEY) {
+                v = decodeURIComponent((eq > -1 ? p.slice(eq + 1) : '').replace(/^\s+|\s+$/g, ''))
+                break
+              }
+            }
+          }
+          if (v) {
+            document.documentElement.setAttribute('data-ds-theme', v)
+            document.documentElement.setAttribute('data-ds-mode', v === 'dark' ? 'dark' : 'light')
+          }
+        } catch (e2) {}
+      })()
+    </script>
+
+    <script>/* @ds/core - token / class / theme 纯逻辑层 (umd) */
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.DsCore = {}));
+})(this, (function (exports) { 'use strict';
+
+  /**
+   * 内部小工具
+   * -------------------------------------------------------------
+   * 本包最低支持 IE10，因此：
+   *   · 不使用 Object.assign / Array.prototype.includes / Object.entries
+   *   · 不使用 Set / Map / Promise / WeakMap
+   *   · 语法层面（const、箭头函数、模板字符串、解构）交给 SWC 转译
+   * 这样产物无需 core-js 即可在 IE10 上运行，也不污染宿主全局。
+   *
+   * 注意：TypeScript 7 已移除 target: ES5，tsc 只负责类型检查与产出 .d.ts，
+   * 真正的 ES5 降级由 SWC 完成（见 rollup.config.js）。
+   */ /** 任意字典，令牌表、规则表都用它 */ function isPlainObject(v) {
+      return Object.prototype.toString.call(v) === '[object Object]';
+  }
+  /** Object.assign 的零依赖实现 */ function assign(target) {
+      for(var _len = arguments.length, sources = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++){
+          sources[_key - 1] = arguments[_key];
+      }
+      for(var i = 0; i < sources.length; i++){
+          var src = sources[i];
+          if (!src) continue;
+          for(var k in src){
+              // 泛型 T 只能读、不能直接写，这里断言成 Dict 再赋值
+              if (Object.prototype.hasOwnProperty.call(src, k)) target[k] = src[k];
+          }
+      }
+      return target;
+  }
+  /** 驼峰转短横线：bgSubtle -> bg-subtle */ function kebab(str) {
+      return String(str).replace(/[A-Z]/g, function(m) {
+          return '-' + m.toLowerCase();
+      });
+  }
+  /** 统一遍历数组与对象 */ function each(list, fn) {
+      if (!list) return;
+      if (Array.isArray(list)) {
+          for(var i = 0; i < list.length; i++)fn(list[i], i);
+          return;
+      }
+      for(var k in list){
+          if (Object.prototype.hasOwnProperty.call(list, k)) fn(list[k], k);
+      }
+  }
+  function map(list, fn) {
+      var out = [];
+      each(list, function(item, key) {
+          out.push(fn(item, key));
+      });
+      return out;
+  }
+  function filter(list, fn) {
+      var out = [];
+      each(list, function(item, key) {
+          if (fn(item, key)) out.push(item);
+      });
+      return out;
+  }
+  /** 数组去重（不依赖 Set） */ function unique(list) {
+      var out = [];
+      each(list, function(item) {
+          if (out.indexOf(item) === -1) out.push(item);
+      });
+      return out;
+  }
+  /** 简单路径取值：get(obj, 'color.brand') */ function get(obj, path) {
+      if (!obj || !path) return undefined;
+      var parts = String(path).split('.');
+      var cur = obj;
+      for(var i = 0; i < parts.length; i++){
+          if (cur === null || cur === undefined) return undefined;
+          cur = cur[parts[i]];
+      }
+      return cur;
+  }
+  /** 浅比较，用于判断令牌是否真的变了 */ function shallowEqual(a, b) {
+      if (a === b) return true;
+      if (!isPlainObject(a) || !isPlainObject(b)) return false;
+      var ka = Object.keys(a);
+      var kb = Object.keys(b);
+      if (ka.length !== kb.length) return false;
+      for(var i = 0; i < ka.length; i++){
+          if (a[ka[i]] !== b[ka[i]]) return false;
+      }
+      return true;
+  }
+  /** CSS 属性名驼峰转短横线：backgroundColor -> background-color */ function cssProp(name) {
+      return kebab(name);
+  }
+
+  /**
+   * 色值工具
+   * -------------------------------------------------------------
+   * 这套设计系统里颜色有四种写法（见 README）：
+   *   hex   #4f46e5                 实色
+   *   rgba  rgba(15,23,42,.045)     半透明叠层
+   *   通道  '79 70 229'             用于 rgb(var(--x) / alpha)
+   *   派生  color-mix(...)          现代浏览器专用，IE10 会退化
+   *
+   * 本模块负责在它们之间换算，并保证「带 alpha 的值」在 IE10 上也能用
+   * —— IE10 不认 CSS 变量，所以运行时把 var() 求值是 @ds/dom 的职责，
+   * 这里只做纯计算。
+   */ /** #rgb / #rrggbb -> { r, g, b } */ function parseHex(hex) {
+      if (typeof hex !== 'string') return null;
+      var s = hex.trim().replace(/^#/, '');
+      if (s.length === 3) {
+          s = s.charAt(0) + s.charAt(0) + s.charAt(1) + s.charAt(1) + s.charAt(2) + s.charAt(2);
+      }
+      if (s.length !== 6 || /[^0-9a-fA-F]/.test(s)) return null;
+      return {
+          r: parseInt(s.slice(0, 2), 16),
+          g: parseInt(s.slice(2, 4), 16),
+          b: parseInt(s.slice(4, 6), 16)
+      };
+  }
+  /** rgb()/rgba()/空格语法 -> { r, g, b, a } */ function parseRgb(str) {
+      if (typeof str !== 'string') return null;
+      var m = str.match(/rgba?\(\s*([^)]+)\)/i);
+      if (!m) return null;
+      // 同时兼容 "15, 23, 42, .045" 与 "15 23 42 / .045"
+      var parts = m[1].replace(/\//g, ' ').replace(/,/g, ' ').trim().split(/\s+/);
+      if (parts.length < 3) return null;
+      var out = {
+          r: parseInt(parts[0], 10),
+          g: parseInt(parts[1], 10),
+          b: parseInt(parts[2], 10),
+          a: parts.length > 3 ? parseFloat(parts[3]) : 1
+      };
+      if (isNaN(out.r) || isNaN(out.g) || isNaN(out.b)) return null;
+      if (isNaN(out.a)) out.a = 1;
+      return out;
+  }
+  /** 任意写法 -> { r, g, b, a }；解析不了返回 null（上游应保留原值） */ function parseColor(value) {
+      if (typeof value !== 'string') return null;
+      var v = value.trim();
+      if (v.charAt(0) === '#') {
+          var h = parseHex(v);
+          return h ? {
+              r: h.r,
+              g: h.g,
+              b: h.b,
+              a: 1
+          } : null;
+      }
+      return parseRgb(v);
+  }
+  /** 通道串：'#4f46e5' -> '79 70 229'，用于 rgb(var(--x) / alpha) */ function toChannels(value) {
+      var c = parseColor(value);
+      if (!c) return null;
+      return c.r + ' ' + c.g + ' ' + c.b;
+  }
+  /** 任意写法 -> 'rgba(r,g,b,a)'，IE10 也认（IE10 支持 rgba，不支持 CSS 变量） */ function toRgba(value, alpha) {
+      var c = parseColor(value);
+      if (!c) return null;
+      var a = alpha === undefined || alpha === null ? c.a : alpha;
+      return 'rgba(' + c.r + ', ' + c.g + ', ' + c.b + ', ' + a + ')';
+  }
+  /** 任意写法 -> '#rrggbb' */ function toHex(value) {
+      var c = parseColor(value);
+      if (!c) return null;
+      var hex = function hex(n) {
+          var s = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+          return s.length === 1 ? '0' + s : s;
+      };
+      return '#' + hex(c.r) + hex(c.g) + hex(c.b);
+  }
+  /** 两色按权重混合，weight=0 取 a，1 取 b */ function mix(a, b, weight) {
+      var ca = parseColor(a);
+      var cb = parseColor(b);
+      if (!ca || !cb) return null;
+      var w = weight === undefined ? 0.5 : weight;
+      var ch = function ch(x, y) {
+          return Math.round(x + (y - x) * w);
+      };
+      return 'rgb(' + ch(ca.r, cb.r) + ', ' + ch(ca.g, cb.g) + ', ' + ch(ca.b, cb.b) + ')';
+  }
+  /** 相对亮度，WCAG 2.1 */ function luminance(value) {
+      var c = parseColor(value);
+      if (!c) return 0;
+      var chan = function chan(v) {
+          var s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      };
+      return 0.2126 * chan(c.r) + 0.7152 * chan(c.g) + 0.0722 * chan(c.b);
+  }
+  /** 对比度，用于校验文字/底色是否达标（AA 正文需 >= 4.5） */ function contrast(a, b) {
+      var la = luminance(a);
+      var lb = luminance(b);
+      var hi = Math.max(la, lb);
+      var lo = Math.min(la, lb);
+      return Math.round((hi + 0.05) / (lo + 0.05) * 100) / 100;
+  }
+  /**
+   * 把一个可能带 var() 的值在具体主题里求值。
+   * IE10 通道下调用方会传入已解析好的令牌表，这里把 var(--ds-color-x)
+   * 换成真实值；解析不了就原样返回（浏览器会自行忽略无效声明）。
+   */ function resolveVarValue(value, tokenMap, prefix) {
+      if (typeof value !== 'string' || value.indexOf('var(') === -1) return value;
+      var p = prefix || 'ds';
+      return value.replace(/var\(\s*--([^),]+)\s*(?:,\s*([^)]+))?\)/g, function(all, name, fallback) {
+          var key = String(name).trim();
+          var bare = key.indexOf(p + '-') === 0 ? key.slice(p.length + 1) : key;
+          var hit = tokenMap[key] !== undefined ? tokenMap[key] : tokenMap[bare];
+          if (hit !== undefined) return hit;
+          return fallback ? fallback.trim() : all;
+      });
+  }
+  /** 判断一个对象是否是颜色令牌分组（供 class 生成时识别） */ function isColorToken(v) {
+      return typeof v === 'string' && (v.charAt(0) === '#' || v.indexOf('rgb') === 0);
+  }
+
+  /** 默认命名空间 */ var DEFAULT_NS = 'ds';
+  /** CSS 自定义属性 / class 名都要求以字母或下划线开头，数字开头两边都不合法 */ var VALID = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+  function trim(s) {
+      return String(s).replace(/^\s+|\s+$/g, '');
+  }
+  /**
+   * 'ds' / '--ds-' / 'ds-' -> 'ds'
+   * 只砍开头的一对 -- 和末尾的 -；中间的 - 是前缀的一部分，保留。
+   */ function strip(raw) {
+      if (raw === null || raw === undefined) return '';
+      var s = trim(String(raw));
+      if (s.indexOf('--') === 0) s = s.slice(2);
+      while(s.charAt(s.length - 1) === '-')s = s.slice(0, -1);
+      return s;
+  }
+  function normalizePrefix(input) {
+      var ns = '';
+      if (isPlainObject(input)) {
+          var o = input;
+          ns = o.ns || o.token || strip(o.var || o.cls || o.class || '');
+      } else if (typeof input === 'string') {
+          ns = strip(input);
+      }
+      if (!ns || !VALID.test(ns)) ns = DEFAULT_NS;
+      return {
+          /** 命名空间，resolveVars / resolveVarValue 用它 */ ns: ns,
+          /** ns 的别名，语义化一点 */ token: ns,
+          /** CSS 变量前缀：--acme- */ var: '--' + ns + '-',
+          /** class 前缀：acme- */ cls: ns + '-',
+          /** cls 的别名 */ classPrefix: ns + '-',
+          attr: 'data-' + ns + '-theme',
+          modeAttr: 'data-' + ns + '-mode',
+          accentAttr: 'data-' + ns + '-accent',
+          styleAttr: 'data-' + ns + '-style',
+          ids: {
+              tokens: ns + '-tokens',
+              primitive: ns + '-class-primitive',
+              semantic: ns + '-class-semantic',
+              ssr: ns + '-ssr'
+          },
+          keys: {
+              theme: ns + '-theme',
+              accent: ns + '-accent'
+          }
+      };
+  }
+  /** 已经是归一化对象了就别再算一遍 */ function isPrefix(v) {
+      return isPlainObject(v) && typeof v.ns === 'string' && typeof v.var === 'string';
+  }
+  /** 入口统一走这个：传什么都不用管，拿到的永远是归一化对象 */ function prefixOf(v) {
+      return isPrefix(v) ? v : normalizePrefix(v);
+  }
+
+  /**
+   * 声明一组令牌。本身不做转换，只做校验并原样返回，
+   * 目的是让「定义」这件事在代码里显式可读。
+   */ function defineTokens(tokens) {
+      if (!isPlainObject(tokens)) {
+          throw new TypeError('[ds/core] defineTokens 需要一个普通对象');
+      }
+      return tokens;
+  }
+  /**
+   * 嵌套对象拍平：{ color: { bgSubtle: '#fff' } } -> { 'color-bg-subtle': '#fff' }
+   */ function flattenTokens(obj, prefix, out) {
+      var result = out || {};
+      var head = prefix || '';
+      for(var key in obj){
+          if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+          var value = obj[key];
+          var next = head ? head + '-' + kebab(key) : kebab(key);
+          if (isPlainObject(value)) {
+              flattenTokens(value, next, result);
+          } else if (value !== undefined && value !== null) {
+              result[next] = String(value);
+          }
+      }
+      return result;
+  }
+  /** 把扁平键还原成嵌套对象：'color-bg' -> { color: { bg } } */ function unflattenTokens(flat) {
+      var out = {};
+      for(var key in flat){
+          if (!Object.prototype.hasOwnProperty.call(flat, key)) continue;
+          var parts = key.split('-');
+          var cur = out;
+          for(var i = 0; i < parts.length - 1; i++){
+              if (!isPlainObject(cur[parts[i]])) cur[parts[i]] = {};
+              cur = cur[parts[i]];
+          }
+          cur[parts[parts.length - 1]] = flat[key];
+      }
+      return out;
+  }
+  /**
+   * 合并多组令牌，后者覆盖前者。
+   * 用于「主题 <- 强调色 <- 手动覆盖」的叠加顺序。
+   */ function mergeTokens() {
+      for(var _len = arguments.length, sources = new Array(_len), _key = 0; _key < _len; _key++){
+          sources[_key] = arguments[_key];
+      }
+      var out = {};
+      for(var i = 0; i < sources.length; i++){
+          var src = sources[i];
+          if (!src) continue;
+          assign(out, flattenTokens(src));
+      }
+      return out;
+  }
+  /** 只取某个前缀下的令牌，例如 pickTokens(flat, 'color') */ function pickTokens(flat, group) {
+      var out = {};
+      var head = group + '-';
+      for(var key in flat){
+          if (!Object.prototype.hasOwnProperty.call(flat, key)) continue;
+          if (key.indexOf(head) === 0) out[key.slice(head.length)] = flat[key];
+      }
+      return out;
+  }
+
+  /**
+   * 创建一个主题定义
+   */ function createTheme(def) {
+      if (!def || !isPlainObject(def.tokens)) {
+          throw new TypeError('[ds/core] createTheme 需要 { label, mode, tokens }');
+      }
+      return {
+          label: def.label || '',
+          mode: def.mode === 'dark' ? 'dark' : 'light',
+          tokens: def.tokens,
+          shadowColor: def.shadowColor || (def.mode === 'dark' ? '0 0 0' : '15 23 42')
+      };
+  }
+  /** 主题注册中心 */ function createRegistry() {
+      var themes = {};
+      var accents = {};
+      var overrides = {};
+      var current = '';
+      var currentAccent = '';
+      // 用 api 而非 this：解构出单个方法后依然能链式调用
+      var api = {
+          theme: function theme(name, def) {
+              if (!name) return api;
+              themes[name] = def && def.tokens ? createTheme(def) : def;
+              if (!current) current = name;
+              return api;
+          },
+          accent: function accent(name, def) {
+              if (!name || !def) return api;
+              accents[name] = def;
+              return api;
+          },
+          override: function override(key, value) {
+              if (!key) return api;
+              if (isPlainObject(value)) {
+                  overrides[key] = assign(overrides[key] || {}, value);
+              } else {
+                  overrides[key] = value;
+              }
+              return api;
+          },
+          resetOverrides: function resetOverrides() {
+              overrides = {};
+              return api;
+          },
+          use: function use(name) {
+              if (themes[name]) current = name;
+              return api;
+          },
+          useAccent: function useAccent(name) {
+              currentAccent = name || '';
+              return api;
+          },
+          listThemes: function listThemes() {
+              return Object.keys(themes);
+          },
+          listAccents: function listAccents() {
+              return Object.keys(accents);
+          },
+          getTheme: function getTheme(name) {
+              return themes[name || current] || themes[current] || null;
+          },
+          getAccent: function getAccent(name) {
+              return accents[name === undefined ? currentAccent : name] || null;
+          },
+          /** 当前生效的扁平令牌表 */ resolve: function resolve() {
+              var theme = themes[current];
+              if (!theme) return {};
+              var flat = flattenTokens(theme.tokens);
+              var accent = accents[currentAccent];
+              if (accent && accent.tokens) {
+                  assign(flat, flattenTokens(accent.tokens));
+              }
+              assign(flat, flattenTokens(overrides));
+              return flat;
+          },
+          /** 当前主题名 / 强调色名 / 明暗模式 */ state: function state() {
+              var theme = themes[current];
+              return {
+                  theme: current,
+                  accent: currentAccent,
+                  mode: theme ? theme.mode : 'light',
+                  label: theme ? theme.label : ''
+              };
+          }
+      };
+      return api;
+  }
+  /**
+   * 一次性解析出扁平令牌（不依赖注册中心，便于纯函数使用）
+   */ function resolveTokens(theme, accent, overrides) {
+      if (!theme) return {};
+      var flat = flattenTokens(theme.tokens);
+      if (accent && accent.tokens) assign(flat, flattenTokens(accent.tokens));
+      if (overrides) assign(flat, flattenTokens(overrides));
+      return flat;
+  }
+
+  var DEFAULT_PREFIX = '--ds-';
+  var DEFAULT_CLASS_PREFIX = 'ds-';
+  /**
+   * 令牌键 -> CSS 变量名：color-bg-brand -> --ds-color-bg-brand
+   * prefix 可以是 'acme' / '--acme-' / 'acme-' / 归一化对象，都接受
+   */ function cssVarName(key, prefix) {
+      return prefixOf(prefix).var + key;
+  }
+  /** 'var(--ds-color-brand)'，给了 fallback 就是 'var(--ds-color-brand,#fff)' */ function cssVarRef(key, prefix, fallback) {
+      var name = cssVarName(key, prefix);
+      return fallback ? 'var(' + name + ',' + fallback + ')' : 'var(' + name + ')';
+  }
+  /** 现代通道：令牌表 -> 一条带自定义属性的规则 */ function toCssVars(flat, opts) {
+      opts = opts || {};
+      var selector = opts.selector || ':root';
+      var prefix = prefixOf(opts.prefix).var;
+      var important = opts.important ? ' !important' : '';
+      var body = '';
+      each(flat, function(value, key) {
+          body += prefix + String(key) + ':' + value + important + ';';
+      });
+      return selector + '{' + body + '}';
+  }
+  /**
+   * 把变量块包进任意作用域，用于预生成所有主题（避免首屏后注入带来的闪烁）
+   *   toScopedCss(flat, '[data-ds-theme="dark"]')
+   */ function toScopedCss(flat, selector, opts) {
+      return toCssVars(flat, assign({}, opts || {}, {
+          selector: selector
+      }));
+  }
+  /**
+   * 递归求值：令牌里写的 var(--ds-x) 全部换成真实值。
+   * 迭代 5 轮是为了处理 A 引用 B、B 又引用 C 的链式情况。
+   * IE10 通道与 SSR 静态导出都依赖它。
+   */ function resolveVars(flat, opts) {
+      var out = {};
+      each(flat, function(value, key) {
+          out[String(key)] = value;
+      });
+      var prefix = prefixOf(opts && opts.prefix).ns;
+      for(var pass = 0; pass < 5; pass++){
+          var changed = false;
+          each(out, function(value, key) {
+              var k = String(key);
+              var next = resolveVarValue(value, out, prefix);
+              if (next !== value) {
+                  out[k] = next;
+                  changed = true;
+              }
+          });
+          if (!changed) break;
+      }
+      return out;
+  }
+  /** 规则数组 -> CSS 文本 */ function rulesToCss(rules, opts) {
+      opts = opts || {};
+      var important = opts.important ? ' !important' : '';
+      var resolved = opts.resolve || null;
+      var prefix = prefixOf(opts.prefix).ns;
+      var nl = opts.indent === false ? '' : '\n';
+      var out = '';
+      each(rules, function(rule) {
+          if (!rule || !rule.decls) return;
+          var body = '';
+          each(rule.decls, function(value, prop) {
+              var list = Object.prototype.toString.call(value) === '[object Array]' ? value : [
+                  value
+              ];
+              for(var i = 0; i < list.length; i++){
+                  var v = list[i];
+                  if (v === undefined || v === null) continue;
+                  if (resolved) v = resolveVarValue(v, resolved, prefix);
+                  body += String(prop) + ':' + v + important + ';';
+              }
+          });
+          if (!body) return;
+          out += rule.selector + '{' + body + '}' + nl;
+      });
+      return out;
+  }
+  /** 包成可直接塞进 innerHTML 的 <style> 标签 */ function toStyleTag(css, id, attrs, prefix) {
+      var extra = '';
+      each(attrs || {}, function(v, k) {
+          extra += ' ' + String(k) + '="' + v + '"';
+      });
+      var mark = 'data-' + prefixOf(prefix).ns + '-style';
+      return '<style' + (id ? ' id="' + id + '"' : '') + extra + (id ? ' ' + mark + '="' + id + '"' : '') + '>' + css + '</style>';
+  }
+  /** 生成 SSR 用的 style 标签串（多主题一次性吐出，避免首屏闪烁） */ function renderStyleTags(blocks, prefix) {
+      var cls = prefixOf(prefix).cls;
+      var out = '';
+      each(blocks || {}, function(css, key) {
+          if (!css) return;
+          out += toStyleTag(css, cls + String(key), null, prefix);
+      });
+      return out;
+  }
+
+  /** 默认 scale：primitive class 的取值域（主题无关，所以可以放死值） */ var DEFAULT_SCALES = {
+      space: {
+          0: '0px',
+          1: '4px',
+          2: '8px',
+          3: '12px',
+          4: '16px',
+          5: '20px',
+          6: '24px',
+          7: '28px',
+          8: '32px',
+          10: '40px',
+          12: '48px',
+          16: '64px'
+      },
+      radius: {
+          none: '0px',
+          sm: '2px',
+          md: '4px',
+          lg: '8px',
+          xl: '12px',
+          full: '9999px'
+      },
+      fontSize: {
+          xs: '12px',
+          sm: '13px',
+          md: '14px',
+          lg: '16px',
+          xl: '18px',
+          '2xl': '20px',
+          '3xl': '24px'
+      },
+      lineHeight: {
+          tight: '1.25',
+          snug: '1.375',
+          normal: '1.5',
+          relaxed: '1.625'
+      },
+      borderWidth: {
+          0: '0px',
+          1: '1px',
+          2: '2px',
+          4: '4px'
+      },
+      zIndex: {
+          0: '0',
+          10: '10',
+          20: '20',
+          30: '30',
+          40: '40',
+          50: '50',
+          max: '2147483647'
+      },
+      size: {
+          auto: 'auto',
+          full: '100%',
+          half: '50%',
+          screen: '100vw',
+          0: '0px',
+          4: '16px',
+          8: '32px',
+          12: '48px',
+          16: '64px'
+      }
+  };
+  /**
+   * scale 派生的 primitive 规则声明
+   * prop 可以是数组，一条 class 同时写多个属性（如 px -> padding-left/right）
+   */ var DEFAULT_SCALE_RULES = [
+      {
+          prefix: 'p',
+          prop: 'padding',
+          scale: 'space'
+      },
+      {
+          prefix: 'px',
+          prop: [
+              'padding-left',
+              'padding-right'
+          ],
+          scale: 'space'
+      },
+      {
+          prefix: 'py',
+          prop: [
+              'padding-top',
+              'padding-bottom'
+          ],
+          scale: 'space'
+      },
+      {
+          prefix: 'pt',
+          prop: 'padding-top',
+          scale: 'space'
+      },
+      {
+          prefix: 'pr',
+          prop: 'padding-right',
+          scale: 'space'
+      },
+      {
+          prefix: 'pb',
+          prop: 'padding-bottom',
+          scale: 'space'
+      },
+      {
+          prefix: 'pl',
+          prop: 'padding-left',
+          scale: 'space'
+      },
+      {
+          prefix: 'm',
+          prop: 'margin',
+          scale: 'space'
+      },
+      {
+          prefix: 'mx',
+          prop: [
+              'margin-left',
+              'margin-right'
+          ],
+          scale: 'space'
+      },
+      {
+          prefix: 'my',
+          prop: [
+              'margin-top',
+              'margin-bottom'
+          ],
+          scale: 'space'
+      },
+      {
+          prefix: 'mt',
+          prop: 'margin-top',
+          scale: 'space'
+      },
+      {
+          prefix: 'mr',
+          prop: 'margin-right',
+          scale: 'space'
+      },
+      {
+          prefix: 'mb',
+          prop: 'margin-bottom',
+          scale: 'space'
+      },
+      {
+          prefix: 'ml',
+          prop: 'margin-left',
+          scale: 'space'
+      },
+      {
+          prefix: 'gap',
+          prop: 'gap',
+          scale: 'space'
+      },
+      {
+          prefix: 'rounded',
+          prop: 'border-radius',
+          scale: 'radius'
+      },
+      {
+          prefix: 'text',
+          prop: 'font-size',
+          scale: 'fontSize'
+      },
+      {
+          prefix: 'leading',
+          prop: 'line-height',
+          scale: 'lineHeight'
+      },
+      {
+          prefix: 'border',
+          prop: 'border-width',
+          scale: 'borderWidth'
+      },
+      {
+          prefix: 'z',
+          prop: 'z-index',
+          scale: 'zIndex'
+      },
+      {
+          prefix: 'w',
+          prop: 'width',
+          scale: 'size'
+      },
+      {
+          prefix: 'h',
+          prop: 'height',
+          scale: 'size'
+      }
+  ];
+  /**
+   * 静态工具 class。
+   * decls 的值是数组时按顺序全部输出 —— 这是 IE10 前缀降级的关键：
+   *   display: ['-ms-flexbox', 'flex']  会输出两条，IE10 吃前者，现代浏览器吃后者。
+   */ var DEFAULT_UTILITIES = [
+      {
+          name: 'flex',
+          decls: {
+              display: [
+                  '-ms-flexbox',
+                  'flex'
+              ]
+          }
+      },
+      {
+          name: 'inline-flex',
+          decls: {
+              display: [
+                  '-ms-inline-flexbox',
+                  'inline-flex'
+              ]
+          }
+      },
+      {
+          name: 'block',
+          decls: {
+              display: 'block'
+          }
+      },
+      {
+          name: 'inline-block',
+          decls: {
+              display: 'inline-block'
+          }
+      },
+      {
+          name: 'inline',
+          decls: {
+              display: 'inline'
+          }
+      },
+      {
+          name: 'hidden',
+          decls: {
+              display: 'none'
+          }
+      },
+      {
+          name: 'flex-row',
+          decls: {
+              '-ms-flex-direction': 'row',
+              'flex-direction': 'row'
+          }
+      },
+      {
+          name: 'flex-col',
+          decls: {
+              '-ms-flex-direction': 'column',
+              'flex-direction': 'column'
+          }
+      },
+      {
+          name: 'flex-wrap',
+          decls: {
+              '-ms-flex-wrap': 'wrap',
+              'flex-wrap': 'wrap'
+          }
+      },
+      {
+          name: 'flex-1',
+          decls: {
+              '-ms-flex': '1 1 0%',
+              flex: '1 1 0%'
+          }
+      },
+      {
+          name: 'flex-none',
+          decls: {
+              '-ms-flex': 'none',
+              flex: 'none'
+          }
+      },
+      {
+          name: 'items-start',
+          decls: {
+              '-ms-flex-align': 'start',
+              'align-items': 'flex-start'
+          }
+      },
+      {
+          name: 'items-center',
+          decls: {
+              '-ms-flex-align': 'center',
+              'align-items': 'center'
+          }
+      },
+      {
+          name: 'items-end',
+          decls: {
+              '-ms-flex-align': 'end',
+              'align-items': 'flex-end'
+          }
+      },
+      {
+          name: 'justify-start',
+          decls: {
+              '-ms-flex-pack': 'start',
+              'justify-content': 'flex-start'
+          }
+      },
+      {
+          name: 'justify-center',
+          decls: {
+              '-ms-flex-pack': 'center',
+              'justify-content': 'center'
+          }
+      },
+      {
+          name: 'justify-end',
+          decls: {
+              '-ms-flex-pack': 'end',
+              'justify-content': 'flex-end'
+          }
+      },
+      {
+          name: 'justify-between',
+          decls: {
+              '-ms-flex-pack': 'justify',
+              'justify-content': 'space-between'
+          }
+      },
+      {
+          name: 'text-left',
+          decls: {
+              'text-align': 'left'
+          }
+      },
+      {
+          name: 'text-center',
+          decls: {
+              'text-align': 'center'
+          }
+      },
+      {
+          name: 'text-right',
+          decls: {
+              'text-align': 'right'
+          }
+      },
+      {
+          name: 'font-normal',
+          decls: {
+              'font-weight': '400'
+          }
+      },
+      {
+          name: 'font-medium',
+          decls: {
+              'font-weight': '500'
+          }
+      },
+      {
+          name: 'font-semibold',
+          decls: {
+              'font-weight': '600'
+          }
+      },
+      {
+          name: 'font-bold',
+          decls: {
+              'font-weight': '700'
+          }
+      },
+      {
+          name: 'italic',
+          decls: {
+              'font-style': 'italic'
+          }
+      },
+      {
+          name: 'underline',
+          decls: {
+              'text-decoration': 'underline'
+          }
+      },
+      {
+          name: 'truncate',
+          decls: {
+              overflow: 'hidden',
+              'text-overflow': 'ellipsis',
+              'white-space': 'nowrap'
+          }
+      },
+      {
+          name: 'relative',
+          decls: {
+              position: 'relative'
+          }
+      },
+      {
+          name: 'absolute',
+          decls: {
+              position: 'absolute'
+          }
+      },
+      {
+          name: 'fixed',
+          decls: {
+              position: 'fixed'
+          }
+      },
+      {
+          name: 'overflow-hidden',
+          decls: {
+              overflow: 'hidden'
+          }
+      },
+      {
+          name: 'overflow-auto',
+          decls: {
+              overflow: 'auto'
+          }
+      },
+      {
+          name: 'cursor-pointer',
+          decls: {
+              cursor: 'pointer'
+          }
+      },
+      {
+          name: 'cursor-disabled',
+          decls: {
+              cursor: 'not-allowed'
+          }
+      },
+      {
+          name: 'border-solid',
+          decls: {
+              'border-style': 'solid'
+          }
+      }
+  ];
+  /**
+   * semantic 映射：类名前缀 -> 令牌分组
+   *   bg     -> color-bg-*      .ds-bg-brand  { background-color: var(--ds-color-bg-brand) }
+   *   text   -> color-fg-*      .ds-text-muted{ color:            var(--ds-color-fg-muted) }
+   * wrap 用于需要拼装的属性，如 ring 的 box-shadow
+   */ var DEFAULT_SEMANTIC_MAP = {
+      bg: {
+          prop: 'background-color',
+          group: 'color-bg'
+      },
+      text: {
+          prop: 'color',
+          group: 'color-fg'
+      },
+      border: {
+          prop: 'border-color',
+          group: 'color-border'
+      },
+      ring: {
+          prop: 'box-shadow',
+          group: 'color-ring',
+          wrap: '0 0 0 2px %s'
+      },
+      shadow: {
+          prop: 'box-shadow',
+          group: 'shadow'
+      }
+  };
+  /** 合并自定义 scale（浅合并到分组粒度） */ function defineScales(custom) {
+      var out = {};
+      each(DEFAULT_SCALES, function(v, k) {
+          out[String(k)] = v;
+      });
+      each(custom || {}, function(v, k) {
+          out[String(k)] = isPlainObject(out[String(k)]) ? assign({}, out[String(k)], v) : v;
+      });
+      return out;
+  }
+  function toArray(v) {
+      return Object.prototype.toString.call(v) === '[object Array]' ? v : [
+          v
+      ];
+  }
+  /**
+   * 生成 primitive 规则（主题无关）
+   */ function primitiveRules(opts) {
+      opts = opts || {};
+      var prefix = opts.classPrefix || prefixOf(opts.prefix).cls;
+      var scales = opts.scales || DEFAULT_SCALES;
+      var defs = opts.rules || DEFAULT_SCALE_RULES;
+      var utils = opts.utilities || DEFAULT_UTILITIES;
+      var rules = [];
+      each(defs, function(def) {
+          var scale = scales[def.scale];
+          if (!scale) return;
+          var props = toArray(def.prop);
+          each(scale, function(value, step) {
+              var decls = {};
+              for(var i = 0; i < props.length; i++)decls[props[i]] = value;
+              rules.push({
+                  selector: '.' + prefix + def.prefix + '-' + kebab(String(step)),
+                  decls: decls
+              });
+          });
+      });
+      each(utils, function(util) {
+          rules.push({
+              selector: '.' + prefix + util.name,
+              decls: util.decls
+          });
+      });
+      return rules;
+  }
+  /**
+   * 生成 semantic 规则（主题相关，值写成 var(--ds-*)）
+   */ function semanticRules(flat, opts) {
+      opts = opts || {};
+      var p = prefixOf(opts.prefix);
+      var prefix = opts.classPrefix || p.cls;
+      var map = opts.map || DEFAULT_SEMANTIC_MAP;
+      var varPrefix = opts.varPrefix || p.var;
+      var rules = [];
+      each(map, function(def, short) {
+          var head = def.group;
+          each(flat, function(_value, key) {
+              var suffix = null;
+              var k = String(key);
+              if (k === head) suffix = '';
+              else if (k.indexOf(head + '-') === 0) suffix = k.slice(head.length + 1);
+              if (suffix === null) return;
+              var value = cssVarRef(k, varPrefix);
+              if (def.wrap) value = def.wrap.replace('%s', value);
+              var d = {};
+              d[def.prop] = value;
+              rules.push({
+                  selector: '.' + prefix + String(short) + (suffix ? '-' + suffix : ''),
+                  decls: d
+              });
+          });
+      });
+      return rules;
+  }
+  /**
+   * 一次性产出两层 class 的 CSS 文本
+   */ function buildClassSheet(o) {
+      var opts = o || {};
+      var p = prefixOf(opts.prefix);
+      var cssOpts = {
+          important: opts.important,
+          resolve: opts.resolve,
+          prefix: p,
+          indent: opts.indent
+      };
+      var pRules = primitiveRules({
+          prefix: p,
+          classPrefix: opts.classPrefix,
+          scales: opts.scales,
+          rules: opts.rules,
+          utilities: opts.utilities
+      });
+      var sRules = opts.tokens ? semanticRules(opts.tokens, {
+          prefix: p,
+          classPrefix: opts.classPrefix,
+          varPrefix: opts.varPrefix,
+          map: opts.map
+      }) : [];
+      return {
+          primitive: rulesToCss(pRules, cssOpts),
+          semantic: rulesToCss(sRules, cssOpts),
+          primitiveRules: pRules,
+          semanticRules: sRules
+      };
+  }
+
+  /** 中性色令牌（明暗两套底） */ var lightTokens = {
+      color: {
+          bg: '#ffffff',
+          bgSubtle: '#f8fafc',
+          bgInset: '#f1f5f9',
+          bgOverlay: 'rgba(15, 23, 42, 0.45)',
+          fg: '#0f172a',
+          fgMuted: '#64748b',
+          fgSubtle: '#94a3b8',
+          fgDisabled: '#cbd5e1',
+          fgOnFill: '#ffffff',
+          border: '#e2e8f0',
+          borderStrong: '#cbd5e1',
+          borderFocus: '#4f46e5',
+          success: '#16a34a',
+          successSubtle: 'rgba(22, 163, 74, 0.12)',
+          warning: '#d97706',
+          warningSubtle: 'rgba(217, 119, 6, 0.12)',
+          danger: '#dc2626',
+          dangerSubtle: 'rgba(220, 38, 38, 0.12)',
+          info: '#0284c7',
+          infoSubtle: 'rgba(2, 132, 199, 0.12)'
+      },
+      radius: {
+          sm: '2px',
+          md: '4px',
+          lg: '8px',
+          full: '9999px'
+      },
+      font: {
+          family: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+          sizeSm: '12px',
+          sizeMd: '14px',
+          sizeLg: '16px',
+          lineTight: '1.25',
+          lineNormal: '1.5'
+      },
+      shadow: {
+          none: 'none',
+          sm: '0 1px 2px rgba(15, 23, 42, 0.06)',
+          md: '0 2px 8px rgba(15, 23, 42, 0.08)',
+          lg: '0 8px 24px rgba(15, 23, 42, 0.12)',
+          focus: '0 0 0 3px rgba(79, 70, 229, 0.25)'
+      },
+      motion: {
+          fast: '120ms',
+          base: '200ms',
+          slow: '320ms',
+          ease: 'cubic-bezier(0.4, 0, 0.2, 1)'
+      }
+  };
+  var darkTokens = {
+      color: {
+          bg: '#0b1220',
+          bgSubtle: '#111a2b',
+          bgInset: '#0f172a',
+          bgOverlay: 'rgba(2, 6, 23, 0.6)',
+          fg: '#e2e8f0',
+          fgMuted: '#94a3b8',
+          fgSubtle: '#64748b',
+          fgDisabled: '#475569',
+          fgOnFill: '#0b1220',
+          border: '#1e293b',
+          borderStrong: '#334155',
+          borderFocus: '#818cf8',
+          success: '#22c55e',
+          successSubtle: 'rgba(34, 197, 94, 0.16)',
+          warning: '#f59e0b',
+          warningSubtle: 'rgba(245, 158, 11, 0.16)',
+          danger: '#ef4444',
+          dangerSubtle: 'rgba(239, 68, 68, 0.16)',
+          info: '#38bdf8',
+          infoSubtle: 'rgba(56, 189, 248, 0.16)'
+      },
+      radius: {
+          sm: '2px',
+          md: '4px',
+          lg: '8px',
+          full: '9999px'
+      },
+      font: lightTokens.font,
+      shadow: {
+          none: 'none',
+          sm: '0 1px 2px rgba(0, 0, 0, 0.4)',
+          md: '0 2px 8px rgba(0, 0, 0, 0.45)',
+          lg: '0 8px 24px rgba(0, 0, 0, 0.55)',
+          focus: '0 0 0 3px rgba(129, 140, 248, 0.35)'
+      },
+      motion: lightTokens.motion
+  };
+  var lightTheme = createTheme({
+      label: '浅色',
+      mode: 'light',
+      tokens: lightTokens
+  });
+  var darkTheme = createTheme({
+      label: '深色',
+      mode: 'dark',
+      tokens: darkTokens
+  });
+  /**
+   * 强调色工厂：给一个主色，自动推出 hover / active / subtle / border / 前景色。
+   * 业务接一个新品牌色只需要一行：registry.accent('brandA', makeAccent('#0ea5e9'))
+   */ function makeAccent(hex, label) {
+      var subtle = toRgba(hex, 0.12);
+      var darker = mix(hex, '#000000', 0.12);
+      var darkest = mix(hex, '#000000', 0.24);
+      var onFill = luminance(hex) > 0.45 ? '#0f172a' : '#ffffff';
+      return {
+          label: label || hex,
+          swatch: hex,
+          tokens: {
+              color: {
+                  brand: hex,
+                  brandHover: darker,
+                  brandActive: darkest,
+                  brandSubtle: subtle,
+                  brandBorder: toRgba(hex, 0.4),
+                  onBrand: onFill,
+                  ring: toRgba(hex, 0.35),
+                  borderFocus: hex
+              },
+              shadow: {
+                  focus: '0 0 0 3px ' + toRgba(hex, 0.25)
+              }
+          }
+      };
+  }
+  var DEFAULT_ACCENT = makeAccent('#4f46e5', '靛蓝');
+  var accents = {
+      indigo: DEFAULT_ACCENT,
+      blue: makeAccent('#0ea5e9', '天蓝'),
+      green: makeAccent('#16a34a', '青绿'),
+      orange: makeAccent('#ea580c', '暖橙')
+  };
+
+  var version = '0.1.0';
+
+  exports.DEFAULT_ACCENT = DEFAULT_ACCENT;
+  exports.DEFAULT_CLASS_PREFIX = DEFAULT_CLASS_PREFIX;
+  exports.DEFAULT_NS = DEFAULT_NS;
+  exports.DEFAULT_PREFIX = DEFAULT_PREFIX;
+  exports.DEFAULT_SCALES = DEFAULT_SCALES;
+  exports.DEFAULT_SCALE_RULES = DEFAULT_SCALE_RULES;
+  exports.DEFAULT_SEMANTIC_MAP = DEFAULT_SEMANTIC_MAP;
+  exports.DEFAULT_UTILITIES = DEFAULT_UTILITIES;
+  exports.accents = accents;
+  exports.assign = assign;
+  exports.buildClassSheet = buildClassSheet;
+  exports.contrast = contrast;
+  exports.createRegistry = createRegistry;
+  exports.createTheme = createTheme;
+  exports.cssProp = cssProp;
+  exports.cssVarName = cssVarName;
+  exports.cssVarRef = cssVarRef;
+  exports.darkTheme = darkTheme;
+  exports.darkTokens = darkTokens;
+  exports.defineScales = defineScales;
+  exports.defineTokens = defineTokens;
+  exports.each = each;
+  exports.filter = filter;
+  exports.flattenTokens = flattenTokens;
+  exports.get = get;
+  exports.isColorToken = isColorToken;
+  exports.isPlainObject = isPlainObject;
+  exports.isPrefix = isPrefix;
+  exports.kebab = kebab;
+  exports.lightTheme = lightTheme;
+  exports.lightTokens = lightTokens;
+  exports.luminance = luminance;
+  exports.makeAccent = makeAccent;
+  exports.map = map;
+  exports.mergeTokens = mergeTokens;
+  exports.mix = mix;
+  exports.normalizePrefix = normalizePrefix;
+  exports.parseColor = parseColor;
+  exports.parseHex = parseHex;
+  exports.parseRgb = parseRgb;
+  exports.pickTokens = pickTokens;
+  exports.prefixOf = prefixOf;
+  exports.primitiveRules = primitiveRules;
+  exports.renderStyleTags = renderStyleTags;
+  exports.resolveTokens = resolveTokens;
+  exports.resolveVarValue = resolveVarValue;
+  exports.resolveVars = resolveVars;
+  exports.rulesToCss = rulesToCss;
+  exports.semanticRules = semanticRules;
+  exports.shallowEqual = shallowEqual;
+  exports.toChannels = toChannels;
+  exports.toCssVars = toCssVars;
+  exports.toHex = toHex;
+  exports.toRgba = toRgba;
+  exports.toScopedCss = toScopedCss;
+  exports.toStyleTag = toStyleTag;
+  exports.unflattenTokens = unflattenTokens;
+  exports.unique = unique;
+  exports.version = version;
+
+}));
+//# sourceMappingURL=index.umd.cjs.map
+</script>
+    <script>/* @ds/dom - 双通道主题适配层 (umd) */
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@ds/core')) :
+  typeof define === 'function' && define.amd ? define(['exports', '@ds/core'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.DsDom = {}, global.DsCore));
+})(this, (function (exports, core) { 'use strict';
+
+  /**
+   * 能力检测
+   * -------------------------------------------------------------
+   * 全部做缓存（一次会话内只测一遍），且全部包 try/catch：
+   * IE10 上不少 API 存在但一调用就抛，检测本身不能把页面搞挂。
+   */ var cache = {};
+  function memo(key, fn) {
+      if (cache[key] === undefined) cache[key] = fn();
+      return cache[key];
+  }
+  /** 是否支持 CSS 自定义属性（IE10 / IE11 都不支持，Edge 15+ 才有） */ function supportsCssVars() {
+      return memo('cssVars', function() {
+          if (typeof window === 'undefined' || !window.document) return false;
+          if (window.CSS && typeof window.CSS.supports === 'function') {
+              try {
+                  return window.CSS.supports('--ds-test', '0');
+              } catch (e) {
+              /* 继续走下面的人工检测 */ }
+          }
+          try {
+              var el = window.document.createElement('div');
+              el.style.setProperty('--ds-test', '0');
+              return el.style.getPropertyValue('--ds-test') === '0';
+          } catch (e2) {
+              return false;
+          }
+      });
+  }
+  /** 是否支持 matchMedia（IE10 支持，IE9 不支持） */ function supportsMatchMedia() {
+      return memo('matchMedia', function() {
+          return typeof window !== 'undefined' && typeof window.matchMedia === 'function';
+      });
+  }
+  /** 系统是否偏好深色 */ function prefersDark() {
+      if (!supportsMatchMedia()) return false;
+      try {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+      } catch (e) {
+          return false;
+      }
+  }
+  /** 是否支持 localStorage（file:// 下 IE 会不可用） */ function supportsStorage() {
+      return memo('storage', function() {
+          try {
+              var k = '__ds_test__';
+              window.localStorage.setItem(k, '1');
+              window.localStorage.removeItem(k);
+              return true;
+          } catch (e) {
+              return false;
+          }
+      });
+  }
+  /** 是否支持 classList（IE10 有，IE9 没有） */ function supportsClassList() {
+      return memo('classList', function() {
+          return typeof window !== 'undefined' && !!window.document && !!window.document.documentElement.classList;
+      });
+  }
+  /** 当前是否跑在 IE（含 10/11），用于加载补丁分支 */ function isIE() {
+      return memo('ie', function() {
+          if (typeof window === 'undefined' || !window.navigator) return false;
+          var ua = window.navigator.userAgent;
+          return ua.indexOf('MSIE ') > -1 || ua.indexOf('Trident/') > -1;
+      });
+  }
+  /** 测试用：清空检测缓存 */ function resetEnvCache() {
+      cache = {};
+  }
+
+  function createEmitter() {
+      var handlers = [];
+      return {
+          on: function on(fn) {
+              if (typeof fn !== 'function') return function() {};
+              handlers.push(fn);
+              var self = this;
+              return function off() {
+                  self.off(fn);
+              };
+          },
+          off: function off(fn) {
+              var next = [];
+              core.each(handlers, function(h) {
+                  if (h !== fn) next.push(h);
+              });
+              handlers = next;
+          },
+          emit: function emit(payload) {
+              // 复制一份再遍历，避免回调里 off 自己导致漏执行
+              var snapshot = handlers.slice(0);
+              core.each(snapshot, function(fn) {
+                  try {
+                      fn(payload);
+                  } catch (e) {
+                      if (typeof console !== 'undefined' && console.warn) {
+                          console.warn('[ds/dom] 主题订阅回调抛错：', e);
+                      }
+                  }
+              });
+          },
+          clear: function clear() {
+              handlers = [];
+          },
+          count: function count() {
+              return handlers.length;
+          }
+      };
+  }
+
+  function readCookie(name) {
+      try {
+          var all = document.cookie ? document.cookie.split(';') : [];
+          for(var i = 0; i < all.length; i++){
+              var part = all[i];
+              var eq = part.indexOf('=');
+              var k = (eq > -1 ? part.slice(0, eq) : part).replace(/^\s+|\s+$/g, '');
+              if (k === name) {
+                  return decodeURIComponent((eq > -1 ? part.slice(eq + 1) : '').replace(/^\s+|\s+$/g, ''));
+              }
+          }
+      } catch (e) {
+      /* 忽略 */ }
+      return null;
+  }
+  function writeCookie(name, value, days) {
+      try {
+          var d = new Date();
+          d.setTime(d.getTime() + (days || 180) * 24 * 60 * 60 * 1000);
+          document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/';
+      } catch (e) {
+      /* 忽略 */ }
+  }
+  function createStore(key, opts) {
+      var options = opts || {};
+      var enabled = options.persist !== false;
+      var useCookie = options.cookie === true || !supportsStorage();
+      return {
+          get: function get() {
+              if (!enabled) return null;
+              try {
+                  return useCookie ? readCookie(key) : window.localStorage.getItem(key);
+              } catch (e) {
+                  return null;
+              }
+          },
+          set: function set(value) {
+              if (!enabled) return;
+              try {
+                  if (useCookie) writeCookie(key, value, options.days);
+                  else window.localStorage.setItem(key, value);
+              } catch (e) {
+                  // localStorage 写满 / 被禁用，临时退到 cookie
+                  writeCookie(key, value, options.days);
+              }
+          },
+          remove: function remove() {
+              if (!enabled) return;
+              try {
+                  if (useCookie) writeCookie(key, '', -1);
+                  else window.localStorage.removeItem(key);
+              } catch (e) {
+              /* 忽略 */ }
+          }
+      };
+  }
+
+  var DEFAULT_MAX_RULES = 4000;
+  /** 把一段完整 CSS 按 '}' 计数切片，避免撞 IE 单表规则上限 */ function splitCss(css, maxRules) {
+      var max = maxRules || DEFAULT_MAX_RULES;
+      var parts = [];
+      var start = 0;
+      var count = 0;
+      for(var i = 0; i < css.length; i++){
+          if (css.charAt(i) === '}') {
+              count++;
+              if (count >= max) {
+                  parts.push(css.slice(start, i + 1));
+                  start = i + 1;
+                  count = 0;
+              }
+          }
+      }
+      if (start < css.length) parts.push(css.slice(start));
+      return parts.length ? parts : [
+          ''
+      ];
+  }
+  function setText(el, css) {
+      try {
+          el.textContent = css;
+      } catch (e) {
+          // IE8 及更老的分支：本包最低 IE10，走到这里说明宿主环境异常，再退一步
+          var sheet = el.styleSheet;
+          if (sheet && typeof sheet.cssText === 'string') {
+              sheet.cssText = css;
+          }
+      }
+  }
+  function getHead(doc) {
+      return doc.getElementsByTagName('head')[0] || doc.documentElement;
+  }
+  /**
+   * 取（或建）一个带 id 的 <style>
+   * @param {Document} doc
+   * @param {string} id
+   * @param {string|object} [prefix] 控制标记属性名（默认 data-ds-style）
+   * @returns {Element|null}
+   */ function ensureStyle(doc, id, prefix) {
+      if (!doc) return null;
+      var mark = 'data-' + core.prefixOf(prefix).ns + '-style';
+      var el = doc.getElementById(id);
+      if (!el) {
+          el = doc.createElement('style');
+          el.id = id;
+          el.setAttribute(mark, id);
+          el.type = 'text/css';
+          getHead(doc).appendChild(el);
+      }
+      return el;
+  }
+  /**
+   * 写入一段 CSS，必要时自动切片
+   * @param {object} [opts] { maxRules, cleanup, previousCount, prefix }
+   * @returns {Array<string>} 实际用到的所有 style id
+   */ function writeStyle(doc, id, css, opts) {
+      var options = opts || {};
+      var max = options.maxRules || DEFAULT_MAX_RULES;
+      var chunks = splitCss(css || '', max);
+      var ids = [];
+      for(var i = 0; i < chunks.length; i++){
+          var sid = chunks.length === 1 ? id : id + '-' + i;
+          var el = ensureStyle(doc, sid, options.prefix);
+          if (el) {
+              setText(el, chunks[i]);
+              ids.push(sid);
+          }
+      }
+      // 上一次用了更多切片、这次变少了，把多余的标签删掉
+      if (options.cleanup !== false) {
+          for(var j = chunks.length; j < (options.previousCount || chunks.length); j++){
+              var old = doc.getElementById(j === 0 ? id : id + '-' + j);
+              if (old && old.parentNode) old.parentNode.removeChild(old);
+          }
+      }
+      return ids;
+  }
+  function removeStyle(doc, ids) {
+      if (!doc || !ids) return;
+      for(var i = 0; i < ids.length; i++){
+          var el = doc.getElementById(ids[i]);
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+      }
+  }
+  /** 现代通道：写自定义属性 */ function setCssVar(el, name, value) {
+      if (!el || !el.style) return;
+      try {
+          el.style.setProperty(name, value);
+      } catch (e) {
+      /* IE10 走到这里说明被强制切到了 vars 通道，静默失败 */ }
+  }
+  function removeCssVar(el, name) {
+      if (!el || !el.style) return;
+      try {
+          el.style.removeProperty(name);
+      } catch (e) {
+      /* 忽略 */ }
+  }
+
+  function pickChannel(option) {
+      if (option === 'vars' || option === 'static') return option;
+      return supportsCssVars() ? 'vars' : 'static';
+  }
+  /**
+   * @param {object} [options]
+   * @param {Document} [options.doc]
+   * @param {Element}  [options.target]      变量写在哪（默认 <html>；传容器可做局部深色区）
+   * @param {object}   [options.themes]      { light: theme, dark: theme }
+   * @param {object}   [options.accents]
+   * @param {string}   [options.theme]       默认主题名
+   * @param {string}   [options.accent]
+   * @param {string|object} [options.prefix] 统一前缀：'acme' / '--acme-' / 'acme-' / 归一化对象。
+   *                                          一次设置，CSS 变量、class、DOM 属性、style id、存储 key 全跟着换
+   * @param {'auto'|'vars'|'static'} [options.channel]
+   * @param {boolean}  [options.withClasses] 是否注入两层 class（默认 true）
+   * @param {boolean}  [options.persist]
+   * @param {boolean}  [options.followSystem]
+   */ function createThemeManager(options) {
+      var o = options || {};
+      var doc = o.doc || (typeof document !== 'undefined' ? document : null);
+      var registry = o.registry || core.createRegistry();
+      // 前缀只归一化一次，后面所有地方都从 p 上取，杜绝 'ds' / '--ds-' / 'ds-' 混用
+      var p = core.prefixOf(o.prefix);
+      var prefix = p.var;
+      var target = o.target || (doc ? doc.documentElement : null);
+      var attr = o.attr || p.attr;
+      var modeAttr = o.modeAttr || p.modeAttr;
+      var accentAttr = o.accentAttr || p.accentAttr;
+      var withClasses = o.withClasses !== false;
+      var channel = pickChannel(o.channel);
+      var ids = {
+          tokens: o.idTokens || p.ids.tokens,
+          primitive: o.idPrimitive || p.ids.primitive,
+          semantic: o.idSemantic || p.ids.semantic
+      };
+      var store = createStore(o.storageKey || p.keys.theme, {
+          persist: o.persist
+      });
+      var accentStore = createStore(o.accentKey || p.keys.accent, {
+          persist: o.persist
+      });
+      var emitter = createEmitter();
+      // 写 <style> 时统一带上前缀，标记属性才跟着变成 data-acme-style
+      var styleOpts = {
+          prefix: p
+      };
+      var classOpts = {
+          scales: o.scales,
+          rules: o.rules,
+          utilities: o.utilities,
+          map: o.map,
+          prefix: p,
+          classPrefix: o.classPrefix,
+          varPrefix: o.varPrefix,
+          important: o.important,
+          indent: false
+      };
+      var started = false;
+      var primitiveWritten = false;
+      var semanticWritten = false;
+      var lastKeys = [];
+      var semanticIds = [];
+      var themesIn = o.themes || {};
+      var accentsIn = o.accents || {};
+      // 开箱即用：业务没给主题就上内置的明暗两套 + 内置强调色。
+      // 想要完全自定义就传 preset: false，或者传自己的 themes/accents 覆盖同名项。
+      if (o.preset !== false && !o.themes) {
+          themesIn = {
+              light: core.lightTheme,
+              dark: core.darkTheme
+          };
+      }
+      if (o.preset !== false && !o.accents) {
+          accentsIn = core.accents;
+      }
+      core.each(themesIn, function(def, name) {
+          registry.theme(name, def);
+      });
+      core.each(accentsIn, function(def, name) {
+          registry.accent(name, def);
+      });
+      var stored = store.get();
+      var initial = o.theme || stored || (o.followSystem && prefersDark() ? 'dark' : '');
+      if (initial) registry.use(initial);
+      var storedAccent = accentStore.get();
+      var initialAccent = o.accent || storedAccent;
+      // 不给默认强调色的话 brand 一族全是 undefined，界面上品牌色会直接消失
+      if (!initialAccent && o.defaultAccent !== false && accentsIn.indigo) initialAccent = 'indigo';
+      if (initialAccent) registry.useAccent(initialAccent);
+      function currentFlat() {
+          return registry.resolve();
+      }
+      function currentResolved() {
+          return core.resolveVars(currentFlat(), {
+              prefix: p
+          });
+      }
+      function writeTokens(flat) {
+          if (channel !== 'vars') return;
+          if (target && doc && target === doc.documentElement) {
+              writeStyle(doc, ids.tokens, core.toCssVars(flat, {
+                  selector: ':root',
+                  prefix: p
+              }), styleOpts);
+              return;
+          }
+          // 局部作用域：没有 :root 可用，直接往元素上写内联变量
+          if (!target) return;
+          var next = [];
+          core.each(flat, function(value, key) {
+              setCssVar(target, prefix + key, value);
+              next.push(key);
+          });
+          // 清掉这次不再存在的键
+          core.each(lastKeys, function(key) {
+              if (next.indexOf(key) === -1) removeCssVar(target, prefix + key);
+          });
+          lastKeys = next;
+      }
+      function writeClasses(flat) {
+          if (!withClasses || !doc) return;
+          var sheetOpts = core.assign({}, classOpts, {
+              tokens: flat
+          });
+          if (channel === 'static') sheetOpts.resolve = core.resolveVars(flat, {
+              prefix: p
+          });
+          var sheet = core.buildClassSheet(sheetOpts);
+          if (!primitiveWritten) {
+              writeStyle(doc, ids.primitive, sheet.primitive, styleOpts);
+              primitiveWritten = true;
+          }
+          if (channel === 'vars') {
+              // 用 var() 引用，规则只写一次，之后换主题只改变量
+              if (!semanticWritten) {
+                  writeStyle(doc, ids.semantic, sheet.semantic, styleOpts);
+                  semanticWritten = true;
+              }
+          } else {
+              // IE10：每次换主题都得整段重写
+              removeStyle(doc, semanticIds);
+              semanticIds = writeStyle(doc, ids.semantic, sheet.semantic, styleOpts);
+          }
+      }
+      function paint() {
+          var flat = currentFlat();
+          var state = registry.state();
+          if (target) {
+              target.setAttribute(attr, state.theme);
+              target.setAttribute(modeAttr, state.mode);
+              if (state.accent) target.setAttribute(accentAttr, state.accent);
+              else target.removeAttribute(accentAttr);
+          }
+          writeTokens(flat);
+          writeClasses(flat);
+          emitter.emit(core.assign({
+              tokens: flat,
+              channel: channel
+          }, state));
+      }
+      var api = {
+          registry: registry,
+          channel: channel,
+          /** 归一化后的前缀对象：{ ns, var, cls, attr, modeAttr, accentAttr, ids, keys } */ prefix: p,
+          /** 令牌键 -> CSS 变量名：'color-brand' -> '--acme-color-brand' */ varName: function varName(key) {
+              return p.var + key;
+          },
+          /** class 短名 -> 完整类名：'bg-brand' -> 'acme-bg-brand' */ className: function className(short) {
+              return p.cls + short;
+          },
+          /** 挂载：写初始样式。可重复调用，等价于 apply() */ init: function init() {
+              started = true;
+              paint();
+              if (o.followSystem && supportsMatchMedia()) {
+                  try {
+                      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                      var handler = function handler(e) {
+                          if (store.get()) return; // 用户手动选过就不跟随系统
+                          registry.use(e.matches ? 'dark' : 'light');
+                          paint();
+                      };
+                      if (typeof mq.addListener === 'function') mq.addListener(handler);
+                      else if (typeof mq.addEventListener === 'function') mq.addEventListener('change', handler);
+                  } catch (e) {
+                  /* 忽略 */ }
+              }
+              return api;
+          },
+          /** 重新应用当前主题（改了 override 之后调用） */ apply: function apply() {
+              paint();
+              return api;
+          },
+          use: function use(name) {
+              registry.use(name);
+              store.set(name);
+              if (started) paint();
+              return api;
+          },
+          useAccent: function useAccent(name) {
+              registry.useAccent(name);
+              accentStore.set(name || '');
+              if (started) paint();
+              return api;
+          },
+          /** 在明暗之间切换 */ toggle: function toggle() {
+              var state = registry.state();
+              var want = state.mode === 'dark' ? 'light' : 'dark';
+              var names = registry.listThemes();
+              var hit = '';
+              for(var i = 0; i < names.length; i++){
+                  var t = registry.getTheme(names[i]);
+                  if (t && t.mode === want) {
+                      hit = names[i];
+                      break;
+                  }
+              }
+              if (hit) api.use(hit);
+              return api;
+          },
+          override: function override(key, value) {
+              registry.override(key, value);
+              if (started) paint();
+              return api;
+          },
+          resetOverrides: function resetOverrides() {
+              registry.resetOverrides();
+              if (started) paint();
+              return api;
+          },
+          /** 取令牌值。IE10 通道下返回已求值的实值，现代通道返回 var() 引用 */ get: function get(key, asRef) {
+              if (asRef && channel === 'vars') return 'var(' + prefix + key + ')';
+              return currentResolved()[key];
+          },
+          /** 生成行内样式对象，例如 :style="ds.style({ color: 'color-fg-muted' })" */ style: function style(map) {
+              var out = {};
+              core.each(map || {}, function(tokenKey, cssProp) {
+                  var v = api.get(tokenKey, channel === 'vars');
+                  if (v !== undefined && v !== null) out[cssProp] = v;
+              });
+              return out;
+          },
+          tokens: function tokens() {
+              return currentFlat();
+          },
+          state: function state() {
+              return core.assign({
+                  channel: channel
+              }, registry.state());
+          },
+          subscribe: function subscribe(fn) {
+              return emitter.on(fn);
+          },
+          /**
+       * 导出 CSS 文本，供 SSR 内联到 <head>（避免首屏闪白）
+       * @param {{theme?:string, accent?:string, channel?:string}} [opt]
+       */ cssText: function cssText(opt) {
+              var q = opt || {};
+              var savedT = registry.state().theme;
+              var savedA = registry.state().accent;
+              if (q.theme) registry.use(q.theme);
+              if (q.accent !== undefined) registry.useAccent(q.accent);
+              var flat = currentFlat();
+              var ch = q.channel || channel;
+              var sheetOpts = core.assign({}, classOpts, {
+                  tokens: flat
+              });
+              if (ch === 'static') sheetOpts.resolve = core.resolveVars(flat, {
+                  prefix: p
+              });
+              var sheet = core.buildClassSheet(sheetOpts);
+              var out = {
+                  tokens: ch === 'vars' ? core.toCssVars(flat, {
+                      selector: ':root',
+                      prefix: p
+                  }) : '',
+                  primitive: sheet.primitive,
+                  semantic: sheet.semantic,
+                  channel: ch,
+                  all: ''
+              };
+              out.all = out.tokens + out.primitive + out.semantic;
+              registry.use(savedT);
+              registry.useAccent(savedA);
+              return out;
+          },
+          destroy: function destroy() {
+              if (doc) {
+                  removeStyle(doc, [
+                      ids.tokens,
+                      ids.primitive,
+                      ids.semantic
+                  ]);
+                  removeStyle(doc, semanticIds);
+              }
+              if (target) {
+                  core.each(lastKeys, function(key) {
+                      removeCssVar(target, prefix + key);
+                  });
+              }
+              lastKeys = [];
+              primitiveWritten = false;
+              semanticWritten = false;
+              started = false;
+              emitter.clear();
+          }
+      };
+      return api;
+  }
+
+  /**
+   * 返回可直接内联到 <head> 的脚本字符串
+   * @param {object} [options]
+   * @param {string|object} [options.prefix] 与 createThemeManager 传同一个值即可
+   */ function getInitScript(options) {
+      var o = options || {};
+      var p = core.prefixOf(o.prefix);
+      var config = {
+          key: o.storageKey || p.keys.theme,
+          ak: o.accentKey || p.keys.accent,
+          attr: o.attr || p.attr,
+          mattr: o.modeAttr || p.modeAttr,
+          aattr: o.accentAttr || p.accentAttr,
+          def: o.theme || '',
+          modes: o.modes || {
+              light: 'light',
+              dark: 'dark'
+          }
+      };
+      return '<script>(function(c){try{' + "var d=document.documentElement;" + "function rd(k){try{var v=localStorage.getItem(k);if(v){return v}}catch(e){}" + "var s=document.cookie?document.cookie.split(';'):[];" + "for(var i=0;i<s.length;i++){var p=s[i],x=p.indexOf('=')," + "n=(x>-1?p.slice(0,x):p).replace(/^\\s+|\\s+$/g,'');" + "if(n===k){return decodeURIComponent((x>-1?p.slice(x+1):'').replace(/^\\s+|\\s+$/g,''))}}" + "return null}" + "var t=rd(c.key)||c.def,a=rd(c.ak);" + "if(t){d.setAttribute(c.attr,t);var m=c.modes[t];if(m){d.setAttribute(c.mattr,m)}}" + "if(a){d.setAttribute(c.aattr,a)}" + '}catch(e){}})(' + JSON.stringify(config) + ');<\/script>';
+  }
+  /** 与 getInitScript 配套：把 SSR 阶段算好的 CSS 也内联进去，首屏就是最终配色 */ function renderHead(cssText, options) {
+      var o = options || {};
+      var id = o.styleId || core.prefixOf(o.prefix).ids.ssr;
+      return getInitScript(o) + (cssText ? '<style id="' + id + '">' + cssText + '</style>' : '');
+  }
+
+  /**
+   * 一行启动：createBootstrap({ themes, accents }).init()
+   * 适合 UMD 直引场景，省去手动建注册中心。
+   */ function bootstrap(options) {
+      return createThemeManager(options).init();
+  }
+  var version = '0.1.0';
+
+  exports.DEFAULT_MAX_RULES = DEFAULT_MAX_RULES;
+  exports.bootstrap = bootstrap;
+  exports.createEmitter = createEmitter;
+  exports.createStore = createStore;
+  exports.createThemeManager = createThemeManager;
+  exports.default = createThemeManager;
+  exports.ensureStyle = ensureStyle;
+  exports.getHead = getHead;
+  exports.getInitScript = getInitScript;
+  exports.isIE = isIE;
+  exports.pickChannel = pickChannel;
+  exports.prefersDark = prefersDark;
+  exports.removeCssVar = removeCssVar;
+  exports.removeStyle = removeStyle;
+  exports.renderHead = renderHead;
+  exports.resetEnvCache = resetEnvCache;
+  exports.setCssVar = setCssVar;
+  exports.splitCss = splitCss;
+  exports.supportsClassList = supportsClassList;
+  exports.supportsCssVars = supportsCssVars;
+  exports.supportsMatchMedia = supportsMatchMedia;
+  exports.supportsStorage = supportsStorage;
+  exports.version = version;
+  exports.writeStyle = writeStyle;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+}));
+//# sourceMappingURL=index.umd.cjs.map
+</script>
+
+    <style>
+      /*
+        两条声明的降级写法：
+        第一条给 IE10（它不认 var()，整条声明会被丢弃，于是保留第一行的实色）
+        第二条给现代浏览器（取变量，随主题实时变化）
+      */
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ffffff;
+        background: var(--ds-color-bg, #ffffff);
+        color: #0f172a;
+        color: var(--ds-color-fg, #0f172a);
+        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 14px;
+      }
+      .demo-box {
+        min-height: 64px;
+        border: 1px solid #e2e8f0;
+        border-color: var(--ds-color-border, #e2e8f0);
+      }
+      code {
+        font-family: Consolas, Menlo, monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1 class="ds-text-2xl ds-font-bold ds-mb-4">ds-foundation · UMD 直引</h1>
+
+    <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
+      <button type="button" id="btn-light" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+        浅色
+      </button>
+      <button type="button" id="btn-dark" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+        深色
+      </button>
+      <button type="button" id="btn-toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+        切换明暗
+      </button>
+      <select id="sel-accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid">
+        <option value="indigo">靛蓝</option>
+        <option value="blue">天蓝</option>
+        <option value="green">青绿</option>
+        <option value="orange">暖橙</option>
+      </select>
+      <button type="button" id="btn-custom" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+        覆盖圆角
+      </button>
+    </div>
+
+    <div id="info" class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle ds-mb-4">初始化中…</div>
+
+    <div class="ds-flex ds-gap-4" style="flex-wrap: wrap">
+      <div class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 220px">
+        <div class="ds-font-semibold ds-mb-2">semantic class</div>
+        <div class="ds-text-muted">.ds-text-muted —— 随主题变</div>
+        <!--
+          注意这块没有写 style="background: var(--ds-color-brand)"。
+          那样写在 IE10 上会整条声明失效、色块变成透明。
+          正确姿势是用 ds.style() 让引擎按通道返回该给的东西：
+            vars 通道 -> var(--ds-color-brand)
+            static 通道 -> #4f46e5（真实值）
+        -->
+        <div id="brand-box" class="ds-mt-2 ds-p-2 ds-rounded-sm">品牌色块</div>
+      </div>
+
+      <div class="demo-box ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 220px">
+        <div class="ds-font-semibold ds-mb-2">primitive class</div>
+        <div class="ds-text-muted">.ds-p-4 / .ds-rounded-md / .ds-flex</div>
+        <div class="ds-mt-2 ds-text-muted">主题无关，只生成一份</div>
+      </div>
+    </div>
+
+    <script>
+      ;(function () {
+        // 通道自动选择：支持 CSS 变量 -> vars；IE10/IE11 -> static
+        var ds = DsDom.createThemeManager({
+          channel: 'auto',
+          persist: true,
+          followSystem: true,
+          theme: null,
+        })
+        ds.init()
+
+        function $(id) {
+          return document.getElementById(id)
+        }
+
+        function render() {
+          var s = ds.state()
+          var html = ''
+          html += '<b>通道</b>：' + s.channel
+          html += ' ｜ <b>主题</b>：' + s.theme + '（' + s.mode + '）'
+          html += ' ｜ <b>强调色</b>：' + (s.accent || '未选')
+          html += ' ｜ <b>令牌数</b>：' + Object.keys(ds.tokens()).length
+          html += '<br /><b>color-brand</b> = ' + ds.get('color-brand')
+          html += ' ｜ <b>color-bg</b> = ' + ds.get('color-bg')
+          html += ' ｜ <b>radius-md</b> = ' + ds.get('radius-md')
+          $('info').innerHTML = html
+
+          // 按通道返回合适的写法：vars 通道给 var()，static 通道给实值
+          var box = $('brand-box')
+          var st = ds.style({ 'background-color': 'color-brand', color: 'on-brand' })
+          for (var k in st) {
+            if (Object.prototype.hasOwnProperty.call(st, k)) box.style[k] = st[k]
+          }
+        }
+
+        function on(id, ev, fn) {
+          var el = $(id)
+          if (el.addEventListener) el.addEventListener(ev, fn, false)
+          else el.attachEvent('on' + ev, fn)
+        }
+
+        on('btn-light', 'click', function () {
+          ds.use('light')
+        })
+        on('btn-dark', 'click', function () {
+          ds.use('dark')
+        })
+        on('btn-toggle', 'click', function () {
+          ds.toggle()
+        })
+        on('sel-accent', 'change', function () {
+          ds.useAccent(this.value)
+        })
+        on('btn-custom', 'click', function () {
+          // 分层覆盖：分组名 + 驼峰键，或扁平键都可以
+          ds.override('radius', { md: '16px', lg: '24px' })
+        })
+
+        ds.subscribe(render)
+        render()
+      })()
+    </script>
+  </body>
+</html>
