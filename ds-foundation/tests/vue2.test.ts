@@ -28,7 +28,7 @@ console.warn = (...args: unknown[]) => {
   warns.push(args.join(' '))
 }
 
-Vue.use(plugin, { channel: 'vars', persist: false, theme: 'light' })
+Vue.use(plugin, { channel: 'vars', theme: 'light' })
 
 afterAll(() => {
   console.warn = origWarn
@@ -101,7 +101,7 @@ describe('0. 插件安装', () => {
 
   it('重复 use 同一个 Vue 不会重建句柄', () => {
     const before = Vue.prototype.$ds
-    Vue.use(plugin, { channel: 'vars', persist: false })
+    Vue.use(plugin, { channel: 'vars' })
     expect(Vue.prototype.$ds).toBe(before)
   })
 })

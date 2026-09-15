@@ -14,9 +14,12 @@ pnpm add @ds/core @ds/dom @ds/vue2
 
 ```js
 import Vue from 'vue'
-import DsVue2 from '@ds/vue2'
+import DsVue2, { readTheme, bindTheme } from '@ds/vue2'
 
-Vue.use(DsVue2, { theme: 'light', persist: true, prefix: 'acme' })
+// 插件本身不碰存储。要记住主题就显式接：读回来 → 装插件 → 绑上去
+var saved = readTheme({ prefix: 'acme' })
+Vue.use(DsVue2, { theme: saved.theme || 'light', prefix: 'acme' })
+bindTheme(Vue.ds.manager)
 ```
 
 UMD 直引（无构建步骤）：

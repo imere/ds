@@ -42,8 +42,6 @@ import type {
 import { supportsCssVars, prefersDark, supportsMatchMedia } from './env'
 import { createEmitter } from './emitter'
 import type { Emitter, Handler } from './emitter'
-import { createStore } from './store'
-import type { Store } from './store'
 import { writeStyle, removeStyle, setCssVar, removeCssVar } from './style'
 
 /** createThemeManager 的入参 */
@@ -61,11 +59,9 @@ export interface ThemeManagerOptions {
   idTokens?: string
   idPrimitive?: string
   idSemantic?: string
-  storageKey?: string
-  accentKey?: string
   /** 是否注入两层 class（默认 true） */
   withClasses?: boolean
-  persist?: boolean
+  /** 跟随系统深浅（prefers-color-scheme）。一旦显式切换过主题就不再自动跟随 */
   followSystem?: boolean
   /** 默认主题名 */
   theme?: string
@@ -144,8 +140,14 @@ export function pickChannel(option?: string): 'vars' | 'static' {
  *                                          一次设置，CSS 变量、class、DOM 属性、style id、存储 key 全跟着换
  * @param {'auto'|'vars'|'static'} [options.channel]
  * @param {boolean}  [options.withClasses] 是否注入两层 class（默认 true）
- * @param {boolean}  [options.persist]
- * @param {boolean}  [options.followSystem]
+ * @param {boolean}  [options.followSystem] 跟随系统深浅；显式切换过主题后自动停止跟随
+ *
+ * 持久化不在核心里。要记住用户的主题选择请用 @ds/dom 的 storage 辅助：
+ *   import { readTheme, bindTheme } from '@ds/dom'
+ *   var saved = readTheme()
+ *   var ds = createThemeManager({ theme: saved.theme || 'light' })
+ *   bindTheme(ds)
+ * 不接就完全不碰 localStorage / cookie，SSR 也没有任何副作用。
  */
 export function createThemeManager(options?: ThemeManagerOptions): ThemeManager {
   var o = options || {}
@@ -169,9 +171,12 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     semantic: o.idSemantic || p.ids.semantic,
   }
 
-  var store: Store = createStore(o.storageKey || p.keys.theme, { persist: o.persist })
-  var accentStore: Store = createStore(o.accentKey || p.keys.accent, { persist: o.persist })
   var emitter: Emitter = createEmitter()
+
+  // 用户是否自己定过主题。用来决定 followSystem 还能不能改主题：
+  // 显式传了 theme、或调用过 use() 就算「定过了」，之后不再自动跟随系统。
+  // 之前这事儿靠读持久化状态判断，等于把业务逻辑绑在存储上——核心不碰存储后就改用内存标记。
+  var pinned = !!o.theme
 
   // 写 <style> 时统一带上前缀，标记属性才跟着变成 data-acme-style
   var styleOpts = { prefix: p }
@@ -213,11 +218,11 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     registry.accent(name as string, def)
   })
 
-  var stored = store.get()
-  var initial = o.theme || stored || (o.followSystem && prefersDark() ? 'dark' : '')
+  // 初始值只来自调用方显式传入，或 followSystem 的偏好推断。
+  // 想恢复上次的主题就用 readTheme()（见 storage.ts）读出来再传进来 —— 核心不去碰存储。
+  var initial = o.theme || (o.followSystem && prefersDark() ? 'dark' : '')
   if (initial) registry.use(initial)
-  var storedAccent = accentStore.get()
-  var initialAccent = o.accent || storedAccent
+  var initialAccent = o.accent
   // 不给默认强调色的话 brand 一族全是 undefined，界面上品牌色会直接消失
   if (!initialAccent && o.defaultAccent !== false && accentsIn.indigo) initialAccent = 'indigo'
   if (initialAccent) registry.useAccent(initialAccent)
@@ -317,7 +322,7 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
         try {
           var mq = window.matchMedia('(prefers-color-scheme: dark)')
           var handler = function (e: any) {
-            if (store.get()) return // 用户手动选过就不跟随系统
+            if (pinned) return // 用户自己选过就别再覆盖人家的选择
             registry.use(e.matches ? 'dark' : 'light')
             paint()
           }
@@ -338,14 +343,13 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
 
     use: function (name) {
       registry.use(name)
-      store.set(name)
+      pinned = true
       if (started) paint()
       return api
     },
 
     useAccent: function (name) {
       registry.useAccent(name)
-      accentStore.set(name || '')
       if (started) paint()
       return api
     },

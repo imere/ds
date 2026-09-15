@@ -27,35 +27,35 @@ beforeEach(() => {
 
 describe('A. 现代通道（vars）', () => {
   it('通道判定为 vars', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(m.channel).toBe('vars')
     m.destroy()
   })
 
   it('写入 #ds-tokens', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(document.getElementById('ds-tokens')).toBeTruthy()
     m.destroy()
   })
 
   it('变量块挂在 :root 上', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-tokens').indexOf(':root{--ds-color-bg:#ffffff;')).toBe(0)
     m.destroy()
   })
 
   it('primitive class 已注入', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-class-primitive')).toContain('.ds-p-4{padding:16px;}')
     m.destroy()
   })
 
   it('semantic class 用 var()', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-class-semantic')).toContain(
       '.ds-bg-subtle{background-color:var(--ds-color-bg-subtle);}'
@@ -64,21 +64,21 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('html 上打了主题属性', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(document.documentElement.getAttribute('data-ds-theme')).toBe('light')
     m.destroy()
   })
 
   it('style() 返回 var 引用', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     expect(m.style({ color: 'color-fg' }).color).toBe('var(--ds-color-fg)')
     m.destroy()
   })
 
   it('换主题触发订阅', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     let hits = 0
     m.subscribe(() => {
@@ -90,7 +90,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('变量块随主题更新', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(text('ds-tokens')).toContain('--ds-color-bg:#0b1220;')
@@ -98,7 +98,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('semantic class 没被重写（仍是一份 var）', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(text('ds-class-semantic')).toContain('var(--ds-color-bg-subtle)')
@@ -108,7 +108,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('html 属性同步', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(document.documentElement.getAttribute('data-ds-mode')).toBe('dark')
@@ -116,7 +116,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('toggle 切回浅色', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     m.toggle()
@@ -125,7 +125,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('semantic 在 vars 通道下不随强调色重写', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     const before = text('ds-class-semantic')
     m.useAccent('orange')
@@ -134,7 +134,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('强调色反映到令牌', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light' })
     m.init()
     m.useAccent('orange')
     expect(m.tokens()['color-brand']).toBe('#ea580c')
@@ -145,7 +145,6 @@ describe('A. 现代通道（vars）', () => {
 describe('B. IE10 通道（static）', () => {
   const legacyOpts = {
     channel: 'static',
-    persist: false,
     theme: 'light',
     idTokens: 'x-tokens',
     idPrimitive: 'x-primitive',
@@ -170,7 +169,7 @@ describe('B. IE10 通道（static）', () => {
     const m = createThemeManager(legacyOpts)
     m.init()
     // primitive 与主题无关，两条通道产物必须逐字节相同
-    const ref = createThemeManager({ channel: 'vars', persist: false, theme: 'light' })
+    const ref = createThemeManager({ channel: 'vars', theme: 'light' })
     ref.init()
     expect(text('x-primitive')).toBe(text('ds-class-primitive'))
     ref.destroy()
@@ -232,7 +231,7 @@ describe('C. 通道判定', () => {
 
 describe('D. 自定义前缀落地到 DOM', () => {
   it('style id 与 DOM 属性全部跟着换', () => {
-    const m = createThemeManager({ channel: 'vars', persist: false, theme: 'light', prefix: 'acme' })
+    const m = createThemeManager({ channel: 'vars', theme: 'light', prefix: 'acme' })
     m.init()
     expect(document.getElementById('acme-tokens')).toBeTruthy()
     expect(document.getElementById('acme-class-primitive')).toBeTruthy()

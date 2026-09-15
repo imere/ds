@@ -111,7 +111,8 @@ createThemeManager({ prefix: 'acme' })
 <script src=".../core/dist/index.umd.cjs"></script>
 <script src=".../dom/dist/index.umd.cjs"></script>
 <script>
-  var ds = DsDom.createThemeManager({ channel: 'auto', persist: true })
+  var ds = DsDom.createThemeManager({ channel: 'auto' })
+  DsDom.bindTheme(ds)      // 可选：接上持久化（不调就完全不碰 localStorage）
   ds.init()
   ds.use('dark')          // 换主题
   ds.useAccent('green')   // 换强调色
@@ -138,8 +139,11 @@ ds.init()
 
 ```js
 import Vue from 'vue'
-import DsVue2 from '@ds/vue2'
-Vue.use(DsVue2, { channel: 'auto', persist: true })
+import DsVue2, { readTheme, bindTheme } from '@ds/vue2'
+
+var saved = readTheme()
+Vue.use(DsVue2, { channel: 'auto', theme: saved.theme || 'light' })
+bindTheme(Vue.ds.manager)   // 可选：不调就不碰存储
 ```
 
 之后业务拿到三样东西：

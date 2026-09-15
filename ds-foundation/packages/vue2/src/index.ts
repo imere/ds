@@ -88,6 +88,26 @@ export function useDs(): DsState | null {
 
 export { createDsState, makeDirective, DsState }
 
+// 持久化辅助从 @ds/dom 转出来一份：Vue 用户不用为了记住主题再单独装 @ds/dom。
+// 插件本身一行存储代码都没有，只有你主动调 bindTheme 才会碰 localStorage / cookie。
+export {
+  readTheme,
+  bindTheme,
+  restoreScript,
+  autoStorage,
+  webStorage,
+  cookieStorage,
+  memoryStorage,
+} from '@ds/dom'
+export type {
+  KeyValueStore,
+  ThemeStorageOptions,
+  ThemeSnapshot,
+  WebStorageOptions,
+  CookieStorageOptions,
+  AutoStorageOptions,
+} from '@ds/dom'
+
 var plugin: DsPlugin = {
   install: install,
   version: '0.1.0',

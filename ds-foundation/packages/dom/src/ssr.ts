@@ -7,7 +7,10 @@
  * 这段脚本必须自己能在 IE10 上跑，所以：
  *   · 用 var，不用 let/const
  *   · 不依赖任何库
- *   · localStorage 读不到就退到 cookie（file:// 下常见）
+ *
+ * 而且它默认【不碰存储】：初始主题只来自 options.theme。
+ * 想让它也读回上次的主题，把 storage.ts 的 restoreScript() 生成的代码传进来即可 ——
+ * 存储介质是调用方的决定，核心不替你假设 localStorage 还是 cookie。
  *
  * 前缀要和运行时保持一致，否则脚本写的是 data-acme-theme、
  * CSS 却在等 [data-ds-theme]，首屏颜色会错一帧。
@@ -20,27 +23,31 @@ import type { Prefix, Dict } from '@ds/core'
 export interface InitScriptOptions {
   /** 与 createThemeManager 传同一个值即可 */
   prefix?: string | Prefix | Dict<any> | null
-  storageKey?: string
-  accentKey?: string
   attr?: string
   modeAttr?: string
   accentAttr?: string
+  /** 兜底主题名。没读到任何值时的选择 */
   theme?: string
   modes?: Dict<string>
   styleId?: string
+  /**
+   * 可选的还原代码片段（JS 源码字符串）。
+   * 片段里可读可写两个变量：t（主题名）和 a（强调色名）。
+   * 用 storage.ts 的 restoreScript() 生成，或自己拼 —— 只要保证是 ES5。
+   */
+  restore?: string
 }
 
 /**
  * 返回可直接内联到 <head> 的脚本字符串
  * @param {object} [options]
  * @param {string|object} [options.prefix] 与 createThemeManager 传同一个值即可
+ * @param {string} [options.restore]  可选还原片段，见 InitScriptOptions.restore
  */
 export function getInitScript(options?: InitScriptOptions): string {
   var o = options || {}
   var p = prefixOf(o.prefix)
   var config = {
-    key: o.storageKey || p.keys.theme,
-    ak: o.accentKey || p.keys.accent,
     attr: o.attr || p.attr,
     mattr: o.modeAttr || p.modeAttr,
     aattr: o.accentAttr || p.accentAttr,
@@ -48,16 +55,11 @@ export function getInitScript(options?: InitScriptOptions): string {
     modes: o.modes || { light: 'light', dark: 'dark' },
   }
 
+  // 片段里的变量用 __ds 前缀，别撞上主脚本的 d / t / a / m
   return (
     '<script>(function(c){try{' +
-    "var d=document.documentElement;" +
-    "function rd(k){try{var v=localStorage.getItem(k);if(v){return v}}catch(e){}" +
-    "var s=document.cookie?document.cookie.split(';'):[];" +
-    "for(var i=0;i<s.length;i++){var p=s[i],x=p.indexOf('=')," +
-    "n=(x>-1?p.slice(0,x):p).replace(/^\\s+|\\s+$/g,'');" +
-    "if(n===k){return decodeURIComponent((x>-1?p.slice(x+1):'').replace(/^\\s+|\\s+$/g,''))}}" +
-    "return null}" +
-    "var t=rd(c.key)||c.def,a=rd(c.ak);" +
+    "var d=document.documentElement,t=c.def||'',a='';" +
+    (o.restore || '') +
     "if(t){d.setAttribute(c.attr,t);var m=c.modes[t];if(m){d.setAttribute(c.mattr,m)}}" +
     "if(a){d.setAttribute(c.aattr,a)}" +
     '}catch(e){}})(' +

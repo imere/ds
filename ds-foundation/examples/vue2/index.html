@@ -113,12 +113,16 @@
     </div>
 
     <script>
-      ;(function () {
+        ;(function () {
+        // 插件本身不碰存储。想记住主题就自己接：先读回来当初始值，装完再绑上去。
+        var saved = DsVue2.readTheme()
+
         Vue.use(DsVue2, {
           channel: 'auto',
-          persist: true,
           followSystem: true,
+          theme: saved.theme || '',
         })
+        DsVue2.bindTheme(Vue.ds.manager)
 
         new Vue({
           el: '#app',
