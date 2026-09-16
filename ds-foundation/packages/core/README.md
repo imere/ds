@@ -22,16 +22,16 @@ const { createRegistry } = require('@ds/core')
 
 ## 模块
 
-| 模块 | 职责 |
-|---|---|
-| `util` | ES5 安全的基础工具：`assign` `kebab` `each` `map` `filter` `unique` `get` `shallowEqual` `cssProp` |
-| `color` | 色值换算：`parseHex` `parseRgb` `toChannels` `toRgba` `toHex` `mix` `luminance` `contrast` `resolveVarValue` |
-| `prefix` | 前缀归一化：`normalizePrefix` `prefixOf` `isPrefix` |
-| `token` | 令牌表：`defineTokens` `flattenTokens` `unflattenTokens` `mergeTokens` `pickTokens` |
-| `theme` | 主题注册中心：`createTheme` `createRegistry` `resolveTokens` |
-| `class` | 两层 class 规则：`primitiveRules` `semanticRules` `buildClassSheet` `defineScales` |
+| 模块     | 职责                                                                                                                   |
+| -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `util`   | ES5 安全的基础工具：`assign` `kebab` `each` `map` `filter` `unique` `get` `shallowEqual` `cssProp`                     |
+| `color`  | 色值换算：`parseHex` `parseRgb` `toChannels` `toRgba` `toHex` `mix` `luminance` `contrast` `resolveVarValue`           |
+| `prefix` | 前缀归一化：`normalizePrefix` `prefixOf` `isPrefix`                                                                    |
+| `token`  | 令牌表：`defineTokens` `flattenTokens` `unflattenTokens` `mergeTokens` `pickTokens`                                    |
+| `theme`  | 主题注册中心：`createTheme` `createRegistry` `resolveTokens`                                                           |
+| `class`  | 两层 class 规则：`primitiveRules` `semanticRules` `buildClassSheet` `defineScales`                                     |
 | `output` | CSS 文本：`cssVarName` `cssVarRef` `toCssVars` `toScopedCss` `resolveVars` `rulesToCss` `toStyleTag` `renderStyleTags` |
-| `preset` | 开箱预设：`lightTokens` `darkTokens` `lightTheme` `darkTheme` `makeAccent` `accents` |
+| `preset` | 开箱预设：`lightTokens` `darkTokens` `lightTheme` `darkTheme` `makeAccent` `accents`                                   |
 
 ## 三层令牌
 
@@ -66,9 +66,9 @@ normalizePrefix('acme')
 **四种写法等价**，内部统一归一化：
 
 ```js
-normalizePrefix('acme')       // 命名空间
-normalizePrefix('--acme-')    // CSS 变量形式
-normalizePrefix('acme-')      // class 形式
+normalizePrefix('acme') // 命名空间
+normalizePrefix('--acme-') // CSS 变量形式
+normalizePrefix('acme-') // class 形式
 normalizePrefix({ ns: 'acme' }) // 已归一化对象，原样透传
 ```
 
@@ -89,17 +89,17 @@ buildClassSheet({ tokens: flat, prefix: 'acme' })
 
 拆两层的唯一理由是 IE10 没有 CSS 自定义属性：
 
-| 层 | 例子 | 是否与主题相关 | 生成份数 |
-|---|---|---|---|
-| primitive | `.ds-p-4` `.ds-rounded-md` `.ds-flex` | 否，值来自固定 scale | 1 |
-| semantic | `.ds-bg-brand` `.ds-text-muted` | 是，值是 `var(--ds-*)` | N（主题数） |
+| 层        | 例子                                  | 是否与主题相关         | 生成份数    |
+| --------- | ------------------------------------- | ---------------------- | ----------- |
+| primitive | `.ds-p-4` `.ds-rounded-md` `.ds-flex` | 否，值来自固定 scale   | 1           |
+| semantic  | `.ds-bg-brand` `.ds-text-muted`       | 是，值是 `var(--ds-*)` | N（主题数） |
 
 不拆的话 IE10 下体积是 `全部 class × 主题数`；拆开后是 `primitive(1) + semantic(N)`。
 
 ```js
 var sheet = buildClassSheet({ tokens: flat })
-sheet.primitive      // 8.5 KB，只写一次
-sheet.semantic       // 0.9 KB，每个主题一份
+sheet.primitive // 8.5 KB，只写一次
+sheet.semantic // 0.9 KB，每个主题一份
 ```
 
 ## 双通道输出
@@ -119,15 +119,15 @@ buildClassSheet({ tokens: flat, resolve: resolved })
 
 ## IE10 硬约束（写进源码的）
 
-| 约束 | 后果 |
-|---|---|
-| 无 CSS 自定义属性 | `var()` 整条声明被丢弃，必须预求值 |
-| 无 `Object.assign` | 自带 `assign()` 实现 |
-| 无 `Array.includes` | 一律 `indexOf(...) > -1` |
-| 无 `Set` / `Map` | `unique()` 用数组去重 |
-| 无 `Promise` | 全程同步 |
-| 半透明色 | **只用 `rgba(r, g, b, a)` 逗号语法**；`rgb(r g b / a)` 空格斜杠语法 IE10 会丢整条声明 |
-| 单样式表规则上限 | IE9 是 4095，超出静默丢失 —— 由 `@ds/dom` 按 4000 条切片 |
+| 约束                | 后果                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| 无 CSS 自定义属性   | `var()` 整条声明被丢弃，必须预求值                                                    |
+| 无 `Object.assign`  | 自带 `assign()` 实现                                                                  |
+| 无 `Array.includes` | 一律 `indexOf(...) > -1`                                                              |
+| 无 `Set` / `Map`    | `unique()` 用数组去重                                                                 |
+| 无 `Promise`        | 全程同步                                                                              |
+| 半透明色            | **只用 `rgba(r, g, b, a)` 逗号语法**；`rgb(r g b / a)` 空格斜杠语法 IE10 会丢整条声明 |
+| 单样式表规则上限    | IE9 是 4095，超出静默丢失 —— 由 `@ds/dom` 按 4000 条切片                              |
 
 ## 测试
 

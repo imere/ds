@@ -67,7 +67,9 @@ export function makeDirective(ds: DsState): DirectiveOptions {
       if (!warned) {
         warned = true
         if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[ds/vue2] 当前处于 static 通道（IE10），v-ds-theme 无法做局部换肤，已退化为整站切换')
+          console.warn(
+            '[ds/vue2] 当前处于 static 通道（IE10），v-ds-theme 无法做局部换肤，已退化为整站切换'
+          )
         }
       }
       if (cfg.theme) manager.use(cfg.theme)

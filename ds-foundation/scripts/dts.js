@@ -16,8 +16,8 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
-var root = process.cwd()
-var tmp = path.resolve(root, '.types')
+const root = process.cwd()
+const tmp = path.resolve(root, '.types')
 
 if (fs.existsSync(tmp)) fs.rmSync(tmp, { recursive: true, force: true })
 
@@ -25,27 +25,27 @@ execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconf
   stdio: 'inherit',
 })
 
-var pkgs = ['core', 'dom', 'vue2']
-var out = []
+const pkgs = ['core', 'dom', 'vue2']
+const out = []
 
-pkgs.forEach(function (p) {
-  var from = path.join(tmp, p, 'src')
-  var to = path.resolve(root, 'packages', p, 'dist')
+pkgs.forEach((p) => {
+  const from = path.join(tmp, p, 'src')
+  const to = path.resolve(root, 'packages', p, 'dist')
   if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true })
 
-  var files = fs.readdirSync(from).filter(function (f) {
+  const files = fs.readdirSync(from).filter((f) => {
     return f.endsWith('.d.ts')
   })
 
-  files.forEach(function (f) {
+  files.forEach((f) => {
     fs.copyFileSync(path.join(from, f), path.join(to, f))
   })
 
-  out.push('@ds/' + p + '  ->  ' + files.length + ' 个 d.ts：' + files.join(', '))
+  out.push(`@ds/${p}  ->  ${files.length} 个 d.ts：${files.join(', ')}`)
 })
 
 fs.rmSync(tmp, { recursive: true, force: true })
 
 out.push('')
 out.push('已清理临时目录 .types')
-process.stdout.write(out.join('\n') + '\n')
+process.stdout.write(`${out.join('\n')}\n`)

@@ -69,7 +69,11 @@ export function supportsStorage(): boolean {
 /** 是否支持 classList（IE10 有，IE9 没有） */
 export function supportsClassList(): boolean {
   return memo('classList', function () {
-    return typeof window !== 'undefined' && !!window.document && !!window.document.documentElement.classList
+    return (
+      typeof window !== 'undefined' &&
+      !!window.document &&
+      !!window.document.documentElement.classList
+    )
   })
 }
 

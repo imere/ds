@@ -126,7 +126,11 @@ export function normalizePrefix(input?: string | Prefix | Dict<any> | null): Pre
 
 /** 已经是归一化对象了就别再算一遍 */
 export function isPrefix(v: unknown): v is Prefix {
-  return isPlainObject(v) && typeof (v as Prefix).ns === 'string' && typeof (v as Prefix).var === 'string'
+  return (
+    isPlainObject(v) &&
+    typeof (v as Prefix).ns === 'string' &&
+    typeof (v as Prefix).var === 'string'
+  )
 }
 
 /** 入口统一走这个：传什么都不用管，拿到的永远是归一化对象 */

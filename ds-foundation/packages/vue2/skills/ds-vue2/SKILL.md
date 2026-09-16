@@ -36,13 +36,13 @@ Vue.use(DsVue2, options)
 ### `$ds` 响应式句柄
 
 ```js
-this.$ds.use('dark')            // 切主题
-this.$ds.useAccent('green')     // 切强调色
-this.$ds.toggle()               // 明暗互切
-this.$ds.t('color-brand')       // 读令牌值
-this.$ds.ref('color-brand')     // 'var(--ds-color-brand)'
+this.$ds.use('dark') // 切主题
+this.$ds.useAccent('green') // 切强调色
+this.$ds.toggle() // 明暗互切
+this.$ds.t('color-brand') // 读令牌值
+this.$ds.ref('color-brand') // 'var(--ds-color-brand)'
 this.$ds.override('radius', { md: '20px' })
-this.$ds.state.theme            // 响应式
+this.$ds.state.theme // 响应式
 ```
 
 ```html
@@ -63,7 +63,7 @@ this.$ds.state.theme            // 响应式
 ### provide / inject
 
 ```js
-inject: ['dsContext']   // key 就是注入名，不需要 from
+inject: ['dsContext'] // key 就是注入名，不需要 from
 ```
 
 provide 只在根实例做一次，避免每个组件往 provide 链里塞一份。
@@ -73,9 +73,9 @@ provide 只在根实例做一次，避免每个组件往 provide 链里塞一份
 ```js
 Vue.use(DsVue2, { prefix: 'acme' })
 
-this.$ds.prefix.var             // '--acme-'
-this.$ds.varName('color-brand')  // '--acme-color-brand'
-this.$ds.className('bg-brand')   // 'acme-bg-brand'
+this.$ds.prefix.var // '--acme-'
+this.$ds.varName('color-brand') // '--acme-color-brand'
+this.$ds.className('bg-brand') // 'acme-bg-brand'
 ```
 
 指令从 manager 上取前缀，不会错位。但**指令名固定是 `v-ds-theme`** —— 它属于包名，不是令牌命名空间。
@@ -91,15 +91,15 @@ this.$ds.className('bg-brand')   // 'acme-bg-brand'
 
 ## 常见坑
 
-| 现象 | 原因 | 解法 |
-|---|---|---|
-| `this.$ds` 是 undefined | 没 `Vue.use`，或在 install 之前访问 | 装插件；组件外用 `useDs()` |
-| 换主题视图不更新 | 直接改了 `state.tokens` 的某个 key | 整体替换 `state.tokens` |
-| `inject` 拿不到 | provider 不在根实例 | provide 只在 `this === this.$root` 时做 |
-| 局部换肤无效 | 在 IE10 / static 通道 | 能力边界，看控制台告警 |
-| 换前缀后指令写的还是 `--ds-*` | 指令硬编码了前缀 | 指令应从 `manager.prefix` 取 |
-| 告警测不出来 | Vue 2 的 warn 走 `console.error` | 冒烟测试要同时 spy `warn` 和 `error` |
-| `require()` 报 "of ES Module" | 包是 `type: module` | UMD 产物叫 `index.umd.cjs` |
+| 现象                          | 原因                                | 解法                                    |
+| ----------------------------- | ----------------------------------- | --------------------------------------- |
+| `this.$ds` 是 undefined       | 没 `Vue.use`，或在 install 之前访问 | 装插件；组件外用 `useDs()`              |
+| 换主题视图不更新              | 直接改了 `state.tokens` 的某个 key  | 整体替换 `state.tokens`                 |
+| `inject` 拿不到               | provider 不在根实例                 | provide 只在 `this === this.$root` 时做 |
+| 局部换肤无效                  | 在 IE10 / static 通道               | 能力边界，看控制台告警                  |
+| 换前缀后指令写的还是 `--ds-*` | 指令硬编码了前缀                    | 指令应从 `manager.prefix` 取            |
+| 告警测不出来                  | Vue 2 的 warn 走 `console.error`    | 冒烟测试要同时 spy `warn` 和 `error`    |
+| `require()` 报 "of ES Module" | 包是 `type: module`                 | UMD 产物叫 `index.umd.cjs`              |
 
 ## 检查清单
 

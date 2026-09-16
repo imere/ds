@@ -16,36 +16,38 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-var root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-var targets = ['umd', 'vue2']
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const targets = ['umd', 'vue2']
 
 function escapeClosingTag(code) {
   return code.replace(/<\/script/gi, '<\\/script')
 }
 
-targets.forEach(function (name) {
-  var dir = path.join(root, 'examples', name)
-  var src = path.join(dir, 'index.html')
+targets.forEach((name) => {
+  const dir = path.join(root, 'examples', name)
+  const src = path.join(dir, 'index.html')
   if (!fs.existsSync(src)) return
 
-  var html = fs.readFileSync(src, 'utf8')
-  var count = 0
+  let html = fs.readFileSync(src, 'utf8')
+  let count = 0
 
-  html = html.replace(/<script src="([^"]+)"><\/script>/g, function (all, href) {
+  html = html.replace(/<script src="([^"]+)"><\/script>/g, (all, href) => {
     if (/^(https?:)?\/\//.test(href)) return all
-    var file = path.resolve(dir, href)
+    const file = path.resolve(dir, href)
     if (!fs.existsSync(file)) {
-      process.stdout.write('  [跳过] 找不到 ' + href + '\n')
+      process.stdout.write(`  [跳过] 找不到 ${href}\n`)
       return all
     }
     count++
-    return '<script>' + escapeClosingTag(fs.readFileSync(file, 'utf8')) + '</script>'
+    return `<script>${escapeClosingTag(fs.readFileSync(file, 'utf8'))}</script>`
   })
 
-  var out = path.join(dir, 'standalone.html')
+  const out = path.join(dir, 'standalone.html')
   fs.writeFileSync(out, html, 'utf8')
-  var kb = (Buffer.byteLength(html, 'utf8') / 1024).toFixed(0)
-  process.stdout.write('  ' + name + '/standalone.html  ' + kb + ' KB（内联 ' + count + ' 个脚本）\n')
+  const kb = (Buffer.byteLength(html, 'utf8') / 1024).toFixed(0)
+  process.stdout.write(`  ${name}/standalone.html  ${kb} KB（内联 ${count} 个脚本）\n`)
 })
 
-process.stdout.write('\nESM 示例不生成单文件：原生 ES Module 在 file:// 下必被 CORS 拦，' + '只能走 pnpm run serve。\n')
+process.stdout.write(
+  '\nESM 示例不生成单文件：原生 ES Module 在 file:// 下必被 CORS 拦，' + '只能走 pnpm run serve。\n'
+)

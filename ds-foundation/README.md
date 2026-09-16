@@ -4,11 +4,11 @@ Design System 底层包：**token / class / theme**，最低支持 **IE10**（�
 
 三个包按"能不能碰 DOM / 要不要框架"切开，业务可以只用其中一层：
 
-| 包 | 职责 | 依赖 | 产物 |
-| --- | --- | --- | --- |
-| `@ds/core` | 令牌、主题、class 规则、CSS 文本。纯函数 | 无 | `index.js` + `index.umd.cjs` |
-| `@ds/dom` | 能力检测、双通道注入、持久化、SSR | `@ds/core` | 同上 |
-| `@ds/vue2` | `Vue.use()`、响应式令牌、`v-ds-theme` | `@ds/core` `@ds/dom` | 同上 |
+| 包         | 职责                                     | 依赖                 | 产物                         |
+| ---------- | ---------------------------------------- | -------------------- | ---------------------------- |
+| `@ds/core` | 令牌、主题、class 规则、CSS 文本。纯函数 | 无                   | `index.js` + `index.umd.cjs` |
+| `@ds/dom`  | 能力检测、双通道注入、持久化、SSR        | `@ds/core`           | 同上                         |
+| `@ds/vue2` | `Vue.use()`、响应式令牌、`v-ds-theme`    | `@ds/core` `@ds/dom` | 同上                         |
 
 三个包都是 `"type": "module"`，ESM 产物叫 `index.js`、UMD 产物叫 `index.umd.cjs`（原因见文末）。
 每个子包自带 `README.md` 与 `skills/<包名>/SKILL.md`。
@@ -40,10 +40,10 @@ tokens ──┬─ 现代通道  toCssVars()  →  :root { --ds-color-brand: #4
 IE10 通道下，"主题相关"的 class 必须每个主题复制一份。如果所有 class 都跟主题绑死，
 体积就是 `全部 class × 主题数`。所以拆开：
 
-| 层 | 例子 | 值从哪来 | 份数 |
-| --- | --- | --- | --- |
-| **primitive** | `.ds-p-4` `.ds-rounded-md` `.ds-flex` | 固定 scale，主题无关 | **1 份** |
-| **semantic** | `.ds-bg-brand` `.ds-text-muted` `.ds-border-subtle` | `var(--ds-*)` | **N 份**（N = 主题数） |
+| 层            | 例子                                                | 值从哪来             | 份数                   |
+| ------------- | --------------------------------------------------- | -------------------- | ---------------------- |
+| **primitive** | `.ds-p-4` `.ds-rounded-md` `.ds-flex`               | 固定 scale，主题无关 | **1 份**               |
+| **semantic**  | `.ds-bg-brand` `.ds-text-muted` `.ds-border-subtle` | `var(--ds-*)`        | **N 份**（N = 主题数） |
 
 实测：primitive 8.5 KB × 1 + semantic 0.7 KB × N。主题越多省得越多。
 
@@ -80,21 +80,23 @@ createThemeManager({ prefix: 'acme' })
 
 **一次设置，五处同时生效**：
 
-| 位置 | 默认 | `prefix: 'acme'` |
-| --- | --- | --- |
-| CSS 变量 | `--ds-color-brand` | `--acme-color-brand` |
-| class | `.ds-bg-brand` | `.acme-bg-brand` |
-| `<html>` 属性 | `data-ds-theme` / `data-ds-mode` / `data-ds-accent` | `data-acme-theme` / … |
-| `<style>` id | `ds-tokens` / `ds-class-primitive` / `ds-class-semantic` | `acme-*` |
-| 存储 key | `ds-theme` / `ds-accent` | `acme-theme` / `acme-accent` |
+| 位置          | 默认                                                     | `prefix: 'acme'`             |
+| ------------- | -------------------------------------------------------- | ---------------------------- |
+| CSS 变量      | `--ds-color-brand`                                       | `--acme-color-brand`         |
+| class         | `.ds-bg-brand`                                           | `.acme-bg-brand`             |
+| `<html>` 属性 | `data-ds-theme` / `data-ds-mode` / `data-ds-accent`      | `data-acme-theme` / …        |
+| `<style>` id  | `ds-tokens` / `ds-class-primitive` / `ds-class-semantic` | `acme-*`                     |
+| 存储 key      | `ds-theme` / `ds-accent`                                 | `acme-theme` / `acme-accent` |
 
 **四种写法完全等价**，内部由 `normalizePrefix()` 归一化：
 
 ```js
-'acme'               // 命名空间
-'--acme-'            // CSS 变量形式
-'acme-'              // class 形式
-{ ns: 'acme' }       // 已归一化对象，原样透传
+'acme' // 命名空间
+'--acme-' // CSS 变量形式
+'acme-' // class 形式
+{
+  ns: 'acme'
+} // 已归一化对象，原样透传
 ```
 
 所有接受前缀的函数（`toCssVars` / `resolveVars` / `rulesToCss` / `cssVarName` / `buildClassSheet` / `getInitScript` …）都吃这四种写法，历史调用形式完全兼容。
@@ -112,11 +114,11 @@ createThemeManager({ prefix: 'acme' })
 <script src=".../dom/dist/index.umd.cjs"></script>
 <script>
   var ds = DsDom.createThemeManager({ channel: 'auto' })
-  DsDom.bindTheme(ds)      // 可选：接上持久化（不调就完全不碰 localStorage）
+  DsDom.bindTheme(ds) // 可选：接上持久化（不调就完全不碰 localStorage）
   ds.init()
-  ds.use('dark')          // 换主题
-  ds.useAccent('green')   // 换强调色
-  ds.get('color-brand')   // 读令牌
+  ds.use('dark') // 换主题
+  ds.useAccent('green') // 换强调色
+  ds.get('color-brand') // 读令牌
 </script>
 <div class="ds-p-4 ds-rounded-md ds-bg-subtle ds-text-muted">…</div>
 ```
@@ -143,7 +145,7 @@ import DsVue2, { readTheme, bindTheme } from '@ds/vue2'
 
 var saved = readTheme()
 Vue.use(DsVue2, { channel: 'auto', theme: saved.theme || 'light' })
-bindTheme(Vue.ds.manager)   // 可选：不调就不碰存储
+bindTheme(Vue.ds.manager) // 可选：不调就不碰存储
 ```
 
 之后业务拿到三样东西：
@@ -189,6 +191,7 @@ core 里 `assign` 是手写实现，`unique` 不依赖 Set。
 > 现代浏览器全都正常，**只有 IE10 会炸**。所以 ES5 合规是常驻检查，而且做进了 vitest —— 详见「测试」一章。
 
 **CSS 层**：
+
 - 不能写 `var()`（除现代通道）
 - 半透明色必须用**逗号语法** `rgba(79, 70, 229, 0.12)`，
   空格斜杠语法 `rgb(79 70 229 / 0.12)` IE10 直接丢声明
@@ -197,6 +200,7 @@ core 里 `assign` 是手写实现，`unique` 不依赖 Set。
 - flex 需要 `-ms-flexbox` 前缀，primitive class 里已经按数组顺序两条都输出
 
 **能力边界**：
+
 - IE10 下没有局部换肤（`v-ds-theme` 退化）
 - IE10 下 `:root` 选择器可用但自定义属性不可用，所以走静态通道
 - jsdom 测不出兼容性，真实 IE10 必须真机或虚拟机验证
@@ -213,11 +217,14 @@ ds-foundation/
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
 ├─ examples/       umd / esm / vue2
-├─ tests/          core / dom / vue2 / es5 四个 .test.ts（vitest）
+├─ tests/          core / dom / vue2 / storage / es5 五个 .test.ts（vitest）
 ├─ scripts/        clean / serve / dts / inline-examples
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
 ├─ vitest.config.ts   @ds/* 别名到 src，测试直接跑源码
+├─ eslint.config.js   flat config，分「产物层 / 工具层」两套尺度
+├─ prettier.config.js 单引号 + 无分号 + 行宽 100
+├─ .pnpmfile.cjs      给 typescript-eslint 单独喂一份 TS 6（见下）
 ├─ tsconfig.json      源码：类型检查（含 strict）
 ├─ tsconfig.test.json 测试：单独一份，把 tests 也纳入 tsc 管辖
 ├─ tsconfig.build.json  只出 .d.ts
@@ -254,25 +261,55 @@ pnpm install
 pnpm run build      # 三个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
 pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
-pnpm test           # vitest，120 项：core 自检 + DOM 双通道 + Vue 2 + ES5 合规
+pnpm test           # vitest，151 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + ES5 合规
 pnpm run typecheck  # tsc --noEmit
+pnpm run lint       # eslint .（prettier 作为规则跑在里面）
+pnpm run lint:fix   # 能自动修的先修掉
+pnpm run format     # prettier --write .
 pnpm run es5        # 只跑 ES5 那一项（已在 pnpm test 里，单独调方便）
-pnpm run verify     # typecheck → build → test，串起来跑
+pnpm run verify     # typecheck → lint → build → test，串起来跑
                     # 注意 build 在 test 前：ES5 检查里有 6 项验的是 dist 产物，
                     # 没构建时它们会自动跳过，构建后再跑才验得全
 pnpm run serve      # http://localhost:5199
 pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 ```
 
+### ESLint + Prettier
+
+工具链是**最新的**：ESLint 10（flat config）、typescript-eslint 8、Prettier 3，
+`eslint-plugin-prettier` + `eslint-config-prettier` 一起用（后者关掉跟 Prettier 冲突的格式化规则）。
+
+配置分**两套尺度**，这是唯一需要解释的设计：
+
+| 层     | 范围                                   | 尺度                                                                                         |
+| ------ | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 产物层 | `packages/*/src`                       | 不强制现代语法（不开 `no-var` / `prefer-const`），但**严格禁用 IE10 没有的运行时 API**       |
+| 工具层 | `tests` / `scripts` / 各 `*.config.js` | 放开用最新语法：`no-var` / `prefer-const` / `prefer-template` / `prefer-arrow-callback` 全开 |
+
+分层的理由：**SWC 只转语法，不管 API**。所以源码里写箭头函数、模板字符串都没关系（SWC 会降），
+但写个 `Object.assign` 或 `Set` 会原样留在产物里、在 IE10 上直接炸，而 `tests/es5.test.ts` 扫语法是扫不出来的。
+于是 ESLint 补这个缺口 —— `no-restricted-globals` 拦 `Set`/`Map`/`Promise`/`Symbol`，
+`no-restricted-properties` 拦 `Object.assign` / `Array.from` / `.includes()` 等。
+
+产物层不开 `no-var` 是刻意的：存量 `var` 改成 `let`/`const` 会改变循环里的闭包语义，
+风险大于收益；语法现代化交给 SWC，ESLint 该管的是 SWC 管不了的部分。
+
+> **一个必须知道的坑**：typescript-eslint 8 不支持 TypeScript 7。
+> TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
+> 而 typescript-eslint 全靠那套 API，启动时直接 `throw 'does not support TS 7.0'`。
+> 官方给的出路是 side-by-side：让 typescript-eslint 跑 TS 6 的 API，TS 7 继续做类型检查。
+> 实现见 `.pnpmfile.cjs` —— 把 `typescript` 从 peer 改成真实依赖，pnpm 才会真的装一份 6.0.3
+> （用 `pnpm.overrides` 改 peer 范围没用，pnpm 对不匹配的 peer 只告警不会补装）。
+
 ### TypeScript 与 ES5 是两条独立的流水线
 
 TypeScript 7（Go 重写版）**移除了 `target: ES5`**，所以职责必须拆开：
 
-| 环节 | 工具 | 干什么 |
-| --- | --- | --- |
-| 类型检查 | `tsc --noEmit` | 只验类型，不产物 |
-| 声明文件 | `tsc --emitDeclarationOnly` | 只出 `.d.ts` |
-| **语法降级** | **SWC** | `.ts` → ES5。这也是选它的唯一理由：esbuild 的 target 最低只到 es2015，明确不支持 ES5；Babel 能做到但慢一个数量级 |
+| 环节         | 工具                        | 干什么                                                                                                           |
+| ------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 类型检查     | `tsc --noEmit`              | 只验类型，不产物                                                                                                 |
+| 声明文件     | `tsc --emitDeclarationOnly` | 只出 `.d.ts`                                                                                                     |
+| **语法降级** | **SWC**                     | `.ts` → ES5。这也是选它的唯一理由：esbuild 的 target 最低只到 es2015，明确不支持 ES5；Babel 能做到但慢一个数量级 |
 
 源码里该写箭头函数、模板字符串就正常写，SWC 都会转，**不必为了迁就 IE10 放弃现代 TS 语法**。
 真正的约束只有一条：产物里不能出现运行时 API（`Object.assign` / `Promise` / `Set` / `Map` 等），
@@ -296,10 +333,10 @@ ESM 那一页不生成单文件：原生 ES Module 在 `file://` 下必被 CORS 
 
 全部包都是 `"type": "module"`，所以：
 
-| 产物 | 扩展名 | 为什么 |
-| --- | --- | --- |
-| ESM | `index.js` | 包里已经写了 `"type": "module"`，`.js` 天然就是 ESM，不需要再靠 `.mjs` 扩展名去告诉 Node 怎么解析 |
-| UMD | `index.umd.cjs` | **`type: module` 下 `.js` 会被 Node 当 ESM 解析**，UMD 里的 `module.exports` 会直接报 `require() of ES Module`。`.cjs` 强制按 CommonJS 解析 |
+| 产物 | 扩展名          | 为什么                                                                                                                                      |
+| ---- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| ESM  | `index.js`      | 包里已经写了 `"type": "module"`，`.js` 天然就是 ESM，不需要再靠 `.mjs` 扩展名去告诉 Node 怎么解析                                           |
+| UMD  | `index.umd.cjs` | **`type: module` 下 `.js` 会被 Node 当 ESM 解析**，UMD 里的 `module.exports` 会直接报 `require() of ES Module`。`.cjs` 强制按 CommonJS 解析 |
 
 浏览器只认 MIME 不认扩展名，`<script src=".../index.umd.cjs">` 照常工作。
 
@@ -325,12 +362,12 @@ pnpm run test:watch
 
 四个文件的环境与职责：
 
-| 文件 | 环境 | 验什么 |
-| --- | --- | --- |
-| `core.test.ts` | node | 令牌解析、`var()` 链式求值、两层 class、CSS 输出切片、SSR 脚本、前缀归一化 |
-| `dom.test.ts` | jsdom | **两条通道分别验**：vars 通道注入 `--ds-*`，static 通道注入实值且全程不含 `var(`；换主题、订阅、局部前缀 |
+| 文件           | 环境  | 验什么                                                                                                               |
+| -------------- | ----- | -------------------------------------------------------------------------------------------------------------------- |
+| `core.test.ts` | node  | 令牌解析、`var()` 链式求值、两层 class、CSS 输出切片、SSR 脚本、前缀归一化                                           |
+| `dom.test.ts`  | jsdom | **两条通道分别验**：vars 通道注入 `--ds-*`，static 通道注入实值且全程不含 `var(`；换主题、订阅、局部前缀             |
 | `vue2.test.ts` | jsdom | `$ds` 响应式、`t()` / `style()`、provide/inject 同步、`v-ds-theme` 局部变量的写入 / 更新 / 卸载清理、零 Vue 报错告警 |
-| `es5.test.ts` | node | **IE10 硬约束**：源码转译后无 ES6+ 残留、无 TS 残留；构建产物同样扫一遍 |
+| `es5.test.ts`  | node  | **IE10 硬约束**：源码转译后无 ES6+ 残留、无 TS 残留；构建产物同样扫一遍                                              |
 
 两个容易踩的点，写新测试时注意：
 
@@ -346,10 +383,10 @@ pnpm run test:watch
 
 现在拆成两层，都在 `es5.test.ts` 里：
 
-| 层 | 扫什么 | 要 build 吗 | 说明 |
-| --- | --- | --- | --- |
-| A 源码层 | 拿 `swc.config.js` 那份**真正生效的配置**转译每个 `src/*.ts`，扫转译结果 | 否 | 主要防线，改一行就能验，报错精确到文件 |
-| B 产物层 | `dist` 里 6 份真实产物 | 是 | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（6 skipped），不会让 `pnpm test` 变红 |
+| 层       | 扫什么                                                                   | 要 build 吗 | 说明                                                                                                                          |
+| -------- | ------------------------------------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| A 源码层 | 拿 `swc.config.js` 那份**真正生效的配置**转译每个 `src/*.ts`，扫转译结果 | 否          | 主要防线，改一行就能验，报错精确到文件                                                                                        |
+| B 产物层 | `dist` 里 6 份真实产物                                                   | 是          | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（6 skipped），不会让 `pnpm test` 变红 |
 
 关键在于**两层共用 `swc.config.js` 里那一份 `swcOptions`**。
 如果测试里另写一套配置，它验的就是"测试自己的配置"，rollup 那边写错了照样漏 —— 那就白验了。

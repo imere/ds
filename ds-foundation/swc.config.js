@@ -24,7 +24,7 @@
 /**
  * @type {import('@swc/core').Options}
  */
-export var swcOptions = {
+export const swcOptions = {
   jsc: {
     target: 'es5',
     parser: { syntax: 'typescript' },

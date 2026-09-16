@@ -17,10 +17,10 @@ import { swc } from '@rollup/plugin-swc'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import { swcOptions } from './swc.config.js'
 
-var root = path.dirname(fileURLToPath(import.meta.url))
-var only = process.env.PKG || ''
+const root = path.dirname(fileURLToPath(import.meta.url))
+const only = process.env.PKG || ''
 
-var packages = [
+const packages = [
   {
     name: 'core',
     input: 'packages/core/src/index.ts',
@@ -67,36 +67,36 @@ function build(pkg) {
       {
         // 包名声明了 "type": "module"，所以 .js 在这里就是 ESM，
         // 不需要再靠 .mjs 扩展名去告诉 Node 该怎么解析。
-        file: path.resolve(root, 'packages/' + pkg.name + '/dist/index.js'),
+        file: path.resolve(root, `packages/${pkg.name}/dist/index.js`),
         format: 'es',
         sourcemap: true,
-        banner: '/* ' + pkg.banner + ' (esm) */',
+        banner: `/* ${pkg.banner} (esm) */`,
       },
       {
         // 必须是 .cjs：包声明了 "type": "module"，.js 会被 Node 当 ESM 解析，
         // UMD 里的 module.exports 会直接报 "require() of ES Module"。
         // .cjs 强制按 CommonJS 解析，Node / Jest / Vue CLI 4 的 require 才通。
         // 浏览器只认 MIME 不认扩展名，<script src="...umd.cjs"> 照常工作。
-        file: path.resolve(root, 'packages/' + pkg.name + '/dist/index.umd.cjs'),
+        file: path.resolve(root, `packages/${pkg.name}/dist/index.umd.cjs`),
         format: 'umd',
         name: pkg.umd,
         globals: pkg.globals,
         exports: 'named',
         sourcemap: true,
-        banner: '/* ' + pkg.banner + ' (umd) */',
+        banner: `/* ${pkg.banner} (umd) */`,
       },
     ],
   }
 }
 
-var list = only
-  ? packages.filter(function (p) {
+const list = only
+  ? packages.filter((p) => {
       return p.name === only
     })
   : packages
 
 if (only && !list.length) {
-  throw new Error('[build] 未知的包名：' + only)
+  throw new Error(`[build] 未知的包名：${only}`)
 }
 
 export default list.map(build)

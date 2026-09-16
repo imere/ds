@@ -60,8 +60,8 @@ export function getInitScript(options?: InitScriptOptions): string {
     '<script>(function(c){try{' +
     "var d=document.documentElement,t=c.def||'',a='';" +
     (o.restore || '') +
-    "if(t){d.setAttribute(c.attr,t);var m=c.modes[t];if(m){d.setAttribute(c.mattr,m)}}" +
-    "if(a){d.setAttribute(c.aattr,a)}" +
+    'if(t){d.setAttribute(c.attr,t);var m=c.modes[t];if(m){d.setAttribute(c.mattr,m)}}' +
+    'if(a){d.setAttribute(c.aattr,a)}' +
     '}catch(e){}})(' +
     JSON.stringify(config) +
     ');</script>'

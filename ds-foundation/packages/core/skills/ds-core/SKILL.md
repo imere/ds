@@ -42,10 +42,10 @@ agent_created: true
 **四种写法完全等价**，内部 `normalizePrefix()` 统一归一化：
 
 ```js
-normalizePrefix('acme')            // 命名空间
-normalizePrefix('--acme-')         // CSS 变量形式
-normalizePrefix('acme-')           // class 形式
-normalizePrefix({ ns: 'acme' })    // 已归一化对象，原样透传
+normalizePrefix('acme') // 命名空间
+normalizePrefix('--acme-') // CSS 变量形式
+normalizePrefix('acme-') // class 形式
+normalizePrefix({ ns: 'acme' }) // 已归一化对象，原样透传
 ```
 
 返回：
@@ -80,14 +80,14 @@ normalizePrefix({ ns: 'acme' })    // 已归一化对象，原样透传
 
 ## 常见坑
 
-| 现象 | 原因 | 解法 |
-|---|---|---|
-| 换了前缀，class 生效但变量没换 | 只改了 `classPrefix` | 传统一的 `prefix`，别只改其中一项 |
-| `--ds-` 和 `--acme-` 同时出现 | 部分调用点漏传前缀 | 用归一化对象 `p` 一路传下去，不要各处写字符串 |
-| IE10 上某个色块没颜色 | 值里含 `var()` 没被求值 | 走 `resolveVars()`，或传 `buildClassSheet({ resolve })` |
-| 半透明层在 IE10 消失 | 用了空格斜杠语法 | 改回 `rgba(15, 23, 42, 0.45)` |
-| `require()` 报 "of ES Module" | 包是 `type: module`，`.js` 被当 ESM | UMD 那份叫 `index.umd.cjs`，用 `.cjs` |
-| 对比度不达标 | 深色模式下阴影和边框都要重给 | `contrast()` 实测，别凭眼睛 |
+| 现象                           | 原因                                | 解法                                                    |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------- |
+| 换了前缀，class 生效但变量没换 | 只改了 `classPrefix`                | 传统一的 `prefix`，别只改其中一项                       |
+| `--ds-` 和 `--acme-` 同时出现  | 部分调用点漏传前缀                  | 用归一化对象 `p` 一路传下去，不要各处写字符串           |
+| IE10 上某个色块没颜色          | 值里含 `var()` 没被求值             | 走 `resolveVars()`，或传 `buildClassSheet({ resolve })` |
+| 半透明层在 IE10 消失           | 用了空格斜杠语法                    | 改回 `rgba(15, 23, 42, 0.45)`                           |
+| `require()` 报 "of ES Module"  | 包是 `type: module`，`.js` 被当 ESM | UMD 那份叫 `index.umd.cjs`，用 `.cjs`                   |
+| 对比度不达标                   | 深色模式下阴影和边框都要重给        | `contrast()` 实测，别凭眼睛                             |
 
 ## 检查清单
 

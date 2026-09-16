@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
   用法一：UMD 直引（IE10 可跑）
   -------------------------------------------------------------
@@ -23,7 +23,7 @@
       真正的令牌注入等 DOM 就绪后由 createThemeManager().init() 完成。
     -->
     <script>
-      (function () {
+      ;(function () {
         try {
           var KEY = 'ds-theme'
           var v = null
@@ -68,7 +68,7 @@
         background: var(--ds-color-bg, #ffffff);
         color: #0f172a;
         color: var(--ds-color-fg, #0f172a);
-        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         font-size: 14px;
       }
       .demo-box {
@@ -87,13 +87,25 @@
     <h1 class="ds-text-2xl ds-font-bold ds-mb-4">ds-foundation · UMD 直引</h1>
 
     <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
-      <button type="button" id="btn-light" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+      <button
+        type="button"
+        id="btn-light"
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand"
+      >
         浅色
       </button>
-      <button type="button" id="btn-dark" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand">
+      <button
+        type="button"
+        id="btn-dark"
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand"
+      >
         深色
       </button>
-      <button type="button" id="btn-toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+      <button
+        type="button"
+        id="btn-toggle"
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer"
+      >
         切换明暗
       </button>
       <select id="sel-accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid">
@@ -102,7 +114,11 @@
         <option value="green">青绿</option>
         <option value="orange">暖橙</option>
       </select>
-      <button type="button" id="btn-custom" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+      <button
+        type="button"
+        id="btn-custom"
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer"
+      >
         覆盖圆角
       </button>
     </div>
@@ -131,7 +147,7 @@
     </div>
 
     <script>
-        ;(function () {
+      ;(function () {
         // 持久化是可选的：不接就完全不碰 localStorage / cookie。
         // 想记住用户的选择，就先 readTheme 读回来当初始值，再 bindTheme 订阅回去。
         var saved = DsDom.readTheme()
