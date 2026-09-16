@@ -131,7 +131,13 @@ function writeCookie(name: string, value: string, days?: number, path?: string):
     var d = new Date()
     d.setTime(d.getTime() + (days || 180) * 24 * 60 * 60 * 1000)
     document.cookie =
-      name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=' + (path || '/')
+      name +
+      '=' +
+      encodeURIComponent(value) +
+      ';expires=' +
+      d.toUTCString() +
+      ';path=' +
+      (path || '/')
   } catch (e) {
     /* 忽略 */
   }
@@ -221,7 +227,9 @@ export function autoStorage(opts?: AutoStorageOptions): KeyValueStore {
     set: function (key: string, value: string): void {
       // 写入可能「成功返回但没写进去」（额度为 0 时不抛异常），也可能直接抛
       // （IE 隐私模式）。两种情况都靠回读验证，不能只看有没有抛。
-      var wrote = false
+      // 不初始化：两条路径（成功赋值 / catch 里置 false）都会给它值，
+      // 写个初值反而会引来 no-useless-assignment —— 那才是真的死代码。
+      var wrote
       try {
         primary.set(key, value)
         var ok = primary.get(key)
@@ -334,22 +342,22 @@ export function restoreScript(opts?: ThemeStorageOptions): string {
 
   // 顺序跟 autoStorage 保持一致：先 localStorage，读不到再从 cookie 里扫
   return (
-    "try{var __rv=localStorage.getItem(" +
+    'try{var __rv=localStorage.getItem(' +
     themeKey +
-    ");if(__rv){t=__rv}}catch(e){}" +
+    ');if(__rv){t=__rv}}catch(e){}' +
     "if(!t){var __rs=document.cookie?document.cookie.split(';'):[];" +
     "for(var __ri=0;__ri<__rs.length;__ri++){var __rq=__rs[__ri],__rx=__rq.indexOf('=')," +
     "__rn=(__rx>-1?__rq.slice(0,__rx):__rq).replace(/^\\s+|\\s+$/g,'');" +
-    "if(__rn===" +
+    'if(__rn===' +
     themeKey +
     "){t=decodeURIComponent((__rx>-1?__rq.slice(__rx+1):'').replace(/^\\s+|\\s+$/g,''));break}}}" +
-    "try{var __rw=localStorage.getItem(" +
+    'try{var __rw=localStorage.getItem(' +
     accentKey +
-    ");if(__rw){a=__rw}}catch(e){}" +
+    ');if(__rw){a=__rw}}catch(e){}' +
     "if(!a){var __rs2=document.cookie?document.cookie.split(';'):[];" +
     "for(var __rj=0;__rj<__rs2.length;__rj++){var __rq2=__rs2[__rj],__ry=__rq2.indexOf('=')," +
     "__rm=(__ry>-1?__rq2.slice(0,__ry):__rq2).replace(/^\\s+|\\s+$/g,'');" +
-    "if(__rm===" +
+    'if(__rm===' +
     accentKey +
     "){a=decodeURIComponent((__ry>-1?__rq2.slice(__ry+1):'').replace(/^\\s+|\\s+$/g,''));break}}}"
   )

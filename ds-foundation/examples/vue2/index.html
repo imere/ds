@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
   用法三：Vue 2 绑定层（@ds/vue2）
   -------------------------------------------------------------
@@ -49,7 +49,7 @@
         background: var(--ds-color-bg, #ffffff);
         color: #0f172a;
         color: var(--ds-color-fg, #0f172a);
-        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       }
       [v-cloak] {
         display: none;
@@ -73,18 +73,28 @@
           {{ t }}
         </button>
 
-        <button type="button" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer" @click="$ds.toggle()">
+        <button
+          type="button"
+          class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer"
+          @click="$ds.toggle()"
+        >
           切换明暗
         </button>
 
-        <select v-model="accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid" @change="$ds.useAccent(accent)">
+        <select
+          v-model="accent"
+          class="ds-p-2 ds-rounded-md ds-border ds-border-solid"
+          @change="$ds.useAccent(accent)"
+        >
           <option v-for="a in accentNames" :key="a" :value="a">{{ a }}</option>
         </select>
       </div>
 
       <div class="ds-p-4 ds-rounded-md ds-bg-subtle ds-mb-4">
         <div>主题：<b>{{ $ds.state.theme }}</b> ／ 模式：<b>{{ $ds.state.mode }}</b></div>
-        <div>通道：<b>{{ $ds.state.channel }}</b> ／ 强调色：<b>{{ $ds.state.accent || '未选' }}</b></div>
+        <div>
+          通道：<b>{{ $ds.state.channel }}</b> ／ 强调色：<b>{{ $ds.state.accent || '未选' }}</b>
+        </div>
         <div>color-brand = <code>{{ $ds.t('color-brand') }}</code></div>
         <div>color-bg = <code>{{ $ds.t('color-bg') }}</code></div>
       </div>
@@ -92,7 +102,10 @@
       <div class="ds-flex ds-gap-4" style="flex-wrap: wrap">
         <section class="ds-p-4 ds-rounded-md ds-bg-subtle" style="flex: 1 1 260px">
           <h2 class="ds-font-semibold ds-mb-2">$ds.style()</h2>
-          <div class="ds-p-3 ds-rounded-sm" :style="$ds.style({ 'background-color': 'color-brand', color: 'on-brand' })">
+          <div
+            class="ds-p-3 ds-rounded-sm"
+            :style="$ds.style({ 'background-color': 'color-brand', color: 'on-brand' })"
+          >
             品牌色块：IE10 上也能拿到真实色值
           </div>
         </section>
@@ -103,17 +116,22 @@
             这一块是 {{ localTheme }}，外面跟着全局走
             <div class="ds-text-muted ds-mt-2">IE10 下会退化成整站切换并给出告警</div>
           </div>
-          <button type="button" class="ds-p-2 ds-mt-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer" @click="flipLocal">
+          <button
+            type="button"
+            class="ds-p-2 ds-mt-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer"
+            @click="flipLocal"
+          >
             切换局部
           </button>
         </section>
       </div>
 
-      <pre class="ds-mt-4 ds-p-3 ds-rounded-md ds-bg-inset ds-text-muted ds-overflow-auto">{{ snippet }}</pre>
+      <pre class="ds-mt-4 ds-p-3 ds-rounded-md ds-bg-inset ds-text-muted ds-overflow-auto">
+{{ snippet }}</pre>
     </div>
 
     <script>
-        ;(function () {
+      ;(function () {
         // 插件本身不碰存储。想记住主题就自己接：先读回来当初始值，装完再绑上去。
         var saved = DsVue2.readTheme()
 

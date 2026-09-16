@@ -47,11 +47,7 @@ export function parseRgb(str: string): Rgba | null {
   var m = str.match(/rgba?\(\s*([^)]+)\)/i)
   if (!m) return null
   // 同时兼容 "15, 23, 42, .045" 与 "15 23 42 / .045"
-  var parts = m[1]
-    .replace(/\//g, ' ')
-    .replace(/,/g, ' ')
-    .trim()
-    .split(/\s+/)
+  var parts = m[1].replace(/\//g, ' ').replace(/,/g, ' ').trim().split(/\s+/)
   if (parts.length < 3) return null
   var out = {
     r: parseInt(parts[0], 10),

@@ -58,7 +58,13 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
   // Vue 2.6+ 有 Vue.observable；更老的版本借一个空实例承载响应式数据
   var state: DsObservedState =
     typeof Vue.observable === 'function'
-      ? (Vue.observable({ theme: '', accent: '', mode: 'light', label: '', tokens: {} }) as DsObservedState)
+      ? (Vue.observable({
+          theme: '',
+          accent: '',
+          mode: 'light',
+          label: '',
+          tokens: {},
+        }) as DsObservedState)
       : (new Vue({
           data: function () {
             return { theme: '', accent: '', mode: 'light', label: '', tokens: {} }

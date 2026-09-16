@@ -24,7 +24,7 @@ import {
 import { splitCss, getInitScript, pickChannel, restoreScript } from '@ds/dom'
 
 function makeRegistry() {
-  var registry = createRegistry()
+  const registry = createRegistry()
   registry.theme('light', lightTheme)
   registry.theme('dark', darkTheme)
   registry.accent('green', accents.green)
@@ -110,7 +110,9 @@ describe('3. class 两层生成', () => {
 
 describe('5. CSS 输出与切片', () => {
   it('变量块格式正确', () => {
-    expect(toCssVars({ 'color-bg': '#fff' }, { selector: ':root' })).toBe(':root{--ds-color-bg:#fff;}')
+    expect(toCssVars({ 'color-bg': '#fff' }, { selector: ':root' })).toBe(
+      ':root{--ds-color-bg:#fff;}'
+    )
   })
 
   it('超限时自动切片', () => {
@@ -203,11 +205,15 @@ describe('9. 自定义令牌前缀', () => {
   })
 
   it('变量块跟随前缀', () => {
-    expect(toCssVars({ 'color-bg': '#fff' }, { prefix: 'acme' })).toBe(':root{--acme-color-bg:#fff;}')
+    expect(toCssVars({ 'color-bg': '#fff' }, { prefix: 'acme' })).toBe(
+      ':root{--acme-color-bg:#fff;}'
+    )
   })
 
   it('老调用形式不变', () => {
-    expect(toCssVars({ 'color-bg': '#fff' }, { prefix: '--ds-' })).toBe(':root{--ds-color-bg:#fff;}')
+    expect(toCssVars({ 'color-bg': '#fff' }, { prefix: '--ds-' })).toBe(
+      ':root{--ds-color-bg:#fff;}'
+    )
   })
 
   it('自定义前缀下 var() 仍能解开', () => {

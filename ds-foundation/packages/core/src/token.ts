@@ -64,7 +64,9 @@ export function unflattenTokens(flat: FlatTokens): TokenTree {
  * 合并多组令牌，后者覆盖前者。
  * 用于「主题 <- 强调色 <- 手动覆盖」的叠加顺序。
  */
-export function mergeTokens(...sources: Array<TokenTree | FlatTokens | null | undefined>): FlatTokens {
+export function mergeTokens(
+  ...sources: Array<TokenTree | FlatTokens | null | undefined>
+): FlatTokens {
   var out: FlatTokens = {}
   for (var i = 0; i < sources.length; i++) {
     var src = sources[i]

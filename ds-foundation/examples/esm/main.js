@@ -39,7 +39,7 @@ function renderInfo() {
   const tokens = ds.tokens()
   $('#info').innerHTML = `
     <div><b>通道</b>：${s.channel}（${s.channel === 'vars' ? '写 CSS 变量' : '注入静态 CSS'}）</div>
-    <div><b>主题</b>：${s.theme} / ${s.mode}　<b>强调色</b>：${s.accent || '未选'}</div>
+    <div><b>主题</b>：${s.theme} / ${s.mode}&nbsp;&nbsp;<b>强调色</b>：${s.accent || '未选'}</div>
     <div><b>令牌数</b>：${Object.keys(tokens).length}</div>
   `
 }

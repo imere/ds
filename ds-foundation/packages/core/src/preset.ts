@@ -39,7 +39,8 @@ export var lightTokens = {
   },
   radius: { sm: '2px', md: '4px', lg: '8px', full: '9999px' },
   font: {
-    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    family:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
     sizeSm: '12px',
     sizeMd: '14px',
     sizeLg: '16px',

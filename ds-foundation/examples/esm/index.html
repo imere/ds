@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
   用法二：ESM（原生 <script type="module">，无需打包器）
   -------------------------------------------------------------
@@ -16,7 +16,7 @@
         padding: 24px;
         background: var(--ds-color-bg);
         color: var(--ds-color-fg);
-        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       }
       #size div {
         display: flex;
@@ -36,13 +36,21 @@
     <h1 class="ds-text-2xl ds-font-bold ds-mb-2">ds-foundation · ESM</h1>
 
     <div class="ds-flex ds-gap-2 ds-mb-4" style="flex-wrap: wrap">
-      <button class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand" data-theme="light">
+      <button
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand"
+        data-theme="light"
+      >
         浅色
       </button>
-      <button class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand" data-theme="dark">
+      <button
+        class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer ds-bg-brand"
+        data-theme="dark"
+      >
         深色
       </button>
-      <button id="toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">切换</button>
+      <button id="toggle" class="ds-p-2 ds-rounded-md ds-border ds-border-solid ds-cursor-pointer">
+        切换
+      </button>
       <select id="accent" class="ds-p-2 ds-rounded-md ds-border ds-border-solid">
         <option value="">默认强调色</option>
         <option value="indigo">靛蓝</option>

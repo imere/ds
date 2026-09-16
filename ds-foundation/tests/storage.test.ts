@@ -64,7 +64,7 @@ describe('A. 核心默认不碰存储', () => {
 
 describe('B. KeyValueStore 适配器', () => {
   function behaves(store: KeyValueStore, name: string) {
-    it(name + '：读写删', () => {
+    it(`${name}：读写删`, () => {
       expect(store.get('k')).toBeNull()
       store.set('k', 'v')
       expect(store.get('k')).toBe('v')
@@ -111,13 +111,13 @@ describe('C. autoStorage 降级', () => {
   /** 模拟 IE 隐私模式：localStorage 对象在，但一写就抛 */
   function throwing(): KeyValueStore {
     return {
-      get: function () {
+      get() {
         return null
       },
-      set: function () {
+      set() {
         throw new Error('denied')
       },
-      remove: function () {
+      remove() {
         /* 忽略 */
       },
     }
@@ -145,11 +145,11 @@ describe('C. autoStorage 降级', () => {
   })
 
   it('降级会回调一次 onFallback', () => {
-    var calls = 0
+    let calls = 0
     autoStorage({
       primary: throwing(),
       secondary: memoryStorage(),
-      onFallback: function () {
+      onFallback() {
         calls++
       },
     }).set('x', 'y')
@@ -190,22 +190,22 @@ describe('D. readTheme / bindTheme 组合器', () => {
   it('写进去的值能被 readTheme 读回来', () => {
     const store = memoryStorage()
     const m = freshManager()
-    bindTheme(m, { store: store })
+    bindTheme(m, { store })
     m.init()
     m.use('dark')
 
-    const saved = readTheme({ store: store })
+    const saved = readTheme({ store })
     expect(saved.theme).toBe('dark')
   })
 
   it('读回来的值能用来还原 manager', () => {
     const store = memoryStorage()
     const first = freshManager()
-    bindTheme(first, { store: store })
+    bindTheme(first, { store })
     first.init()
     first.use('dark')
 
-    const saved = readTheme({ store: store })
+    const saved = readTheme({ store })
     const second = freshManager(saved.theme || 'light')
     expect(second.state().theme).toBe('dark')
   })
@@ -213,7 +213,7 @@ describe('D. readTheme / bindTheme 组合器', () => {
   it('强调色为空时会把旧值删掉，不会留下脏数据', () => {
     const store = memoryStorage()
     const m = createThemeManager({ channel: 'vars', theme: 'light', accent: 'indigo' })
-    bindTheme(m, { store: store })
+    bindTheme(m, { store })
     m.init()
     expect(store.get('ds-accent')).toBe('indigo')
 
@@ -224,14 +224,14 @@ describe('D. readTheme / bindTheme 组合器', () => {
   it('bindTheme 调用时就立刻同步一次当前状态', () => {
     const store = memoryStorage()
     const m = freshManager('dark')
-    bindTheme(m, { store: store })
+    bindTheme(m, { store })
     expect(store.get('ds-theme')).toBe('dark')
   })
 
   it('返回的退订函数能断开同步', () => {
     const store = memoryStorage()
     const m = freshManager()
-    const off = bindTheme(m, { store: store })
+    const off = bindTheme(m, { store })
     m.init()
     off()
     m.use('dark')
@@ -241,7 +241,7 @@ describe('D. readTheme / bindTheme 组合器', () => {
   it('自定义 key 覆盖默认', () => {
     const store = memoryStorage()
     const m = freshManager()
-    bindTheme(m, { store: store, themeKey: 'acme-theme' })
+    bindTheme(m, { store, themeKey: 'acme-theme' })
     m.init()
     expect(store.get('acme-theme')).toBe('light')
     expect(store.get('ds-theme')).toBeNull()
@@ -250,7 +250,7 @@ describe('D. readTheme / bindTheme 组合器', () => {
   it('前缀会把默认 key 也换掉', () => {
     const store = memoryStorage()
     const m = createThemeManager({ channel: 'vars', theme: 'light', prefix: 'acme' })
-    bindTheme(m, { store: store })
+    bindTheme(m, { store })
     m.init()
     expect(store.get('acme-theme')).toBe('light')
   })
@@ -282,8 +282,8 @@ describe('E. restoreScript', () => {
     const script = getInitScript({ restore: restoreScript() })
     expect(script.indexOf('localStorage')).toBeGreaterThan(0)
     // 括号配平：拼坏了浏览器会整段罢工，而且很难查
-    var open = 0
-    for (var i = 0; i < script.length; i++) {
+    let open = 0
+    for (let i = 0; i < script.length; i++) {
       if (script.charAt(i) === '{') open++
       else if (script.charAt(i) === '}') open--
     }

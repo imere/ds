@@ -21,7 +21,7 @@ import { createThemeManager, readTheme, bindTheme } from '@ds/dom'
 
 var saved = readTheme()
 var ds = createThemeManager({ theme: saved.theme || 'light', followSystem: true })
-bindTheme(ds)   // init 之前接上，首帧状态也会落盘
+bindTheme(ds) // init 之前接上，首帧状态也会落盘
 ds.init()
 ds.use('dark')
 ```
@@ -41,10 +41,10 @@ UMD 直引：
 
 ## 两条通道
 
-| 通道 | 条件 | 做法 | 换主题的代价 |
-|---|---|---|---|
-| `vars` | 支持 CSS 自定义属性 | 写 `:root { --ds-color-bg: ... }`，class 用 `var()` 引用 | 改几十个变量值，class 规则一份不动 |
-| `static` | IE10（不支持自定义属性） | `resolveVars()` 预求值后写死色值，注入 `<style>` | 整段重写 `<style>`，规则数随主题数线性增长 |
+| 通道     | 条件                     | 做法                                                     | 换主题的代价                               |
+| -------- | ------------------------ | -------------------------------------------------------- | ------------------------------------------ |
+| `vars`   | 支持 CSS 自定义属性      | 写 `:root { --ds-color-bg: ... }`，class 用 `var()` 引用 | 改几十个变量值，class 规则一份不动         |
+| `static` | IE10（不支持自定义属性） | `resolveVars()` 预求值后写死色值，注入 `<style>`         | 整段重写 `<style>`，规则数随主题数线性增长 |
 
 `channel: 'auto'`（默认）按 `supportsCssVars()` 自动选；也可以手动锁死 `'vars'` / `'static'` 便于测试。
 
@@ -54,44 +54,44 @@ UMD 直引：
 
 ```js
 var m = createThemeManager({
-  doc: document,          // 默认 document
-  target: null,           // 变量写在哪，默认 <html>；传容器可做局部深色区
-  themes: {},             // { light: theme, dark: theme }
-  accents: {},            // { indigo: accent }
-  theme: 'light',         // 默认主题
-  accent: 'indigo',       // 默认强调色
-  prefix: 'ds',           // 令牌前缀，见下
-  channel: 'auto',        // 'auto' | 'vars' | 'static'
-  withClasses: true,      // 是否注入两层 class
-  followSystem: false,    // 是否跟随系统深色（显式切换过主题后自动停止跟随）
-  preset: true,           // false = 不用内置明暗主题与强调色
+  doc: document, // 默认 document
+  target: null, // 变量写在哪，默认 <html>；传容器可做局部深色区
+  themes: {}, // { light: theme, dark: theme }
+  accents: {}, // { indigo: accent }
+  theme: 'light', // 默认主题
+  accent: 'indigo', // 默认强调色
+  prefix: 'ds', // 令牌前缀，见下
+  channel: 'auto', // 'auto' | 'vars' | 'static'
+  withClasses: true, // 是否注入两层 class
+  followSystem: false, // 是否跟随系统深色（显式切换过主题后自动停止跟随）
+  preset: true, // false = 不用内置明暗主题与强调色
 })
 
 // persist 不在选项里 —— 核心不碰存储，详见「持久化」一节
 ```
 
-| 方法 | 说明 |
-|---|---|
-| `init()` / `apply()` | 挂载、重新应用 |
-| `use(name)` / `useAccent(name)` / `toggle()` | 切主题、切强调色、明暗互切 |
-| `override(key, value)` / `resetOverrides()` | 临时覆盖单个令牌分组 |
-| `get(key, asRef)` | 读令牌；`asRef` 在 vars 通道返回 `var(--ds-x)`，static 通道返回实值 |
-| `style(map)` | 生成行内样式对象：`ds.style({ color: 'color-fg-muted' })` |
-| `tokens()` / `state()` | 当前扁平令牌表 / 当前状态 |
-| `subscribe(fn)` | 订阅变更，返回取消函数 |
-| `cssText(opts)` | 导出 CSS 文本供 SSR 内联 |
-| `varName(key)` / `className(short)` | 按当前前缀拼名字 |
-| `prefix` | 归一化后的前缀对象 |
-| `destroy()` | 清理所有注入的 `<style>` 与变量 |
+| 方法                                         | 说明                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------- |
+| `init()` / `apply()`                         | 挂载、重新应用                                                      |
+| `use(name)` / `useAccent(name)` / `toggle()` | 切主题、切强调色、明暗互切                                          |
+| `override(key, value)` / `resetOverrides()`  | 临时覆盖单个令牌分组                                                |
+| `get(key, asRef)`                            | 读令牌；`asRef` 在 vars 通道返回 `var(--ds-x)`，static 通道返回实值 |
+| `style(map)`                                 | 生成行内样式对象：`ds.style({ color: 'color-fg-muted' })`           |
+| `tokens()` / `state()`                       | 当前扁平令牌表 / 当前状态                                           |
+| `subscribe(fn)`                              | 订阅变更，返回取消函数                                              |
+| `cssText(opts)`                              | 导出 CSS 文本供 SSR 内联                                            |
+| `varName(key)` / `className(short)`          | 按当前前缀拼名字                                                    |
+| `prefix`                                     | 归一化后的前缀对象                                                  |
+| `destroy()`                                  | 清理所有注入的 `<style>` 与变量                                     |
 
 ## 自定义令牌前缀
 
 ```js
 var m = createThemeManager({ prefix: 'acme' })
-m.prefix.var   // '--acme-'
-m.prefix.attr  // 'data-acme-theme'
-m.varName('color-brand')  // '--acme-color-brand'
-m.className('bg-brand')   // 'acme-bg-brand'
+m.prefix.var // '--acme-'
+m.prefix.attr // 'data-acme-theme'
+m.varName('color-brand') // '--acme-color-brand'
+m.className('bg-brand') // 'acme-bg-brand'
 ```
 
 一次设置同时改掉：CSS 变量、class 名、`<html>` 上的 `data-acme-theme` / `data-acme-mode` / `data-acme-accent`、注入的 `<style id="acme-tokens">`，以及持久化的 key（`acme-theme` / `acme-accent`）。
@@ -116,9 +116,9 @@ SSR 下也不会去摸 `document`。也就是说，`import` 这个包本身不�
 ```js
 import { createThemeManager, readTheme, bindTheme } from '@ds/dom'
 
-var saved = readTheme()                                   // ① 建之前读回来
+var saved = readTheme() // ① 建之前读回来
 var ds = createThemeManager({ theme: saved.theme || 'light' })
-bindTheme(ds)                                             // ② 订阅变化，写回去
+bindTheme(ds) // ② 订阅变化，写回去
 ds.init()
 ```
 
@@ -128,12 +128,12 @@ ds.init()
 
 `KeyValueStore` 只有三个方法（`get` / `set` / `remove`），所以随便换：
 
-| 适配器 | 用途 |
-|---|---|
-| `webStorage()` | localStorage；`{ session: true }` 换 sessionStorage |
-| `cookieStorage()` | cookie，`{ days, path }` 可调，默认 180 天 |
-| `memoryStorage()` | 内存。测试、SSR、明确不想留痕时用 |
-| `autoStorage()` | **IE10 场景推荐**：localStorage 优先，写不进去自动退 cookie |
+| 适配器            | 用途                                                        |
+| ----------------- | ----------------------------------------------------------- |
+| `webStorage()`    | localStorage；`{ session: true }` 换 sessionStorage         |
+| `cookieStorage()` | cookie，`{ days, path }` 可调，默认 180 天                  |
+| `memoryStorage()` | 内存。测试、SSR、明确不想留痕时用                           |
+| `autoStorage()`   | **IE10 场景推荐**：localStorage 优先，写不进去自动退 cookie |
 
 ```js
 import { autoStorage, bindTheme } from '@ds/dom'
@@ -156,8 +156,8 @@ manager 带了前缀，`bindTheme` 会跟着用 `acme-theme` / `acme-accent` —
 
 ```js
 var m = createThemeManager({ prefix: 'acme', theme: 'light' })
-bindTheme(m)            // 存到 acme-theme
-bindTheme(m, { themeKey: 'my-theme' })   // 也可以直接指定
+bindTheme(m) // 存到 acme-theme
+bindTheme(m, { themeKey: 'my-theme' }) // 也可以直接指定
 ```
 
 `readTheme()` 在建 manager **之前**调用，拿不到 manager 的前缀，
@@ -182,13 +182,13 @@ res.head += renderHead(m.cssText({ theme: 'dark' }).all, {
 
 ## IE10 兜底清单
 
-| 项 | 处理 |
-|---|---|
-| 无 CSS 自定义属性 | 走 static 通道，预求值后写死 |
-| 无 `matchMedia` | `supportsMatchMedia()` 检测，不支持就不跟随系统 |
-| 无 `localStorage`（`file://`） | 用 `autoStorage()`：先探一次，写不进去自动退 cookie |
+| 项                                      | 处理                                                      |
+| --------------------------------------- | --------------------------------------------------------- |
+| 无 CSS 自定义属性                       | 走 static 通道，预求值后写死                              |
+| 无 `matchMedia`                         | `supportsMatchMedia()` 检测，不支持就不跟随系统           |
+| 无 `localStorage`（`file://`）          | 用 `autoStorage()`：先探一次，写不进去自动退 cookie       |
 | 样式表规则上限（IE9 4095 / IE10 65534） | `writeStyle()` 按 4000 条自动切片，超出再开一个 `<style>` |
-| 半透明色 | 预设里一律 `rgba(r, g, b, a)` 逗号语法 |
+| 半透明色                                | 预设里一律 `rgba(r, g, b, a)` 逗号语法                    |
 
 ## 测试
 

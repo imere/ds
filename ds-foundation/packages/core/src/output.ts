@@ -115,7 +115,9 @@ export function rulesToCss(rules: any, opts?: RulesToCssOptions): string {
     var body = ''
     each(rule.decls, function (value: any, prop) {
       var list =
-        Object.prototype.toString.call(value) === '[object Array]' ? (value as string[]) : [value as string]
+        Object.prototype.toString.call(value) === '[object Array]'
+          ? (value as string[])
+          : [value as string]
       for (var i = 0; i < list.length; i++) {
         var v = list[i]
         if (v === undefined || v === null) continue
@@ -154,7 +156,10 @@ export function toStyleTag(
 }
 
 /** 生成 SSR 用的 style 标签串（多主题一次性吐出，避免首屏闪烁） */
-export function renderStyleTags(blocks: Dict<string> | null | undefined, prefix?: PrefixInput): string {
+export function renderStyleTags(
+  blocks: Dict<string> | null | undefined,
+  prefix?: PrefixInput
+): string {
   var cls = prefixOf(prefix).cls
   var out = ''
   each(blocks || {}, function (css, key) {

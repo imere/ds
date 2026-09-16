@@ -62,7 +62,11 @@ export function getHead(doc: Document): Element {
  * @param {string|object} [prefix] 控制标记属性名（默认 data-ds-style）
  * @returns {Element|null}
  */
-export function ensureStyle(doc: Document, id: string, prefix?: string | Prefix | Dict<any> | null): Element | null {
+export function ensureStyle(
+  doc: Document,
+  id: string,
+  prefix?: string | Prefix | Dict<any> | null
+): Element | null {
   if (!doc) return null
   var mark = 'data-' + prefixOf(prefix).ns + '-style'
   var el: HTMLStyleElement | null = doc.getElementById(id) as HTMLStyleElement | null
@@ -81,7 +85,12 @@ export function ensureStyle(doc: Document, id: string, prefix?: string | Prefix 
  * @param {object} [opts] { maxRules, cleanup, previousCount, prefix }
  * @returns {Array<string>} 实际用到的所有 style id
  */
-export function writeStyle(doc: Document, id: string, css: string, opts?: WriteStyleOptions): string[] {
+export function writeStyle(
+  doc: Document,
+  id: string,
+  css: string,
+  opts?: WriteStyleOptions
+): string[] {
   var options = opts || {}
   var max = options.maxRules || DEFAULT_MAX_RULES
   var chunks = splitCss(css || '', max)

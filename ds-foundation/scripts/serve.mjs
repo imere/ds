@@ -8,10 +8,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-var root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-var port = Number(process.argv[2] || 5199)
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const port = Number(process.argv[2] || 5199)
 
-var TYPES = {
+const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -23,21 +23,21 @@ var TYPES = {
 }
 
 http
-  .createServer(function (req, res) {
-    var url = decodeURIComponent(req.url.split('?')[0])
+  .createServer((req, res) => {
+    let url = decodeURIComponent(req.url.split('?')[0])
     if (url === '/') url = '/index.html'
 
-    var file = path.join(root, url)
+    const file = path.join(root, url)
     if (file.indexOf(root) !== 0) {
       res.writeHead(403)
       res.end('forbidden')
       return
     }
 
-    fs.readFile(file, function (err, buf) {
+    fs.readFile(file, (err, buf) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-        res.end('404 ' + url)
+        res.end(`404 ${url}`)
         return
       }
       res.writeHead(200, {
@@ -47,9 +47,9 @@ http
       res.end(buf)
     })
   })
-  .listen(port, function () {
-    process.stdout.write('[ds] http://localhost:' + port + '/\n')
-    process.stdout.write('[ds] UMD   http://localhost:' + port + '/examples/umd/\n')
-    process.stdout.write('[ds] ESM   http://localhost:' + port + '/examples/esm/\n')
-    process.stdout.write('[ds] Vue2  http://localhost:' + port + '/examples/vue2/\n')
+  .listen(port, () => {
+    process.stdout.write(`[ds] http://localhost:${port}/\n`)
+    process.stdout.write(`[ds] UMD   http://localhost:${port}/examples/umd/\n`)
+    process.stdout.write(`[ds] ESM   http://localhost:${port}/examples/esm/\n`)
+    process.stdout.write(`[ds] Vue2  http://localhost:${port}/examples/vue2/\n`)
   })

@@ -66,15 +66,43 @@ export interface SemanticOptions {
 /** 默认 scale：primitive class 的取值域（主题无关，所以可以放死值） */
 export var DEFAULT_SCALES: ScaleTable = {
   space: {
-    0: '0px', 1: '4px', 2: '8px', 3: '12px', 4: '16px', 5: '20px',
-    6: '24px', 7: '28px', 8: '32px', 10: '40px', 12: '48px', 16: '64px',
+    0: '0px',
+    1: '4px',
+    2: '8px',
+    3: '12px',
+    4: '16px',
+    5: '20px',
+    6: '24px',
+    7: '28px',
+    8: '32px',
+    10: '40px',
+    12: '48px',
+    16: '64px',
   },
   radius: { none: '0px', sm: '2px', md: '4px', lg: '8px', xl: '12px', full: '9999px' },
-  fontSize: { xs: '12px', sm: '13px', md: '14px', lg: '16px', xl: '18px', '2xl': '20px', '3xl': '24px' },
+  fontSize: {
+    xs: '12px',
+    sm: '13px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+    '2xl': '20px',
+    '3xl': '24px',
+  },
   lineHeight: { tight: '1.25', snug: '1.375', normal: '1.5', relaxed: '1.625' },
   borderWidth: { 0: '0px', 1: '1px', 2: '2px', 4: '4px' },
   zIndex: { 0: '0', 10: '10', 20: '20', 30: '30', 40: '40', 50: '50', max: '2147483647' },
-  size: { auto: 'auto', full: '100%', half: '50%', screen: '100vw', 0: '0px', 4: '16px', 8: '32px', 12: '48px', 16: '64px' },
+  size: {
+    auto: 'auto',
+    full: '100%',
+    half: '50%',
+    screen: '100vw',
+    0: '0px',
+    4: '16px',
+    8: '32px',
+    12: '48px',
+    16: '64px',
+  },
 }
 
 /**
@@ -133,7 +161,10 @@ export var DEFAULT_UTILITIES: UtilityDef[] = [
   { name: 'justify-start', decls: { '-ms-flex-pack': 'start', 'justify-content': 'flex-start' } },
   { name: 'justify-center', decls: { '-ms-flex-pack': 'center', 'justify-content': 'center' } },
   { name: 'justify-end', decls: { '-ms-flex-pack': 'end', 'justify-content': 'flex-end' } },
-  { name: 'justify-between', decls: { '-ms-flex-pack': 'justify', 'justify-content': 'space-between' } },
+  {
+    name: 'justify-between',
+    decls: { '-ms-flex-pack': 'justify', 'justify-content': 'space-between' },
+  },
 
   { name: 'text-left', decls: { 'text-align': 'left' } },
   { name: 'text-center', decls: { 'text-align': 'center' } },
@@ -144,7 +175,10 @@ export var DEFAULT_UTILITIES: UtilityDef[] = [
   { name: 'font-bold', decls: { 'font-weight': '700' } },
   { name: 'italic', decls: { 'font-style': 'italic' } },
   { name: 'underline', decls: { 'text-decoration': 'underline' } },
-  { name: 'truncate', decls: { overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' } },
+  {
+    name: 'truncate',
+    decls: { overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' },
+  },
 
   { name: 'relative', decls: { position: 'relative' } },
   { name: 'absolute', decls: { position: 'absolute' } },

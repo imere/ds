@@ -55,11 +55,10 @@ const Child = {
 
 const vm = new Vue({
   render(this: any, h: any) {
-    const self = this
     return h('div', [
-      h('span', { attrs: { id: 'theme' } }, [self.$ds.state.theme]),
-      h('span', { attrs: { id: 'brand' } }, [String(self.$ds.t('color-brand'))]),
-      h('span', { attrs: { id: 'styled' }, style: self.$ds.style({ color: 'color-fg' }) }, ['x']),
+      h('span', { attrs: { id: 'theme' } }, [this.$ds.state.theme]),
+      h('span', { attrs: { id: 'brand' } }, [String(this.$ds.t('color-brand'))]),
+      h('span', { attrs: { id: 'styled' }, style: this.$ds.style({ color: 'color-fg' }) }, ['x']),
       h('section', {
         attrs: { id: 'local' },
         directives: [{ name: 'ds-theme', value: 'dark' }],
@@ -151,7 +150,10 @@ const vm2 = new Vue({
     return { local: 'dark' }
   },
   render(this: any, h: any) {
-    return h('section', { attrs: { id: 'box' }, directives: [{ name: 'ds-theme', value: this.local }] })
+    return h('section', {
+      attrs: { id: 'box' },
+      directives: [{ name: 'ds-theme', value: this.local }],
+    })
   },
 })
 
