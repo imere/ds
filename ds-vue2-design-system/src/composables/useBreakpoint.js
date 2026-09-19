@@ -14,7 +14,9 @@
  */
 import Vue from 'vue'
 import { computed, onMounted, onUnmounted } from 'vue'
-import { breakpoints, breakpointOrder, currentBreakpoint } from '@/design/breakpoints'
+// 断点数值来自 @ds/core —— 组件、CSS 工具类、这里共用同一份定义。
+// 具体怎么把它接进框架的响应式系统是绑定层的事：Vue 就该写成 composable。
+import { defaultBreakpoints as breakpoints, breakpointOrder, currentBreakpoint } from '@ds/core'
 
 export const bpState = Vue.observable({
   width: typeof window === 'undefined' ? 1280 : window.innerWidth,
@@ -60,7 +62,7 @@ export function useBreakpoint() {
   const width = computed(() => bpState.width)
   const height = computed(() => bpState.height)
   const name = computed(() => currentBreakpoint(bpState.width))
-  const index = computed(() => breakpointOrder.indexOf(name.value))
+  const index = computed(() => breakpointOrder().indexOf(name.value))
 
   const up = (key) => computed(() => bpState.width >= breakpoints[key])
   const down = (key) => computed(() => bpState.width < breakpoints[key])

@@ -7,21 +7,26 @@
       </header>
       <div class="theme-switcher__grid">
         <button
-          v-for="(theme, key) in themes"
-          :key="key"
+          v-for="theme in themes"
+          :key="theme.name"
           type="button"
           class="theme-card"
-          :class="{ 'is-active': key === state.name }"
-          :aria-pressed="key === state.name ? 'true' : 'false'"
-          @click="setTheme(key)"
+          :class="{ 'is-active': theme.name === state.theme }"
+          :aria-pressed="theme.name === state.theme ? 'true' : 'false'"
+          @click="setTheme(theme.name)"
         >
-          <span class="theme-card__preview" :style="previewStyle(key)">
+          <span class="theme-card__preview" :style="previewStyle(theme.name)">
             <i class="theme-card__c1" />
             <i class="theme-card__c2" />
             <i class="theme-card__c3" />
           </span>
           <span class="theme-card__label">{{ theme.label }}</span>
-          <DsIcon v-if="key === state.name" name="check" size="sm" class="theme-card__check" />
+          <DsIcon
+            v-if="theme.name === state.theme"
+            name="check"
+            size="sm"
+            class="theme-card__check"
+          />
         </button>
       </div>
     </section>
@@ -42,12 +47,12 @@
           跟随主题
         </button>
         <button
-          v-for="(accent, key) in accents"
-          :key="key"
+          v-for="accent in accents"
+          :key="accent.name"
           type="button"
           class="accent-chip"
-          :class="{ 'is-active': key === state.accent }"
-          @click="setAccent(key)"
+          :class="{ 'is-active': accent.name === state.accent }"
+          @click="setAccent(accent.name)"
         >
           <span class="accent-chip__dot" :style="{ background: accent.swatch }" />
           {{ accent.label }}
@@ -99,7 +104,8 @@
         <h4>导出</h4>
       </header>
       <p class="theme-switcher__hint">
-        当前配置会写入 <code>--ds-*</code> CSS 变量并持久化到 localStorage，刷新后保持。
+        当前配置会写入 <code>--ds-*</code> CSS 变量；主题与强调色的选择会持久化到
+        localStorage，刷新后保持（令牌微调属于临时调参，不存）。
       </p>
       <DsButton size="sm" variant="secondary" icon="copy" block @click="copyVars">
         复制 CSS 变量
@@ -117,88 +123,110 @@ import DsIcon from '@/components/DsIcon.vue'
 import DsButton from '@/components/DsButton.vue'
 import DsSwitch from '@/components/DsSwitch.vue'
 import { toast } from '@/components/toast'
-import {
-  state,
-  setTheme,
-  setAccent,
-  setToken,
-  resetTokens,
-  setFollowSystem,
-  resolveCssVars,
-} from '@/design/themeManager'
 
 /**
  * 主题切换面板：主题 × 强调色 × 令牌微调 三层组合
- * 所有改动都是运行时写 CSS 变量，不触发组件重渲染。
+ * -------------------------------------------------------------
+ * 面板本身不再持有任何状态：所有读写都走 this.$ds（由 @ds/vue2 插件注入），
+ * 底层是 @ds/dom 的 ThemeManager。改动的生效路径是：
+ *   this.$ds.use('dark')  ->  manager.use()  ->  重写 :root 的 CSS 变量 + <html> 属性
+ * 所以「切换主题」不触发任何组件重新渲染（除了读 $ds.state 的地方）。
  */
 export default {
   name: 'ThemeSwitcher',
   components: { DsIcon, DsButton, DsSwitch },
   data() {
+    const ds = this.$ds
     return {
-      radiusValue: Number(String(state.overrides['radius-md'] || '8px').replace('px', '')) || 8,
-      brandValue: state.overrides['color-brand'] || '#4f46e5',
-      followSystem: state.followSystem,
+      radiusValue: Number(String(ds.t('radius-md') || '8px').replace('px', '')) || 8,
+      brandValue: ds.t('color-brand') || '#4f46e5',
+      followSystem: ds.state.followSystem,
+      // 「有没有手动改过令牌」是面板自己的事：库只暴露合并后的结果，
+      // 不记录哪些值是覆盖来的。反正覆盖值也不持久化，刷新就没了。
+      touched: false,
     }
   },
   computed: {
+    ds() {
+      return this.$ds
+    },
     state() {
-      return state
+      return this.$ds.state
     },
     themes() {
-      return state.themes
+      const reg = this.$ds.manager.registry
+      return reg.listThemes().map((name) => {
+        const def = reg.getTheme(name)
+        return { name, label: def.label, mode: def.mode, tokens: def.tokens }
+      })
     },
     accents() {
-      return state.accents
+      const reg = this.$ds.manager.registry
+      return reg.listAccents().map((name) => {
+        const def = reg.getAccent(name)
+        return { name, label: def.label, swatch: def.swatch }
+      })
     },
     currentLabel() {
-      const t = state.themes[state.name]
+      const t = this.themes.find((item) => item.name === this.state.theme)
       return t ? t.label : ''
     },
     hasOverrides() {
-      return Object.keys(state.overrides).length > 0
+      return this.touched
     },
     previewVars() {
-      const vars = resolveCssVars()
-      return Object.keys(vars)
-        .slice(0, 12)
-        .map((k) => `${k}: ${vars[k]};`)
-        .join('\n')
+      return this.cssVars().slice(0, 12).join('\n')
     },
   },
   methods: {
-    setTheme,
-    setAccent,
-    resetTokens,
-    previewStyle(key) {
-      const t = state.themes[key]
+    setTheme(name) {
+      this.$ds.use(name)
+    },
+    setAccent(name) {
+      this.$ds.useAccent(name)
+    },
+    resetTokens() {
+      this.$ds.resetOverrides()
+      this.touched = false
+    },
+    previewStyle(name) {
+      const t = this.themes.find((item) => item.name === name)
       if (!t) return null
       const c = t.tokens.color
-      return {
-        background: c.bg,
-        borderColor: c.border,
-      }
+      return { background: c.bg, borderColor: c.border }
     },
     onRadius() {
-      setToken('radius-md', `${this.radiusValue}px`)
-      setToken('radius-lg', `${Math.round(this.radiusValue * 1.5)}px`)
-      setToken('radius-sm', `${Math.round(this.radiusValue * 0.5)}px`)
+      const r = this.radiusValue
+      // 一次改三个令牌，用 overrideMap：逐个 override 会触发三次重绘
+      this.$ds.overrideMap({
+        'radius-md': `${r}px`,
+        'radius-lg': `${Math.round(r * 1.5)}px`,
+        'radius-sm': `${Math.round(r * 0.5)}px`,
+      })
+      this.touched = true
     },
     onBrand(e) {
       this.brandValue = e.target.value
-      setToken('color-brand', this.brandValue)
-      setToken('color-brand-hover', this.brandValue)
-      setToken('color-brand-active', this.brandValue)
-      setToken('color-focus', this.brandValue)
+      this.$ds.overrideMap({
+        'color-brand': this.brandValue,
+        'color-brand-hover': this.brandValue,
+        'color-brand-active': this.brandValue,
+        'color-focus': this.brandValue,
+      })
+      this.touched = true
     },
     onFollowSystem(value) {
-      setFollowSystem(value)
+      this.$ds.followSystem(value)
+    },
+    /** 当前生效令牌 -> ['--ds-color-bg: #fff', ...] */
+    cssVars() {
+      const prefix = this.$ds.manager.prefix.var
+      return Object.keys(this.state.tokens).map(
+        (key) => `${prefix}${key}: ${this.state.tokens[key]};`,
+      )
     },
     copyVars() {
-      const text = Object.keys(resolveCssVars())
-        .map((k) => `${k}: ${resolveCssVars()[k]};`)
-        .join('\n')
-      if (navigator.clipboard) navigator.clipboard.writeText(text)
+      if (navigator.clipboard) navigator.clipboard.writeText(this.cssVars().join('\n'))
       toast.success('CSS 变量已复制到剪贴板')
     },
   },

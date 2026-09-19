@@ -149,7 +149,6 @@ import DsToastHost from '@/components/DsToastHost.vue'
 import ThemeSwitcher from '@/docs/components/ThemeSwitcher.vue'
 import { navGroups } from '@/docs/nav'
 import { bpState } from '@/composables/useBreakpoint'
-import { state as themeState, setTheme } from '@/design/themeManager'
 
 export default {
   name: 'App',
@@ -168,8 +167,8 @@ export default {
       return bpState.width >= 1024 ? 'monitor' : bpState.width >= 768 ? 'tablet' : 'smartphone'
     },
     isDark() {
-      const t = themeState.themes[themeState.name]
-      return t ? t.mode === 'dark' : false
+      // $ds.state 是响应式的（Vue.observable），主题一换这里就重算
+      return this.$ds.state.mode === 'dark'
     },
   },
   mounted() {
@@ -187,7 +186,7 @@ export default {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     },
     toggleMode() {
-      setTheme(this.isDark ? 'light' : 'dark')
+      this.$ds.toggle()
     },
   },
 }

@@ -83,7 +83,6 @@ import DsCard from '@/components/DsCard.vue'
 import DsBadge from '@/components/DsBadge.vue'
 import DsInput from '@/components/DsInput.vue'
 import ThemeSwitcher from '@/docs/components/ThemeSwitcher.vue'
-import { state, resolveTokens } from '@/design/themeManager'
 
 const COLOR_GROUPS = [
   { name: 'surface', label: '表面 Surface', match: /^color-(bg|overlay|skeleton)/ },
@@ -113,11 +112,13 @@ export default {
 @media (max-width: 767px) {
   .my-panel { padding: var(--ds-space-4); }
 }`,
-      registerCode: `import { createTheme } from '@/design/tokens'
-import { registerTheme } from '@/design/themeManager'
+      registerCode: `import { useDs } from '@ds/vue2'
+import { createTheme } from '@/theme/tokens'
+
+const ds = useDs()
 
 // 场景一：代码里注册（品牌定制）
-registerTheme('brand-x', createTheme({
+ds.manager.registry.theme('brand-x', createTheme({
   label: '品牌 X',
   mode: 'light',
   color: { brand: '#0f766e', brandHover: '#115e59', fg: '#062b28', bg: '#f6fffb' },
@@ -125,24 +126,24 @@ registerTheme('brand-x', createTheme({
 
 // 场景二：后台下发 JSON 直接灌入
 fetch('/api/theme').then((r) => r.json()).then((cfg) => {
-  registerTheme(cfg.name, createTheme(cfg))
+  ds.manager.registry.theme(cfg.name, createTheme(cfg))
 })
 
-setTheme('brand-x')   // 立即生效`,
+ds.use('brand-x')   // 立即生效`,
     }
   },
   computed: {
     state() {
-      return state
+      return this.$ds.state
     },
     themes() {
-      return state.themes
+      return this.$ds.manager.registry.listThemes()
     },
     accents() {
-      return state.accents
+      return this.$ds.manager.registry.listAccents()
     },
     tokens() {
-      return resolveTokens()
+      return this.$ds.state.tokens
     },
     tokenCount() {
       return Object.keys(this.tokens).length

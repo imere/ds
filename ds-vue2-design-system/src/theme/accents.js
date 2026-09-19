@@ -4,16 +4,22 @@
  * 与主题正交：换主题是换明暗底，换强调色是换品牌色。
  * 两者可自由组合，因此 5 主题 × 6 强调色 = 30 种外观。
  * 用 rgba 表达 subtle / border，保证在浅色与深色底上都成立。
+ *
+ * tokens 必须挂在 color 分组下：@ds/core 的 registry 是把 accent.tokens
+ * 整棵加到主题令牌之上的，不套一层 color 就会写出 `--ds-brand` 而盖不住
+ * `--ds-color-brand`。
  */
 
 const brand = (main, hover, active, focus, rgb) => ({
-  brand: main,
-  brandHover: hover,
-  brandActive: active,
-  brandSubtle: `rgba(${rgb}, 0.12)`,
-  brandBorder: `rgba(${rgb}, 0.32)`,
-  brandFg: hover,
-  focus: main,
+  color: {
+    brand: main,
+    brandHover: hover,
+    brandActive: active,
+    brandSubtle: `rgba(${rgb}, 0.12)`,
+    brandBorder: `rgba(${rgb}, 0.32)`,
+    brandFg: hover,
+    focus: main,
+  },
 })
 
 export const accents = {

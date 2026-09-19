@@ -4,7 +4,7 @@ import router from './router'
 import store from './store'
 import AuroraDS from './components'
 import ElementSetup from './element'
-import { initThemeManager } from './design/themeManager'
+import { installTheme } from './theme'
 
 // 1) Element 基础样式（按需）
 // 2) 我们自己的重置与工具类
@@ -13,8 +13,9 @@ import './styles/base.css'
 import './styles/utilities.css'
 import './styles/element-bridge.css'
 
-// 主题引擎必须在挂载前初始化，避免首屏闪烁
-initThemeManager()
+// 主题引擎必须在挂载前初始化，避免首屏闪烁：
+// installTheme 内部会 createThemeManager -> Vue.use(@ds/vue2 插件) -> manager.init()
+installTheme(Vue)
 
 Vue.use(ElementSetup)
 Vue.use(AuroraDS)
