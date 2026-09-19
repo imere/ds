@@ -222,8 +222,7 @@ ds-foundation/
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
 ├─ vitest.config.ts   @ds/* 别名到 src，测试直接跑源码
-├─ eslint.config.js   flat config，分「产物层 / 工具层」两套尺度
-├─ prettier.config.js 单引号 + 无分号 + 行宽 100
+├─ eslint.config.js   flat config；Prettier 的选项也写在里面（不单独放 config）
 ├─ tsconfig.json      源码：类型检查（含 strict）
 ├─ tsconfig.test.json 测试：单独一份，把 tests 也纳入 tsc 管辖
 ├─ tsconfig.build.json  只出 .d.ts
@@ -262,9 +261,8 @@ pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
 pnpm test           # vitest，151 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + ES5 合规
 pnpm run typecheck  # tsc --noEmit
-pnpm run lint       # eslint .（prettier 作为规则跑在里面）
-pnpm run lint:fix   # 能自动修的先修掉
-pnpm run format     # prettier --write .
+pnpm run lint       # eslint .（含格式检查 —— prettier 是里面的一条规则）
+pnpm run lint:fix   # 能自动修的先修掉，格式也一起修
 pnpm run es5        # 只跑 ES5 那一项（已在 pnpm test 里，单独调方便）
 pnpm run verify     # typecheck → lint → build → test，串起来跑
                     # 注意 build 在 test 前：ES5 检查里有 6 项验的是 dist 产物，
@@ -277,6 +275,10 @@ pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 
 工具链是**最新的**：ESLint 10（flat config）、typescript-eslint 8（`strict` 档）、Prettier 3，
 `eslint-plugin-prettier` + `eslint-config-prettier` 一起用（后者关掉跟 Prettier 冲突的格式化规则）。
+
+**没有 `prettier.config.js`** —— Prettier 的选项直接写在 `eslint.config.js` 里的 `prettierOptions`。
+因为仓库里 Prettier 只通过 `prettier/prettier` 这条规则跑，再留一份独立配置就是两个源头。
+代价是 `prettier` CLI 读不到这些选项，所以格式化也走 ESLint：`pnpm run lint` 查、`pnpm run lint:fix` 修。
 
 **源码一律用最新语法，不迁就 IE10** —— 降级是 SWC 的事。
 所以 `no-var` / `prefer-const` / `object-shorthand` / `prefer-template` / `prefer-arrow-callback` /
