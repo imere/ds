@@ -107,9 +107,17 @@ export interface ThemeManager {
   apply(): ThemeManager
   use(name: string): ThemeManager
   useAccent(name: string): ThemeManager
+  /**
+   * 运行时开关「跟随系统」。传 false 关掉，不传或传 true 打开。
+   * 打开时会清掉「用户手动选过」的标记并立刻按系统偏好切一次 ——
+   * 否则之前切过主题的人点了开关却没反应，会以为是坏了。
+   */
+  followSystem(on?: boolean): ThemeManager
   /** 在明暗之间切换 */
   toggle(): ThemeManager
   override(key: string, value: unknown): ThemeManager
+  /** 批量覆盖令牌，只重绘一次 */
+  overrideMap(map: Dict<unknown> | null | undefined): ThemeManager
   resetOverrides(): ThemeManager
   /** 取令牌值。IE10 通道下返回已求值的实值，现代通道返回 var() 引用 */
   get(key: string, asRef?: boolean): string | undefined
@@ -177,6 +185,10 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
   // 显式传了 theme、或调用过 use() 就算「定过了」，之后不再自动跟随系统。
   // 之前这事儿靠读持久化状态判断，等于把业务逻辑绑在存储上——核心不碰存储后就改用内存标记。
   let pinned = !!o.theme
+  // followSystem 现在是可以在运行时开关的（见 api.followSystem），
+  // 所以状态不能只在 init 里读一次，得记成变量。
+  let following = !!o.followSystem
+  let detachMedia: (() => void) | null = null
 
   // 写 <style> 时统一带上前缀，标记属性才跟着变成 data-acme-style
   const styleOpts = { prefix: p }
@@ -298,6 +310,48 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     emitter.emit(assign({ tokens: flat, channel }, state))
   }
 
+  /** 系统偏好对应的主题名。没有同名主题就返回空，调用方决定是否切换 */
+  function systemTheme(): string {
+    return prefersDark() ? 'dark' : 'light'
+  }
+
+  /** 按系统偏好切一次。用户手动选过主题（pinned）就不动 */
+  function applySystemPreference(): void {
+    if (!following || pinned) return
+    const want = systemTheme()
+    if (!registry.getTheme(want)) return
+    if (registry.state().theme !== want) registry.use(want)
+  }
+
+  /**
+   * 挂 prefers-color-scheme 监听。幂等 —— 重复调用不会挂第二份。
+   * IE10 没有 matchMedia，supportsMatchMedia() 会返回 false，直接跳过。
+   */
+  function watchSystem(): void {
+    if (!following || detachMedia || !supportsMatchMedia()) return
+    try {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const handler = function (e: MediaQueryListEvent) {
+        if (!following || pinned) return
+        registry.use(e.matches ? 'dark' : 'light')
+        if (started) paint()
+      }
+      if (typeof mq.addListener === 'function') {
+        mq.addListener(handler)
+        detachMedia = function () {
+          mq.removeListener(handler)
+        }
+      } else if (typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', handler)
+        detachMedia = function () {
+          mq.removeEventListener('change', handler)
+        }
+      }
+    } catch {
+      /* 隐私模式 / 老内核下调 matchMedia 可能直接抛，忽略即可 */
+    }
+  }
+
   const api: ThemeManager = {
     registry,
     channel,
@@ -317,21 +371,9 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     /** 挂载：写初始样式。可重复调用，等价于 apply() */
     init() {
       started = true
+      applySystemPreference()
       paint()
-      if (o.followSystem && supportsMatchMedia()) {
-        try {
-          const mq = window.matchMedia('(prefers-color-scheme: dark)')
-          const handler = function (e: MediaQueryListEvent) {
-            if (pinned) return // 用户自己选过就别再覆盖人家的选择
-            registry.use(e.matches ? 'dark' : 'light')
-            paint()
-          }
-          if (typeof mq.addListener === 'function') mq.addListener(handler)
-          else if (typeof mq.addEventListener === 'function') mq.addEventListener('change', handler)
-        } catch {
-          /* 忽略 */
-        }
-      }
+      watchSystem()
       return api
     },
 
@@ -350,6 +392,23 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
 
     useAccent(name) {
       registry.useAccent(name)
+      if (started) paint()
+      return api
+    },
+
+    /** 运行时开关「跟随系统明暗」 */
+    followSystem(on) {
+      const enable = on === undefined ? true : !!on
+      following = enable
+      if (enable) {
+        // 开的时候要清掉手动标记，不然之前切过主题的人点了开关没反应
+        pinned = false
+        applySystemPreference()
+        watchSystem()
+      } else if (detachMedia) {
+        detachMedia()
+        detachMedia = null
+      }
       if (started) paint()
       return api
     },
@@ -373,6 +432,13 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
 
     override(key, value) {
       registry.override(key, value)
+      if (started) paint()
+      return api
+    },
+
+    /** 批量覆盖，只重绘一次 */
+    overrideMap(map) {
+      registry.overrideMap(map)
       if (started) paint()
       return api
     },
@@ -403,8 +469,9 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
       return currentFlat()
     },
 
+    /** 当前主题 / 强调色 / 明暗模式，外加是否在跟随系统 */
     state() {
-      return assign({ channel }, registry.state())
+      return assign({ channel, followSystem: following && !pinned }, registry.state())
     },
 
     subscribe(fn) {
@@ -456,6 +523,10 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
       primitiveWritten = false
       semanticWritten = false
       started = false
+      if (detachMedia) {
+        detachMedia()
+        detachMedia = null
+      }
       emitter.clear()
     },
   }

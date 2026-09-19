@@ -61,6 +61,10 @@ desktop.ini
 *.tmp
 *.temp
 
+# vite 改完配置重启时会生成这种带时间戳的临时 config，正常情况下自己删，
+# 进程被强杀才会留在盘上
+vite.config.js.timestamp-*
+
 # pnpm 启动时会在 store 里写这种 0 字节临时文件，正常情况自己会删干净，
 # 偶尔被中断才留下
 _tmp_*

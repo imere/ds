@@ -69,6 +69,24 @@ Tier 3 组件层   --ds-button-bg-hover       （组件内部用）
 - **主题**换明暗底（bg / fg / border / shadow）
 - **强调色**换品牌色（brand 一族），`makeAccent('#0ea5e9')` 一行生成 hover / active / subtle / 前景色
 
+### 断点
+
+```js
+import { defaultBreakpoints, breakpointOrder, currentBreakpoint, up, down, mediaOf } from '@ds/core'
+
+currentBreakpoint(1024) // 'lg'
+up('md') // '(min-width: 768px)'
+down('md') // '(max-width: 767px)' —— 与 up 相邻但不重叠
+mediaOf().lg // '@media (min-width: 1024px)'
+```
+
+断点跟间距、圆角一样属于**基础尺度**，三方要共用同一份定义：CSS 媒体查询、JS 的条件渲染、文档里的展示表。
+
+这一层只有纯数据 + 纯函数，**不碰 `window` / `matchMedia`**：
+怎么监听 resize、怎么接进框架的响应式系统，是绑定层的事 —— Vue 里该写成 composable，
+React 里该写成 hook，塞进核心只会让 SSR 和单测多一份副作用。
+未知断点名直接抛错，不静默拼出 `(min-width: NaNpx)`。
+
 ### 自定义令牌前缀
 
 默认前缀是 `ds`。换成 `acme` 只需要在入口传一次：
@@ -162,6 +180,17 @@ bindTheme(Vue.ds.manager) // 可选：不调就不碰存储
   IE10 通道下做不到（没有变量继承），会退化成整站切换并给一次性告警
 - 也能通过 `this.dsContext`（provide/inject）拿同一份句柄
 
+`$ds` 上还有几个 UI 直接要用的：
+
+| 用法                        | 说明                                                              |
+| --------------------------- | ----------------------------------------------------------------- |
+| `$ds.override(k, v)`        | 覆盖单个令牌。传对象则按组合并（`override('color', { brand })`）  |
+| `$ds.overrideMap({ ... })`  | 批量覆盖，只重绘一次 —— 拖滑块改圆角那种场景                      |
+| `$ds.resetOverrides()`      | 撤销全部覆盖                                                      |
+| `$ds.followSystem(true)`    | 运行时开关「跟随系统明暗」；打开会清掉「用户手动选过」的标记      |
+| `$ds.state.followSystem`    | 当前是否还在跟随（手动切过主题后为 false）                        |
+| `$ds.manager.registry`      | 要列 UI 就用它：`listThemes()` / `getTheme()` / `listAccents()` …  |
+
 示例：`examples/vue2/index.html`（Vue 2 UMD + script 标签，无构建步骤）。
 
 ### 4. 只用 `@ds/core`（SSR / 构建期预生成）
@@ -212,12 +241,12 @@ core 里 `assign` 是手写实现，`unique` 不依赖 Set。
 ```
 ds-foundation/
 ├─ packages/
-│  ├─ core/src/    util / color / prefix / token / theme / class / output / preset   (.ts)
-│  ├─ dom/src/     env / style / store / emitter / theme / ssr                       (.ts)
+│  ├─ core/src/    util / color / prefix / token / breakpoint / theme / class / output / preset (.ts)
+│  ├─ dom/src/     env / style / emitter / theme / ssr / storage                     (.ts)
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
 ├─ examples/       umd / esm / vue2
-├─ tests/          core / dom / vue2 / storage / es5 五个 .test.ts（vitest）
+├─ tests/          core / dom / vue2 / storage / breakpoint / es5 六个 .test.ts（vitest）
 ├─ scripts/        clean / serve / dts / inline-examples
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
@@ -259,7 +288,7 @@ pnpm install
 pnpm run build      # 三个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
 pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
-pnpm test           # vitest，151 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + ES5 合规
+pnpm test           # vitest，173 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
 pnpm run typecheck  # tsc --noEmit
 pnpm run lint       # eslint .（含格式检查 —— prettier 是里面的一条规则）
 pnpm run lint:fix   # 能自动修的先修掉，格式也一起修
@@ -383,8 +412,9 @@ pnpm run test:watch
 | 文件           | 环境  | 验什么                                                                                                               |
 | -------------- | ----- | -------------------------------------------------------------------------------------------------------------------- |
 | `core.test.ts` | node  | 令牌解析、`var()` 链式求值、两层 class、CSS 输出切片、SSR 脚本、前缀归一化                                           |
-| `dom.test.ts`  | jsdom | **两条通道分别验**：vars 通道注入 `--ds-*`，static 通道注入实值且全程不含 `var(`；换主题、订阅、局部前缀             |
+| `dom.test.ts`  | jsdom | **两条通道分别验**：vars 通道注入 `--ds-*`，static 通道注入实值且全程不含 `var(`；换主题、订阅、局部前缀、批量覆盖、跟随系统开关 |
 | `vue2.test.ts` | jsdom | `$ds` 响应式、`t()` / `style()`、provide/inject 同步、`v-ds-theme` 局部变量的写入 / 更新 / 卸载清理、零 Vue 报错告警 |
+| `breakpoint.test.ts` | node | 断点分档边界、`up/down/between` 互不重叠、自定义断点表、未知名字抛错                                              |
 | `es5.test.ts`  | node  | **IE10 硬约束**：源码转译后无 ES6+ 残留、无 TS 残留；构建产物同样扫一遍                                              |
 
 两个容易踩的点，写新测试时注意：

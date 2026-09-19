@@ -18,6 +18,8 @@ export interface DsObservedState {
   mode: string
   label: string
   tokens: Dict<unknown>
+  /** 是否在跟随系统明暗。UI 上的开关要读它做初始值 */
+  followSystem: boolean
 }
 
 /** 挂在 this.$ds 上的句柄（install 返回的也是它） */
@@ -42,8 +44,12 @@ export interface DsState {
   toggle(): DsState
   /** 手动覆盖令牌，返回 this */
   override(key: string, value: unknown): DsState
+  /** 批量覆盖令牌（只重绘一次），返回 this */
+  overrideMap(map: Dict<unknown> | null | undefined): DsState
   /** 清除覆盖，返回 this */
   resetOverrides(): DsState
+  /** 运行时开关「跟随系统明暗」，返回 this */
+  followSystem(on?: boolean): DsState
   /** 读令牌：t('color-brand') */
   t(key: string): unknown
   /** 取 var() 引用（仅 vars 通道有意义，static 通道返回实值） */
@@ -64,10 +70,18 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
           mode: 'light',
           label: '',
           tokens: {},
+          followSystem: false,
         }) as DsObservedState)
       : (new Vue({
           data() {
-            return { theme: '', accent: '', mode: 'light', label: '', tokens: {} }
+            return {
+              theme: '',
+              accent: '',
+              mode: 'light',
+              label: '',
+              tokens: {},
+              followSystem: false,
+            }
           },
         }).$data as DsObservedState)
 
@@ -77,6 +91,7 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
     state.accent = String(p.accent || '')
     state.mode = String(p.mode || 'light')
     state.label = String(p.label || '')
+    state.followSystem = p.followSystem === true
 
     const next: Dict<unknown> = {}
     each((p.tokens as Dict<unknown>) || {}, (value, key) => {
@@ -123,8 +138,18 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
       manager.override(key, value)
       return api
     },
+    /** 批量覆盖 —— 拖滑块改圆角那种场景，一次改好几个令牌只重绘一遍 */
+    overrideMap(map: Dict<unknown> | null | undefined): DsState {
+      manager.overrideMap(map)
+      return api
+    },
     resetOverrides(): DsState {
       manager.resetOverrides()
+      return api
+    },
+    /** 运行时开关「跟随系统明暗」。不传参 = 打开 */
+    followSystem(on?: boolean): DsState {
+      manager.followSystem(on)
       return api
     },
 
