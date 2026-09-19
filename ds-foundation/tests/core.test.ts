@@ -21,6 +21,7 @@ import {
   darkTheme,
   accents,
 } from '@ds/core'
+import type { ThemeDef } from '@ds/core'
 import { splitCss, getInitScript, pickChannel, restoreScript } from '@ds/dom'
 
 function makeRegistry() {
@@ -164,7 +165,8 @@ describe('7. 对比度', () => {
 
 describe('8. createTheme 校验', () => {
   it('非法定义抛错', () => {
-    expect(() => createTheme({} as any)).toThrow()
+    // 故意传空对象验校验逻辑：类型上不合法，所以要转两次
+    expect(() => createTheme({} as unknown as ThemeDef)).toThrow()
   })
 })
 

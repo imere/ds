@@ -29,7 +29,7 @@ export interface Rgba extends Rgb {
 /** #rgb / #rrggbb -> { r, g, b } */
 export function parseHex(hex: string): Rgb | null {
   if (typeof hex !== 'string') return null
-  var s = hex.trim().replace(/^#/, '')
+  let s = hex.trim().replace(/^#/, '')
   if (s.length === 3) {
     s = s.charAt(0) + s.charAt(0) + s.charAt(1) + s.charAt(1) + s.charAt(2) + s.charAt(2)
   }
@@ -44,12 +44,12 @@ export function parseHex(hex: string): Rgb | null {
 /** rgb()/rgba()/空格语法 -> { r, g, b, a } */
 export function parseRgb(str: string): Rgba | null {
   if (typeof str !== 'string') return null
-  var m = str.match(/rgba?\(\s*([^)]+)\)/i)
+  const m = str.match(/rgba?\(\s*([^)]+)\)/i)
   if (!m) return null
   // 同时兼容 "15, 23, 42, .045" 与 "15 23 42 / .045"
-  var parts = m[1].replace(/\//g, ' ').replace(/,/g, ' ').trim().split(/\s+/)
+  const parts = m[1].replace(/\//g, ' ').replace(/,/g, ' ').trim().split(/\s+/)
   if (parts.length < 3) return null
-  var out = {
+  const out = {
     r: parseInt(parts[0], 10),
     g: parseInt(parts[1], 10),
     b: parseInt(parts[2], 10),
@@ -63,9 +63,9 @@ export function parseRgb(str: string): Rgba | null {
 /** 任意写法 -> { r, g, b, a }；解析不了返回 null（上游应保留原值） */
 export function parseColor(value: string): Rgba | null {
   if (typeof value !== 'string') return null
-  var v = value.trim()
+  const v = value.trim()
   if (v.charAt(0) === '#') {
-    var h = parseHex(v)
+    const h = parseHex(v)
     return h ? { r: h.r, g: h.g, b: h.b, a: 1 } : null
   }
   return parseRgb(v)
@@ -73,59 +73,59 @@ export function parseColor(value: string): Rgba | null {
 
 /** 通道串：'#4f46e5' -> '79 70 229'，用于 rgb(var(--x) / alpha) */
 export function toChannels(value: string): string | null {
-  var c = parseColor(value)
+  const c = parseColor(value)
   if (!c) return null
-  return c.r + ' ' + c.g + ' ' + c.b
+  return `${c.r} ${c.g} ${c.b}`
 }
 
 /** 任意写法 -> 'rgba(r,g,b,a)'，IE10 也认（IE10 支持 rgba，不支持 CSS 变量） */
 export function toRgba(value: string, alpha?: number | null): string | null {
-  var c = parseColor(value)
+  const c = parseColor(value)
   if (!c) return null
-  var a = alpha === undefined || alpha === null ? c.a : alpha
-  return 'rgba(' + c.r + ', ' + c.g + ', ' + c.b + ', ' + a + ')'
+  const a = alpha === undefined || alpha === null ? c.a : alpha
+  return `rgba(${c.r}, ${c.g}, ${c.b}, ${a})`
 }
 
 /** 任意写法 -> '#rrggbb' */
 export function toHex(value: string): string | null {
-  var c = parseColor(value)
+  const c = parseColor(value)
   if (!c) return null
-  var hex = function (n: number): string {
-    var s = Math.max(0, Math.min(255, Math.round(n))).toString(16)
-    return s.length === 1 ? '0' + s : s
+  const hex = function (n: number): string {
+    const s = Math.max(0, Math.min(255, Math.round(n))).toString(16)
+    return s.length === 1 ? `0${s}` : s
   }
-  return '#' + hex(c.r) + hex(c.g) + hex(c.b)
+  return `#${hex(c.r)}${hex(c.g)}${hex(c.b)}`
 }
 
 /** 两色按权重混合，weight=0 取 a，1 取 b */
 export function mix(a: string, b: string, weight?: number): string | null {
-  var ca = parseColor(a)
-  var cb = parseColor(b)
+  const ca = parseColor(a)
+  const cb = parseColor(b)
   if (!ca || !cb) return null
-  var w = weight === undefined ? 0.5 : weight
-  var ch = function (x: number, y: number): number {
+  const w = weight === undefined ? 0.5 : weight
+  const ch = function (x: number, y: number): number {
     return Math.round(x + (y - x) * w)
   }
-  return 'rgb(' + ch(ca.r, cb.r) + ', ' + ch(ca.g, cb.g) + ', ' + ch(ca.b, cb.b) + ')'
+  return `rgb(${ch(ca.r, cb.r)}, ${ch(ca.g, cb.g)}, ${ch(ca.b, cb.b)})`
 }
 
 /** 相对亮度，WCAG 2.1 */
 export function luminance(value: string): number {
-  var c = parseColor(value)
+  const c = parseColor(value)
   if (!c) return 0
-  var chan = function (v: number): number {
-    var s = v / 255
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  const chan = function (v: number): number {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
   }
   return 0.2126 * chan(c.r) + 0.7152 * chan(c.g) + 0.0722 * chan(c.b)
 }
 
 /** 对比度，用于校验文字/底色是否达标（AA 正文需 >= 4.5） */
 export function contrast(a: string, b: string): number {
-  var la = luminance(a)
-  var lb = luminance(b)
-  var hi = Math.max(la, lb)
-  var lo = Math.min(la, lb)
+  const la = luminance(a)
+  const lb = luminance(b)
+  const hi = Math.max(la, lb)
+  const lo = Math.min(la, lb)
   return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100
 }
 
@@ -136,11 +136,11 @@ export function contrast(a: string, b: string): number {
  */
 export function resolveVarValue(value: string, tokenMap: Dict<string>, prefix?: string): string {
   if (typeof value !== 'string' || value.indexOf('var(') === -1) return value
-  var p = prefix || 'ds'
-  return value.replace(/var\(\s*--([^),]+)\s*(?:,\s*([^)]+))?\)/g, function (all, name, fallback) {
-    var key = String(name).trim()
-    var bare = key.indexOf(p + '-') === 0 ? key.slice(p.length + 1) : key
-    var hit = tokenMap[key] !== undefined ? tokenMap[key] : tokenMap[bare]
+  const p = prefix || 'ds'
+  return value.replace(/var\(\s*--([^),]+)\s*(?:,\s*([^)]+))?\)/g, (all, name, fallback) => {
+    const key = String(name).trim()
+    const bare = key.indexOf(`${p}-`) === 0 ? key.slice(p.length + 1) : key
+    const hit = tokenMap[key] !== undefined ? tokenMap[key] : tokenMap[bare]
     if (hit !== undefined) return hit
     return fallback ? fallback.trim() : all
   })

@@ -4,41 +4,42 @@
  */
 
 import { each } from '@ds/core'
+import type { Dict } from '@ds/core'
 
 /** 订阅回调：主题变化时被调用，payload 为当前主题快照 */
-export type Handler = (payload?: any) => void
+export type Handler = (payload?: Dict<unknown>) => void
 
 export interface Emitter {
   on(fn: Handler): () => void
   off(fn: Handler): void
-  emit(payload?: any): void
+  emit(payload?: Dict<unknown>): void
   clear(): void
   count(): number
 }
 
 export function createEmitter(): Emitter {
-  var handlers: Handler[] = []
+  let handlers: Handler[] = []
 
   return {
-    on: function (fn: Handler) {
+    on(fn: Handler) {
       if (typeof fn !== 'function') return function () {}
       handlers.push(fn)
-      var self = this
-      return function off() {
-        self.off(fn)
+      // 箭头函数直接吃外层的 this，不需要 `var self = this` 这种 ES5 时代的写法
+      return () => {
+        this.off(fn)
       }
     },
-    off: function (fn: Handler) {
-      var next: Handler[] = []
-      each(handlers, function (h) {
+    off(fn: Handler) {
+      const next: Handler[] = []
+      each(handlers, (h) => {
         if (h !== fn) next.push(h)
       })
       handlers = next
     },
-    emit: function (payload?: any) {
+    emit(payload?: Dict<unknown>) {
       // 复制一份再遍历，避免回调里 off 自己导致漏执行
-      var snapshot = handlers.slice(0)
-      each(snapshot, function (fn) {
+      const snapshot = handlers.slice(0)
+      each(snapshot, (fn) => {
         try {
           fn(payload)
         } catch (e) {
@@ -48,10 +49,10 @@ export function createEmitter(): Emitter {
         }
       })
     },
-    clear: function () {
+    clear() {
       handlers = []
     },
-    count: function () {
+    count() {
       return handlers.length
     },
   }

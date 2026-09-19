@@ -55,7 +55,7 @@ function renderSize() {
   const modern = buildClassSheet({ ...opts, resolve: null })
   const staticLight = buildClassSheet({ ...opts, resolve: resolved })
 
-  const kb = (s) => (new Blob([s]).size / 1024).toFixed(1) + ' KB'
+  const kb = (s) => `${(new Blob([s]).size / 1024).toFixed(1)} KB`
   const rows = [
     ['primitive（主题无关）', kb(modern.primitive), '只 1 份'],
     ['semantic（现代，用 var()）', kb(modern.semantic), '只 1 份'],
@@ -74,7 +74,7 @@ function bind() {
   $('#toggle').addEventListener('click', () => ds.toggle())
   $('#accent').addEventListener('change', (e) => ds.useAccent(e.target.value))
   $('#radius').addEventListener('input', (e) => {
-    ds.override('radius-md', e.target.value + 'px')
+    ds.override('radius-md', `${e.target.value}px`)
   })
 }
 

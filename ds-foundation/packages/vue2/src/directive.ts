@@ -25,36 +25,43 @@ declare global {
   }
 }
 
-function normalize(value: any): Dict<any> {
+/** v-ds-theme 的值归一化后的形态：`'dark'` 或 `{ theme, accent }` */
+export interface ThemeConfig {
+  theme?: string
+  accent?: string | null
+}
+
+function normalize(value: unknown): ThemeConfig {
   if (!value) return {}
   if (typeof value === 'string') return { theme: value }
-  return value
+  // 指令值是模板里写死的，走到这里只可能是对象形态
+  return value as ThemeConfig
 }
 
-function signature(cfg: Dict<any>): string {
-  return (cfg.theme || '') + '|' + (cfg.accent || '')
+function signature(cfg: ThemeConfig): string {
+  return `${cfg.theme || ''}|${cfg.accent || ''}`
 }
 
-var warned = false
+let warned = false
 
 export function makeDirective(ds: DsState): DirectiveOptions {
-  var manager = ds.manager
-  var registry = manager.registry
+  const { manager } = ds
+  const { registry } = manager
   // 前缀从 manager 上取，业务换前缀后指令写出来的变量名跟着变，
   // 否则会出现"整站是 --acme-*，局部换肤写的还是 --ds-*"的错位
-  var PREFIX = prefixOf(manager.prefix).var
-  var attr = prefixOf(manager.prefix).attr
-  var accentAttr = prefixOf(manager.prefix).accentAttr
+  const PREFIX = prefixOf(manager.prefix).var
+  const { attr } = prefixOf(manager.prefix)
+  const { accentAttr } = prefixOf(manager.prefix)
 
-  function tokensFor(cfg: Dict<any>): Dict<string> {
-    var theme = registry.getTheme(cfg.theme || undefined)
-    var accent = cfg.accent === undefined ? null : registry.getAccent(cfg.accent)
+  function tokensFor(cfg: ThemeConfig): Dict<string> {
+    const theme = registry.getTheme(cfg.theme || undefined)
+    const accent = cfg.accent === undefined ? null : registry.getAccent(cfg.accent || undefined)
     return resolveTokens(theme, accent, null)
   }
 
-  function apply(el: HTMLElement, value: any): void {
-    var cfg = normalize(value)
-    var sig = signature(cfg)
+  function apply(el: HTMLElement, value: unknown): void {
+    const cfg = normalize(value)
+    const sig = signature(cfg)
     if (el.__dsSig__ === sig) return
     el.__dsSig__ = sig
 
@@ -73,17 +80,17 @@ export function makeDirective(ds: DsState): DirectiveOptions {
         }
       }
       if (cfg.theme) manager.use(cfg.theme)
-      if (cfg.accent !== undefined) manager.useAccent(cfg.accent)
+      if (cfg.accent !== undefined) manager.useAccent(cfg.accent || '')
       return
     }
 
-    var flat = resolveVars(tokensFor(cfg), { prefix: manager.prefix })
-    var prev = el.__dsVars__ || {}
+    const flat = resolveVars(tokensFor(cfg), { prefix: manager.prefix })
+    const prev = el.__dsVars__ || {}
 
-    each(flat, function (v, k) {
+    each(flat, (v, k) => {
       setCssVar(el, PREFIX + k, v)
     })
-    each(prev, function (v, k) {
+    each(prev, (v, k) => {
       if (flat[k] === undefined) removeCssVar(el, PREFIX + k)
     })
 
@@ -91,7 +98,7 @@ export function makeDirective(ds: DsState): DirectiveOptions {
   }
 
   function clear(el: HTMLElement): void {
-    each(el.__dsVars__ || {}, function (v, k) {
+    each(el.__dsVars__ || {}, (v, k) => {
       removeCssVar(el, PREFIX + k)
     })
     el.__dsVars__ = null
@@ -99,13 +106,13 @@ export function makeDirective(ds: DsState): DirectiveOptions {
   }
 
   return {
-    bind: function (el, binding) {
+    bind(el, binding) {
       apply(el, binding.value)
     },
-    update: function (el, binding) {
+    update(el, binding) {
       apply(el, binding.value)
     },
-    unbind: function (el: HTMLElement): void {
+    unbind(el: HTMLElement): void {
       clear(el)
     },
   }

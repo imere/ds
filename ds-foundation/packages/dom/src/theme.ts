@@ -51,7 +51,7 @@ export interface ThemeManagerOptions {
   /** 已建好的注册中心（不传则用内置的） */
   registry?: Registry
   /** 统一前缀：'acme' / '--acme-' / 'acme-' / 归一化对象 */
-  prefix?: string | Prefix | Dict<any> | null
+  prefix?: string | Prefix | Dict<string> | null
   /** 变量写在哪（默认 <html>；传容器可做局部深色区） */
   attr?: string
   modeAttr?: string
@@ -109,14 +109,14 @@ export interface ThemeManager {
   useAccent(name: string): ThemeManager
   /** 在明暗之间切换 */
   toggle(): ThemeManager
-  override(key: string, value: any): ThemeManager
+  override(key: string, value: unknown): ThemeManager
   resetOverrides(): ThemeManager
   /** 取令牌值。IE10 通道下返回已求值的实值，现代通道返回 var() 引用 */
   get(key: string, asRef?: boolean): string | undefined
   /** 生成行内样式对象，例如 :style="ds.style({ color: 'color-fg-muted' })" */
   style(map: Dict<string> | null | undefined): Dict<string>
   tokens(): FlatTokens
-  state(): Dict<any>
+  state(): Dict<unknown>
   subscribe(fn: Handler): () => void
   /** 导出 CSS 文本，供 SSR 内联到 <head>（避免首屏闪白） */
   cssText(opt?: { theme?: string; accent?: string; channel?: string }): CssTextResult
@@ -150,38 +150,38 @@ export function pickChannel(option?: string): 'vars' | 'static' {
  * 不接就完全不碰 localStorage / cookie，SSR 也没有任何副作用。
  */
 export function createThemeManager(options?: ThemeManagerOptions): ThemeManager {
-  var o = options || {}
-  var doc = o.doc || (typeof document !== 'undefined' ? document : null)
-  var registry = o.registry || createRegistry()
+  const o = options || {}
+  const doc = o.doc || (typeof document !== 'undefined' ? document : null)
+  const registry = o.registry || createRegistry()
 
   // 前缀只归一化一次，后面所有地方都从 p 上取，杜绝 'ds' / '--ds-' / 'ds-' 混用
-  var p = prefixOf(o.prefix)
-  var prefix = p.var
+  const p = prefixOf(o.prefix)
+  const prefix = p.var
 
-  var target = o.target || (doc ? doc.documentElement : null)
-  var attr = o.attr || p.attr
-  var modeAttr = o.modeAttr || p.modeAttr
-  var accentAttr = o.accentAttr || p.accentAttr
-  var withClasses = o.withClasses !== false
-  var channel = pickChannel(o.channel)
+  const target = o.target || (doc ? doc.documentElement : null)
+  const attr = o.attr || p.attr
+  const modeAttr = o.modeAttr || p.modeAttr
+  const accentAttr = o.accentAttr || p.accentAttr
+  const withClasses = o.withClasses !== false
+  const channel = pickChannel(o.channel)
 
-  var ids = {
+  const ids = {
     tokens: o.idTokens || p.ids.tokens,
     primitive: o.idPrimitive || p.ids.primitive,
     semantic: o.idSemantic || p.ids.semantic,
   }
 
-  var emitter: Emitter = createEmitter()
+  const emitter: Emitter = createEmitter()
 
   // 用户是否自己定过主题。用来决定 followSystem 还能不能改主题：
   // 显式传了 theme、或调用过 use() 就算「定过了」，之后不再自动跟随系统。
   // 之前这事儿靠读持久化状态判断，等于把业务逻辑绑在存储上——核心不碰存储后就改用内存标记。
-  var pinned = !!o.theme
+  let pinned = !!o.theme
 
   // 写 <style> 时统一带上前缀，标记属性才跟着变成 data-acme-style
-  var styleOpts = { prefix: p }
+  const styleOpts = { prefix: p }
 
-  var classOpts = {
+  const classOpts = {
     scales: o.scales,
     rules: o.rules,
     utilities: o.utilities,
@@ -193,14 +193,14 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     indent: false,
   }
 
-  var started = false
-  var primitiveWritten = false
-  var semanticWritten = false
-  var lastKeys: string[] = []
-  var semanticIds: string[] = []
+  let started = false
+  let primitiveWritten = false
+  let semanticWritten = false
+  let lastKeys: string[] = []
+  let semanticIds: string[] = []
 
-  var themesIn: Dict<Theme | ThemeDef> = o.themes || {}
-  var accentsIn: Dict<AccentDef> = o.accents || {}
+  let themesIn: Dict<Theme | ThemeDef> = o.themes || {}
+  let accentsIn: Dict<AccentDef> = o.accents || {}
 
   // 开箱即用：业务没给主题就上内置的明暗两套 + 内置强调色。
   // 想要完全自定义就传 preset: false，或者传自己的 themes/accents 覆盖同名项。
@@ -211,18 +211,18 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     accentsIn = presetAccents
   }
 
-  each(themesIn, function (def, name) {
+  each(themesIn, (def, name) => {
     registry.theme(name as string, def)
   })
-  each(accentsIn, function (def, name) {
+  each(accentsIn, (def, name) => {
     registry.accent(name as string, def)
   })
 
   // 初始值只来自调用方显式传入，或 followSystem 的偏好推断。
   // 想恢复上次的主题就用 readTheme()（见 storage.ts）读出来再传进来 —— 核心不去碰存储。
-  var initial = o.theme || (o.followSystem && prefersDark() ? 'dark' : '')
+  const initial = o.theme || (o.followSystem && prefersDark() ? 'dark' : '')
   if (initial) registry.use(initial)
-  var initialAccent = o.accent
+  let initialAccent = o.accent
   // 不给默认强调色的话 brand 一族全是 undefined，界面上品牌色会直接消失
   if (!initialAccent && o.defaultAccent !== false && accentsIn.indigo) initialAccent = 'indigo'
   if (initialAccent) registry.useAccent(initialAccent)
@@ -244,13 +244,13 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     }
     // 局部作用域：没有 :root 可用，直接往元素上写内联变量
     if (!target) return
-    var next: string[] = []
-    each(flat, function (value, key) {
+    const next: string[] = []
+    each(flat, (value, key) => {
       setCssVar(target, prefix + key, value)
       next.push(key as string)
     })
     // 清掉这次不再存在的键
-    each(lastKeys, function (key) {
+    each(lastKeys, (key) => {
       if (next.indexOf(key) === -1) removeCssVar(target, prefix + key)
     })
     lastKeys = next
@@ -259,9 +259,9 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
   function writeClasses(flat: FlatTokens): void {
     if (!withClasses || !doc) return
 
-    var sheetOpts: BuildClassSheetOptions = assign({}, classOpts, { tokens: flat })
+    const sheetOpts: BuildClassSheetOptions = assign({}, classOpts, { tokens: flat })
     if (channel === 'static') sheetOpts.resolve = resolveVars(flat, { prefix: p })
-    var sheet = buildClassSheet(sheetOpts)
+    const sheet = buildClassSheet(sheetOpts)
 
     if (!primitiveWritten) {
       writeStyle(doc, ids.primitive, sheet.primitive, styleOpts)
@@ -282,8 +282,8 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
   }
 
   function paint(): void {
-    var flat = currentFlat()
-    var state = registry.state()
+    const flat = currentFlat()
+    const state = registry.state()
 
     if (target) {
       target.setAttribute(attr, state.theme)
@@ -295,40 +295,40 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     writeTokens(flat)
     writeClasses(flat)
 
-    emitter.emit(assign({ tokens: flat, channel: channel }, state))
+    emitter.emit(assign({ tokens: flat, channel }, state))
   }
 
-  var api: ThemeManager = {
-    registry: registry,
-    channel: channel,
+  const api: ThemeManager = {
+    registry,
+    channel,
     /** 归一化后的前缀对象：{ ns, var, cls, attr, modeAttr, accentAttr, ids, keys } */
     prefix: p,
 
     /** 令牌键 -> CSS 变量名：'color-brand' -> '--acme-color-brand' */
-    varName: function (key) {
+    varName(key) {
       return p.var + key
     },
 
     /** class 短名 -> 完整类名：'bg-brand' -> 'acme-bg-brand' */
-    className: function (short) {
+    className(short) {
       return p.cls + short
     },
 
     /** 挂载：写初始样式。可重复调用，等价于 apply() */
-    init: function () {
+    init() {
       started = true
       paint()
       if (o.followSystem && supportsMatchMedia()) {
         try {
-          var mq = window.matchMedia('(prefers-color-scheme: dark)')
-          var handler = function (e: any) {
+          const mq = window.matchMedia('(prefers-color-scheme: dark)')
+          const handler = function (e: MediaQueryListEvent) {
             if (pinned) return // 用户自己选过就别再覆盖人家的选择
             registry.use(e.matches ? 'dark' : 'light')
             paint()
           }
           if (typeof mq.addListener === 'function') mq.addListener(handler)
           else if (typeof mq.addEventListener === 'function') mq.addEventListener('change', handler)
-        } catch (e) {
+        } catch {
           /* 忽略 */
         }
       }
@@ -336,32 +336,32 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
     },
 
     /** 重新应用当前主题（改了 override 之后调用） */
-    apply: function () {
+    apply() {
       paint()
       return api
     },
 
-    use: function (name) {
+    use(name) {
       registry.use(name)
       pinned = true
       if (started) paint()
       return api
     },
 
-    useAccent: function (name) {
+    useAccent(name) {
       registry.useAccent(name)
       if (started) paint()
       return api
     },
 
     /** 在明暗之间切换 */
-    toggle: function () {
-      var state = registry.state()
-      var want = state.mode === 'dark' ? 'light' : 'dark'
-      var names = registry.listThemes()
-      var hit = ''
-      for (var i = 0; i < names.length; i++) {
-        var t = registry.getTheme(names[i])
+    toggle() {
+      const state = registry.state()
+      const want = state.mode === 'dark' ? 'light' : 'dark'
+      const names = registry.listThemes()
+      let hit = ''
+      for (let i = 0; i < names.length; i++) {
+        const t = registry.getTheme(names[i])
         if (t && t.mode === want) {
           hit = names[i]
           break
@@ -371,43 +371,43 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
       return api
     },
 
-    override: function (key, value) {
+    override(key, value) {
       registry.override(key, value)
       if (started) paint()
       return api
     },
 
-    resetOverrides: function () {
+    resetOverrides() {
       registry.resetOverrides()
       if (started) paint()
       return api
     },
 
     /** 取令牌值。IE10 通道下返回已求值的实值，现代通道返回 var() 引用 */
-    get: function (key, asRef) {
-      if (asRef && channel === 'vars') return 'var(' + prefix + key + ')'
+    get(key, asRef) {
+      if (asRef && channel === 'vars') return `var(${prefix}${key})`
       return currentResolved()[key]
     },
 
     /** 生成行内样式对象，例如 :style="ds.style({ color: 'color-fg-muted' })" */
-    style: function (map) {
-      var out: Dict<string> = {}
-      each(map || {}, function (tokenKey, cssProp) {
-        var v = api.get(tokenKey, channel === 'vars')
+    style(map) {
+      const out: Dict<string> = {}
+      each(map || {}, (tokenKey, cssProp) => {
+        const v = api.get(tokenKey, channel === 'vars')
         if (v !== undefined && v !== null) out[cssProp] = v
       })
       return out
     },
 
-    tokens: function () {
+    tokens() {
       return currentFlat()
     },
 
-    state: function () {
-      return assign({ channel: channel }, registry.state())
+    state() {
+      return assign({ channel }, registry.state())
     },
 
-    subscribe: function (fn) {
+    subscribe(fn) {
       return emitter.on(fn)
     },
 
@@ -415,20 +415,20 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
      * 导出 CSS 文本，供 SSR 内联到 <head>（避免首屏闪白）
      * @param {{theme?:string, accent?:string, channel?:string}} [opt]
      */
-    cssText: function (opt) {
-      var q = opt || {}
-      var savedT = registry.state().theme
-      var savedA = registry.state().accent
+    cssText(opt) {
+      const q = opt || {}
+      const savedT = registry.state().theme
+      const savedA = registry.state().accent
       if (q.theme) registry.use(q.theme)
       if (q.accent !== undefined) registry.useAccent(q.accent)
 
-      var flat = currentFlat()
-      var ch = q.channel || channel
-      var sheetOpts: BuildClassSheetOptions = assign({}, classOpts, { tokens: flat })
+      const flat = currentFlat()
+      const ch = q.channel || channel
+      const sheetOpts: BuildClassSheetOptions = assign({}, classOpts, { tokens: flat })
       if (ch === 'static') sheetOpts.resolve = resolveVars(flat, { prefix: p })
-      var sheet = buildClassSheet(sheetOpts)
+      const sheet = buildClassSheet(sheetOpts)
 
-      var out: CssTextResult = {
+      const out: CssTextResult = {
         tokens: ch === 'vars' ? toCssVars(flat, { selector: ':root', prefix: p }) : '',
         primitive: sheet.primitive,
         semantic: sheet.semantic,
@@ -442,13 +442,13 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
       return out
     },
 
-    destroy: function () {
+    destroy() {
       if (doc) {
         removeStyle(doc, [ids.tokens, ids.primitive, ids.semantic])
         removeStyle(doc, semanticIds)
       }
       if (target) {
-        each(lastKeys, function (key) {
+        each(lastKeys, (key) => {
           removeCssVar(target, prefix + key)
         })
       }

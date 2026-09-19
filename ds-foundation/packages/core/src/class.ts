@@ -64,7 +64,7 @@ export interface SemanticOptions {
 }
 
 /** 默认 scale：primitive class 的取值域（主题无关，所以可以放死值） */
-export var DEFAULT_SCALES: ScaleTable = {
+export const DEFAULT_SCALES: ScaleTable = {
   space: {
     0: '0px',
     1: '4px',
@@ -109,7 +109,7 @@ export var DEFAULT_SCALES: ScaleTable = {
  * scale 派生的 primitive 规则声明
  * prop 可以是数组，一条 class 同时写多个属性（如 px -> padding-left/right）
  */
-export var DEFAULT_SCALE_RULES: ScaleRuleDef[] = [
+export const DEFAULT_SCALE_RULES: ScaleRuleDef[] = [
   { prefix: 'p', prop: 'padding', scale: 'space' },
   { prefix: 'px', prop: ['padding-left', 'padding-right'], scale: 'space' },
   { prefix: 'py', prop: ['padding-top', 'padding-bottom'], scale: 'space' },
@@ -141,7 +141,7 @@ export var DEFAULT_SCALE_RULES: ScaleRuleDef[] = [
  * decls 的值是数组时按顺序全部输出 —— 这是 IE10 前缀降级的关键：
  *   display: ['-ms-flexbox', 'flex']  会输出两条，IE10 吃前者，现代浏览器吃后者。
  */
-export var DEFAULT_UTILITIES: UtilityDef[] = [
+export const DEFAULT_UTILITIES: UtilityDef[] = [
   { name: 'flex', decls: { display: ['-ms-flexbox', 'flex'] } },
   { name: 'inline-flex', decls: { display: ['-ms-inline-flexbox', 'inline-flex'] } },
   { name: 'block', decls: { display: 'block' } },
@@ -196,7 +196,7 @@ export var DEFAULT_UTILITIES: UtilityDef[] = [
  *   text   -> color-fg-*      .ds-text-muted{ color:            var(--ds-color-fg-muted) }
  * wrap 用于需要拼装的属性，如 ring 的 box-shadow
  */
-export var DEFAULT_SEMANTIC_MAP: Dict<SemanticDef> = {
+export const DEFAULT_SEMANTIC_MAP: Dict<SemanticDef> = {
   bg: { prop: 'background-color', group: 'color-bg' },
   text: { prop: 'color', group: 'color-fg' },
   border: { prop: 'border-color', group: 'color-border' },
@@ -206,11 +206,11 @@ export var DEFAULT_SEMANTIC_MAP: Dict<SemanticDef> = {
 
 /** 合并自定义 scale（浅合并到分组粒度） */
 export function defineScales(custom?: ScaleTable | null): ScaleTable {
-  var out: ScaleTable = {}
-  each(DEFAULT_SCALES, function (v, k) {
+  const out: ScaleTable = {}
+  each(DEFAULT_SCALES, (v, k) => {
     out[String(k)] = v
   })
-  each(custom || {}, function (v, k) {
+  each(custom || {}, (v, k) => {
     out[String(k)] = isPlainObject(out[String(k)]) ? assign({}, out[String(k)], v) : v
   })
   return out
@@ -224,30 +224,30 @@ function toArray(v: string | string[]): string[] {
  * 生成 primitive 规则（主题无关）
  */
 export function primitiveRules(opts?: PrimitiveOptions): CssRule[] {
-  opts = opts || {}
-  var prefix = opts.classPrefix || prefixOf(opts.prefix).cls
-  var scales = opts.scales || DEFAULT_SCALES
-  var defs = opts.rules || DEFAULT_SCALE_RULES
-  var utils = opts.utilities || DEFAULT_UTILITIES
-  var rules: CssRule[] = []
+  opts ||= {}
+  const prefix = opts.classPrefix || prefixOf(opts.prefix).cls
+  const scales = opts.scales || DEFAULT_SCALES
+  const defs = opts.rules || DEFAULT_SCALE_RULES
+  const utils = opts.utilities || DEFAULT_UTILITIES
+  const rules: CssRule[] = []
 
-  each(defs, function (def: ScaleRuleDef) {
-    var scale = scales[def.scale]
+  each(defs, (def: ScaleRuleDef) => {
+    const scale = scales[def.scale]
     if (!scale) return
-    var props = toArray(def.prop)
-    each(scale, function (value, step) {
-      var decls: Dict<string> = {}
-      for (var i = 0; i < props.length; i++) decls[props[i]] = value
+    const props = toArray(def.prop)
+    each(scale, (value, step) => {
+      const decls: Dict<string> = {}
+      for (let i = 0; i < props.length; i++) decls[props[i]] = value
       rules.push({
-        selector: '.' + prefix + def.prefix + '-' + kebab(String(step)),
-        decls: decls,
+        selector: `.${prefix}${def.prefix}-${kebab(String(step))}`,
+        decls,
       })
     })
   })
 
-  each(utils, function (util: UtilityDef) {
+  each(utils, (util: UtilityDef) => {
     rules.push({
-      selector: '.' + prefix + util.name,
+      selector: `.${prefix}${util.name}`,
       decls: util.decls,
     })
   })
@@ -259,29 +259,29 @@ export function primitiveRules(opts?: PrimitiveOptions): CssRule[] {
  * 生成 semantic 规则（主题相关，值写成 var(--ds-*)）
  */
 export function semanticRules(flat: Dict<string>, opts?: SemanticOptions): CssRule[] {
-  opts = opts || {}
-  var p = prefixOf(opts.prefix)
-  var prefix = opts.classPrefix || p.cls
-  var map = opts.map || DEFAULT_SEMANTIC_MAP
-  var varPrefix = opts.varPrefix || p.var
-  var rules: CssRule[] = []
+  opts ||= {}
+  const p = prefixOf(opts.prefix)
+  const prefix = opts.classPrefix || p.cls
+  const map = opts.map || DEFAULT_SEMANTIC_MAP
+  const varPrefix = opts.varPrefix || p.var
+  const rules: CssRule[] = []
 
-  each(map, function (def: SemanticDef, short) {
-    var head = def.group
-    each(flat, function (_value, key) {
-      var suffix: string | null = null
-      var k = String(key)
+  each(map, (def: SemanticDef, short) => {
+    const head = def.group
+    each(flat, (_value, key) => {
+      let suffix: string | null = null
+      const k = String(key)
       if (k === head) suffix = ''
-      else if (k.indexOf(head + '-') === 0) suffix = k.slice(head.length + 1)
+      else if (k.indexOf(`${head}-`) === 0) suffix = k.slice(head.length + 1)
       if (suffix === null) return
 
-      var value = cssVarRef(k, varPrefix)
+      let value = cssVarRef(k, varPrefix)
       if (def.wrap) value = def.wrap.replace('%s', value)
 
-      var d: Dict<string> = {}
+      const d: Dict<string> = {}
       d[def.prop] = value
       rules.push({
-        selector: '.' + prefix + String(short) + (suffix ? '-' + suffix : ''),
+        selector: `.${prefix}${String(short)}${suffix ? `-${suffix}` : ''}`,
         decls: d,
       })
     })
@@ -319,16 +319,16 @@ export interface BuildClassSheetOptions {
  * 一次性产出两层 class 的 CSS 文本
  */
 export function buildClassSheet(o?: BuildClassSheetOptions): ClassSheet {
-  var opts = o || {}
-  var p = prefixOf(opts.prefix)
-  var cssOpts = {
+  const opts = o || {}
+  const p = prefixOf(opts.prefix)
+  const cssOpts = {
     important: opts.important,
     resolve: opts.resolve,
     prefix: p,
     indent: opts.indent,
   }
 
-  var pRules = primitiveRules({
+  const pRules = primitiveRules({
     prefix: p,
     classPrefix: opts.classPrefix,
     scales: opts.scales,
@@ -336,7 +336,7 @@ export function buildClassSheet(o?: BuildClassSheetOptions): ClassSheet {
     utilities: opts.utilities,
   })
 
-  var sRules = opts.tokens
+  const sRules = opts.tokens
     ? semanticRules(opts.tokens, {
         prefix: p,
         classPrefix: opts.classPrefix,

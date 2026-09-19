@@ -29,7 +29,7 @@ import { isPlainObject } from './util'
 import type { Dict } from './util'
 
 /** 默认命名空间 */
-export var DEFAULT_NS = 'ds'
+export const DEFAULT_NS = 'ds'
 
 /** 归一化后的前缀对象：一次算好，各处直接取用 */
 export interface Prefix {
@@ -63,7 +63,7 @@ export interface Prefix {
 }
 
 /** CSS 自定义属性 / class 名都要求以字母或下划线开头，数字开头两边都不合法 */
-var VALID = /^[A-Za-z_][A-Za-z0-9_-]*$/
+const VALID = /^[A-Za-z_][A-Za-z0-9_-]*$/
 
 function trim(s: string): string {
   return String(s).replace(/^\s+|\s+$/g, '')
@@ -75,17 +75,17 @@ function trim(s: string): string {
  */
 function strip(raw: unknown): string {
   if (raw === null || raw === undefined) return ''
-  var s = trim(String(raw))
+  let s = trim(String(raw))
   if (s.indexOf('--') === 0) s = s.slice(2)
   while (s.charAt(s.length - 1) === '-') s = s.slice(0, -1)
   return s
 }
 
-export function normalizePrefix(input?: string | Prefix | Dict<any> | null): Prefix {
-  var ns = ''
+export function normalizePrefix(input?: string | Prefix | Dict<string> | null): Prefix {
+  let ns = ''
 
   if (isPlainObject(input)) {
-    var o = input as Dict<any>
+    const o = input as Dict<string>
     ns = o.ns || o.token || strip(o.var || o.cls || o.class || '')
   } else if (typeof input === 'string') {
     ns = strip(input)
@@ -95,31 +95,31 @@ export function normalizePrefix(input?: string | Prefix | Dict<any> | null): Pre
 
   return {
     /** 命名空间，resolveVars / resolveVarValue 用它 */
-    ns: ns,
+    ns,
     /** ns 的别名，语义化一点 */
     token: ns,
     /** CSS 变量前缀：--acme- */
-    var: '--' + ns + '-',
+    var: `--${ns}-`,
     /** class 前缀：acme- */
-    cls: ns + '-',
+    cls: `${ns}-`,
     /** cls 的别名 */
-    classPrefix: ns + '-',
+    classPrefix: `${ns}-`,
 
-    attr: 'data-' + ns + '-theme',
-    modeAttr: 'data-' + ns + '-mode',
-    accentAttr: 'data-' + ns + '-accent',
-    styleAttr: 'data-' + ns + '-style',
+    attr: `data-${ns}-theme`,
+    modeAttr: `data-${ns}-mode`,
+    accentAttr: `data-${ns}-accent`,
+    styleAttr: `data-${ns}-style`,
 
     ids: {
-      tokens: ns + '-tokens',
-      primitive: ns + '-class-primitive',
-      semantic: ns + '-class-semantic',
-      ssr: ns + '-ssr',
+      tokens: `${ns}-tokens`,
+      primitive: `${ns}-class-primitive`,
+      semantic: `${ns}-class-semantic`,
+      ssr: `${ns}-ssr`,
     },
 
     keys: {
-      theme: ns + '-theme',
-      accent: ns + '-accent',
+      theme: `${ns}-theme`,
+      accent: `${ns}-accent`,
     },
   }
 }
@@ -134,6 +134,6 @@ export function isPrefix(v: unknown): v is Prefix {
 }
 
 /** 入口统一走这个：传什么都不用管，拿到的永远是归一化对象 */
-export function prefixOf(v?: string | Prefix | Dict<any> | null): Prefix {
+export function prefixOf(v?: string | Prefix | Dict<string> | null): Prefix {
   return isPrefix(v) ? v : normalizePrefix(v)
 }

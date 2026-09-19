@@ -113,7 +113,7 @@ createThemeManager({ prefix: 'acme' })
 <script src=".../core/dist/index.umd.cjs"></script>
 <script src=".../dom/dist/index.umd.cjs"></script>
 <script>
-  var ds = DsDom.createThemeManager({ channel: 'auto' })
+  const ds = DsDom.createThemeManager({ channel: 'auto' })
   DsDom.bindTheme(ds) // 可选：接上持久化（不调就完全不碰 localStorage）
   ds.init()
   ds.use('dark') // 换主题
@@ -143,7 +143,7 @@ ds.init()
 import Vue from 'vue'
 import DsVue2, { readTheme, bindTheme } from '@ds/vue2'
 
-var saved = readTheme()
+const saved = readTheme()
 Vue.use(DsVue2, { channel: 'auto', theme: saved.theme || 'light' })
 bindTheme(Vue.ds.manager) // 可选：不调就不碰存储
 ```
@@ -275,23 +275,38 @@ pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 
 ### ESLint + Prettier
 
-工具链是**最新的**：ESLint 10（flat config）、typescript-eslint 8、Prettier 3，
+工具链是**最新的**：ESLint 10（flat config）、typescript-eslint 8（`strict` 档）、Prettier 3，
 `eslint-plugin-prettier` + `eslint-config-prettier` 一起用（后者关掉跟 Prettier 冲突的格式化规则）。
 
-配置分**两套尺度**，这是唯一需要解释的设计：
+**源码一律用最新语法，不迁就 IE10** —— 降级是 SWC 的事。
+所以 `no-var` / `prefer-const` / `object-shorthand` / `prefer-template` / `prefer-arrow-callback` /
+`prefer-spread` / `prefer-rest-params` / `prefer-destructuring` / `logical-assignment-operators`
+对**所有文件**一视同仁地开着，没有"产物层放宽"这种例外。
 
-| 层     | 范围                                   | 尺度                                                                                         |
-| ------ | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 产物层 | `packages/*/src`                       | 不强制现代语法（不开 `no-var` / `prefer-const`），但**严格禁用 IE10 没有的运行时 API**       |
-| 工具层 | `tests` / `scripts` / 各 `*.config.js` | 放开用最新语法：`no-var` / `prefer-const` / `prefer-template` / `prefer-arrow-callback` 全开 |
+规则只剩一处分层，而且只加在 `packages/*/src`：禁掉 **SWC 降不动**的两类东西。
 
-分层的理由：**SWC 只转语法，不管 API**。所以源码里写箭头函数、模板字符串都没关系（SWC 会降），
-但写个 `Object.assign` 或 `Set` 会原样留在产物里、在 IE10 上直接炸，而 `tests/es5.test.ts` 扫语法是扫不出来的。
-于是 ESLint 补这个缺口 —— `no-restricted-globals` 拦 `Set`/`Map`/`Promise`/`Symbol`，
+**第一类：IE10 没有的运行时 API。** SWC 只转语法不注入 polyfill，
+写一个 `Object.assign` 或 `Set` 就原样进产物、在 IE10 上直接 ReferenceError，
+而 `tests/es5.test.ts` 扫语法是扫不出来的。`no-restricted-globals` 拦 `Set`/`Map`/`Promise`/`Symbol`，
 `no-restricted-properties` 拦 `Object.assign` / `Array.from` / `.includes()` 等。
 
-产物层不开 `no-var` 是刻意的：存量 `var` 改成 `let`/`const` 会改变循环里的闭包语义，
-风险大于收益；语法现代化交给 SWC，ESLint 该管的是 SWC 管不了的部分。
+**第二类：降级后反而引入运行时依赖的语法。** 这三条是实测出来的，不是猜的：
+
+| 语法              | SWC 降级产物               | 为什么不行          |
+| ----------------- | -------------------------- | ------------------- |
+| `for...of`        | `l[Symbol.iterator]()`     | IE10 没有 `Symbol`  |
+| `generator/yield` | 依赖 `Symbol` + `Iterator` | 同上                |
+| `async/await`     | 依赖 `Promise`             | IE10 没有 `Promise` |
+
+反过来，下面这些实测降级干净，随便用：
+
+`let/const`（含循环闭包 → `_loop` IIFE，语义正确）、箭头函数、模板字符串（→ `"".concat`）、
+解构、数组/对象展开、可选链 `?.`、`??`、`||=`、`**`（→ `Math.pow`）、class/extends、
+getter/setter、计算属性名、标签模板、`catch {}`（→ `catch (unused)`）、函数参数尾逗号。
+
+> 全仓库唯一刻意保留 `var` 的地方是 `ssr.ts` 里那段防闪烁脚本 ——
+> 它是**字符串**，SWC 不转译字符串内容，而它要内联进 HTML 直接在 IE10 上跑，只能手写 ES5。
+> 源码里已经没有 `var` 了。
 
 > **TS 版本锁在 6.0.3，别升 7**。typescript-eslint 8 的 peer 是 `>=4.8.4 <6.1.0`，
 > 而 TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
@@ -302,7 +317,9 @@ pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 
 ### TypeScript 与 ES5 是两条独立的流水线
 
-TypeScript 7（Go 重写版）**移除了 `target: ES5`**，所以职责必须拆开：
+`tsc` 的 `target: ES5` 在 TS 6 就已标记废弃（报 TS5107，要加 `"ignoreDeprecations": "6.0"` 才不报错），
+TS 7 起直接移除。所以职责必须拆开 —— 降级不能压在 tsc 身上，
+何况 rollup 打包本来就需要一个转译器插件，SWC 顺手把这件事也做了：
 
 | 环节         | 工具                        | 干什么                                                                                                           |
 | ------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
