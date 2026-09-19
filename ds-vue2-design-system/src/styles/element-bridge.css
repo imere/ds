@@ -7,7 +7,7 @@
 
    由此得到的能力：
      · 5 套内置主题 × 6 种强调色 × 任意令牌覆盖，都能实时驱动 Element 组件外观
-     · 深浅色自动跟随（--ds-color-* 由 themeManager 注入到 <html>）
+     · 深浅色自动跟随（--ds-color-* 由 @ds/dom 的 ThemeManager 注入到 :root）
      · 业务侧仍然只写 el-* / Ds*，不需要关心主题实现
 
    维护约定：只在「Element 有硬编码色值」的地方做覆盖，不要在这里写布局逻辑。

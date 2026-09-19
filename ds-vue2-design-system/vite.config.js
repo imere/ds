@@ -4,18 +4,27 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue2'
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url))
+const ds = (pkg) => r(`../ds-foundation/packages/${pkg}/dist/index.js`)
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
       '@': r('./src'),
-      '@ds': r('./src/components'),
+      // ds-foundation 是同仓库的另一个项目，用 pnpm workspace + rollup 自行构建，
+      // 产物（ESM）直接指过来。三个包各自 private 且依赖里写的是 workspace: 协议，
+      // npm 的 file: 依赖解析不了那个协议，所以不走 node_modules，走别名。
+      // 代价：改完库要重新 pnpm build，这里才会生效。
+      '@ds/core': ds('core'),
+      '@ds/dom': ds('dom'),
+      '@ds/vue2': ds('vue2'),
     },
   },
   server: {
     port: 5173,
     host: true,
+    // 上面三个别名指向项目根目录之外，dev server 默认不放行
+    fs: { allow: [r('.'), r('../ds-foundation')] },
   },
   build: {
     target: 'esnext',
@@ -63,7 +72,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/design/**', 'src/components/**', 'src/utils/**'],
+      include: ['src/theme/**', 'src/components/**', 'src/utils/**'],
     },
   },
 })

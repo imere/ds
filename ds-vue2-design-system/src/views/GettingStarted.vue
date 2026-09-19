@@ -104,9 +104,10 @@ import DsBadge from '@/components/DsBadge.vue'
 import DsAvatar from '@/components/DsAvatar.vue'
 import DsTabs from '@/components/DsTabs.vue'
 import { metrics, activities } from '@/api/mock/data'
-import { breakpoints, breakpointLabels } from '@/design/breakpoints'
+import { breakpointOrder, defaultBreakpoints as breakpoints } from '@ds/core'
+import { breakpointLabels } from '@/utils/breakpointLabels'
 
-const bpOrder = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl']
+const bpOrder = breakpointOrder()
 
 export default {
   name: 'GettingStarted',
@@ -161,12 +162,12 @@ export default {
       installCode: `// main.js
 import Vue from 'vue'
 import AuroraDS from '@/components'
-import { initThemeManager } from '@/design/themeManager'
+import { installTheme } from '@/theme'          // 主题接线（@ds/core + @ds/dom + @ds/vue2）
 import '@/styles/base.css'
 import '@/styles/utilities.css'
 
-initThemeManager()          // 必须在挂载前调用，避免首屏闪烁
-Vue.use(AuroraDS)           // 注册全部 Ds* 组件
+installTheme(Vue)       // 必须在挂载前调用，避免首屏闪烁
+Vue.use(AuroraDS)       // 注册全部 Ds* 组件
 
 new Vue({ router, store, render: (h) => h(App) }).$mount('#app')`,
       importCode: `// 按需引入（Tree-shaking 友好）
@@ -182,14 +183,13 @@ export default {
   },
 }`,
       treeCode: `src/
-├─ design/                 设计令牌层
+├─ theme/                  属于这个产品的令牌数据
 │  ├─ tokens.js            基础尺度 + 主题工厂
 │  ├─ themes.js            5 套内置主题
 │  ├─ accents.js           6 种强调色
-│  ├─ themeManager.js      运行时切换 / 覆盖 / 持久化
-│  └─ breakpoints.js       断点定义（JS 与 CSS 共用）
+│  └─ index.js             接线：把数据交给 @ds/dom，再装 @ds/vue2 插件
+├─ composables/            useBreakpoint 响应式能力（接 @ds/core 的断点）
 ├─ components/             26 个基础组件 + toast
-├─ composables/            useBreakpoint 响应式能力
 ├─ api/                    axios 实例 / mock adapter / 业务模块
 ├─ store/                  Vuex 模块化状态
 ├─ router/                 文档站路由

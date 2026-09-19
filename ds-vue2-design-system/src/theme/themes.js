@@ -1,6 +1,10 @@
 /**
  * 内置主题：每个主题只声明「颜色」，其余尺度由 createTheme 自动补齐。
- * 想加新主题：调用 themeManager.registerTheme('name', createTheme({...})) 即可。
+ * 想加新主题：运行时调 manager.registry.theme('name', createTheme({...})) 即可，
+ * 支持从后台下发 JSON 直接灌入（见 DesignTokens 页的示例）。
+ *
+ * 注意 index.html 里的防闪烁脚本也维护了一份 themeName -> mode 映射，
+ * 这里新增主题时记得同步（那是一段内联 <script>，没法 import）。
  */
 import { createTheme } from './tokens'
 

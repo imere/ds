@@ -1,17 +1,22 @@
 /**
- * 设计令牌（Design Tokens）
+ * 应用自己的令牌数据
  * -------------------------------------------------------------
- * 文件职责：
- *  1. `scale` —— 与主题无关的基础尺度（间距 / 圆角 / 字号 / 动效 / 层级 / 控件高度）
- *  2. `createTheme()` —— 用「颜色 + 阴影」快速派生一个完整主题，复用基础尺度
- *  3. `flattenTokens()` —— 把嵌套对象拍平成 `color-bg` 形式的键，供 CSS 变量使用
+ * 这里只放**属于这个产品的东西**：基础尺度（间距 / 圆角 / 字号 / 动效 / 层级 / 控件尺寸）
+ * 和 5 套品牌色。
  *
- * 所有令牌最终会以 `--ds-<kebab-key>` 的形式注入到 <html> 上，
- * 组件样式只消费 CSS 变量，因此改一处令牌即可全站生效。
+ * 「引擎」不在这里了 —— 注册中心、CSS 变量注入、IE10 降级、订阅、
+ * 持久化全部由 @ds/core + @ds/dom + @ds/vue2 提供：
+ *   · 这套数据和 @ds 的分工是「业务留品牌，库管运行时」
+ *   · 换品牌色改这里的 themes.js，不该去动库
+ *
+ * createTheme 产出的形状就是 @ds/core 的 ThemeDef（{ label, mode, tokens }），
+ * 交给 registry.theme(name, def) 注册。
  */
 
+import { defineTokens } from '@ds/core'
+
 /** 与主题无关的基础尺度 */
-export const scale = {
+export const scale = defineTokens({
   space: {
     0: '0px',
     1: '4px',
@@ -95,10 +100,10 @@ export const scale = {
     topbar: '60px',
     contentMax: '1180px',
   },
-}
+})
 
-/** 浅色 / 深色两套阴影，避免深色主题下阴影“消失” */
-export const shadowPresets = {
+/** 浅色 / 深色两套阴影，避免深色主题下阴影“消失”（它们引用 --ds-shadow-color） */
+export const shadowPresets = defineTokens({
   light: {
     'shadow-sm': '0 1px 2px 0 rgb(var(--ds-shadow-color) / 0.06)',
     'shadow-md': '0 4px 12px -2px rgb(var(--ds-shadow-color) / 0.10)',
@@ -113,29 +118,12 @@ export const shadowPresets = {
     'shadow-xl': '0 28px 64px -12px rgb(0 0 0 / 0.8)',
     'shadow-focus': '0 0 0 3px rgb(255 255 255 / 0.10)',
   },
-}
-
-/** 驼峰转短横线：bgSubtle -> bg-subtle */
-export const kebab = (str) =>
-  String(str).replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
-
-/** 嵌套对象拍平：{ color: { bg: '#fff' } } -> { 'color-bg': '#fff' } */
-export function flattenTokens(obj, prefix = '', out = {}) {
-  Object.keys(obj || {}).forEach((key) => {
-    const value = obj[key]
-    const next = prefix ? `${prefix}-${kebab(key)}` : kebab(key)
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      flattenTokens(value, next, out)
-    } else if (value !== undefined && value !== null) {
-      out[next] = String(value)
-    }
-  })
-  return out
-}
+})
 
 /**
  * 派生主题：颜色 + 阴影 + 基础尺度
  * @param {{ label: string, mode: 'light'|'dark', color: object, shadowColor?: string }} definition
+ * @returns {import('@ds/core').ThemeDef} 交给 registry.theme() / manager 的 themes 选项
  */
 export function createTheme(definition) {
   const { label, mode = 'light', color, shadowColor } = definition

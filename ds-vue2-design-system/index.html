@@ -7,14 +7,15 @@
     <meta name="description" content="Vue 2 响应式设计系统与组件库 · Design Token 多主题" />
     <title>Aurora DS · Vue 2 设计系统</title>
     <script>
-      // 首屏防闪烁：在 Vue 挂载前先把主题模式写到 html 上
+      // 首屏防闪烁：在 Vue 挂载前先把主题模式写到 html 上。
+      // 存储格式由 @ds/dom 的 bindTheme 决定 —— 两个独立的 key（ds-theme / ds-accent），
+      // 存的不是 JSON。这里的 mode 映射也得跟 src/theme/themes.js 保持一致：
+      // 内联脚本没办法 import，只能抄一份（改主题时两处都要动）。
       (function () {
         try {
-          var raw = localStorage.getItem('aurora-ds:theme')
-          var name = raw ? JSON.parse(raw).name : 'light'
+          var name = localStorage.getItem('ds-theme') || 'light'
           var modes = { light: 'light', sunrise: 'light', dark: 'dark', midnight: 'dark', violet: 'dark' }
-          var mode = modes[name] || 'light'
-          document.documentElement.setAttribute('data-ds-mode', mode)
+          document.documentElement.setAttribute('data-ds-mode', modes[name] || 'light')
         } catch (e) {
           /* noop */
         }

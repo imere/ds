@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '@/App.vue'
 import store from '@/store'
 import { installElement } from '@/element'
-import { initThemeManager } from '@/design/themeManager'
+import { installTheme } from '@/theme'
+import Vue from 'vue'
 
 import GettingStarted from '@/views/GettingStarted.vue'
 import DesignTokens from '@/views/DesignTokens.vue'
@@ -20,8 +21,13 @@ import ResponsiveDocs from '@/views/ResponsiveDocs.vue'
  * 用于守住「Ds* 换成了 el-* 之后，页面级渲染没有崩」这条底线。
  */
 describe('文档站集成冒烟', () => {
+  // 文档站的组件已经改成读 this.$ds（@ds/vue2 插件提供），不装插件根本挂不起来
+  beforeAll(() => {
+    installTheme(Vue)
+  })
+
   it('App 可以挂载且不产生错误日志', async () => {
-    initThemeManager()
+    installTheme(Vue)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 

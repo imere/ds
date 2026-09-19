@@ -109,7 +109,8 @@ import DsSwitch from '@/components/DsSwitch.vue'
 import DsCheckbox from '@/components/DsCheckbox.vue'
 import DsRadio from '@/components/DsRadio.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { breakpoints, breakpointLabels } from '@/design/breakpoints'
+import { defaultBreakpoints as breakpoints, breakpointOrder } from '@ds/core'
+import { breakpointLabels } from '@/utils/breakpointLabels'
 
 const BP_ICONS = { xs: 'smartphone', sm: 'smartphone', md: 'tablet', lg: 'monitor', xl: 'monitor', xxl: 'monitor' }
 
@@ -211,7 +212,7 @@ setup() {
       return '桌面'
     },
     bpList() {
-      return ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'].map((name, i, arr) => {
+      return breakpointOrder().map((name, i, arr) => {
         const start = breakpoints[name]
         const next = arr[i + 1]
         return {
