@@ -224,7 +224,6 @@ ds-foundation/
 ├─ vitest.config.ts   @ds/* 别名到 src，测试直接跑源码
 ├─ eslint.config.js   flat config，分「产物层 / 工具层」两套尺度
 ├─ prettier.config.js 单引号 + 无分号 + 行宽 100
-├─ .pnpmfile.cjs      给 typescript-eslint 单独喂一份 TS 6（见下）
 ├─ tsconfig.json      源码：类型检查（含 strict）
 ├─ tsconfig.test.json 测试：单独一份，把 tests 也纳入 tsc 管辖
 ├─ tsconfig.build.json  只出 .d.ts
@@ -294,12 +293,12 @@ pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 产物层不开 `no-var` 是刻意的：存量 `var` 改成 `let`/`const` 会改变循环里的闭包语义，
 风险大于收益；语法现代化交给 SWC，ESLint 该管的是 SWC 管不了的部分。
 
-> **一个必须知道的坑**：typescript-eslint 8 不支持 TypeScript 7。
-> TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
-> 而 typescript-eslint 全靠那套 API，启动时直接 `throw 'does not support TS 7.0'`。
-> 官方给的出路是 side-by-side：让 typescript-eslint 跑 TS 6 的 API，TS 7 继续做类型检查。
-> 实现见 `.pnpmfile.cjs` —— 把 `typescript` 从 peer 改成真实依赖，pnpm 才会真的装一份 6.0.3
-> （用 `pnpm.overrides` 改 peer 范围没用，pnpm 对不匹配的 peer 只告警不会补装）。
+> **TS 版本锁在 6.0.3，别升 7**。typescript-eslint 8 的 peer 是 `>=4.8.4 <6.1.0`，
+> 而 TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
+> typescript-eslint 启动时直接 `throw 'does not support TS 7.0'`。
+> 曾经试过官方的 side-by-side 方案（`.pnpmfile.cjs` 给 typescript-eslint 单独喂一份 TS 6），
+> 能用，但代价是仓库里同时存在两个 TS 版本、还要靠 pnpm 的 readPackage 钩子改依赖类型 ——
+> 太脆，已移除。现在就一个版本，等 typescript-eslint 支持 TS 7 再一起升。
 
 ### TypeScript 与 ES5 是两条独立的流水线
 
