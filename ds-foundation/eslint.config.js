@@ -17,8 +17,9 @@
  *
  *   一句话：SWC 管语法降级，ESLint 管运行时 API，两者互补，不重叠。
  *
- * 关于 TypeScript：根上是 TS 7（Go 原生版，不提供 JS 编译器 API），
- * typescript-eslint 跑在单独一份 TS 6 上，见 .pnpmfile.cjs。
+ * 关于 TypeScript：全仓库统一 TS 6.0.3，typescript-eslint 和 tsc 用同一份。
+ * 别升 TS 7 —— 它是 Go 原生版，npm 包里没有 typescript.js、不提供 JS 编译器 API，
+ * typescript-eslint 启动即 throw。要升只能等 typescript-eslint 跟上。
  */
 
 import js from '@eslint/js'
