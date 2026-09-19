@@ -9,7 +9,7 @@
 
 import { flattenTokens, defineTokens } from './token'
 import type { FlatTokens, TokenTree } from './token'
-import { isPlainObject, assign } from './util'
+import { isPlainObject, assign, each } from './util'
 import type { Dict } from './util'
 
 export type ThemeMode = 'light' | 'dark'
@@ -48,6 +48,8 @@ export interface Registry {
   theme(name: string, def: ThemeDef): Registry
   accent(name: string, def: AccentDef): Registry
   override(key: string, value: unknown): Registry
+  /** 批量覆盖：一次改多个令牌，只算一次 resolve */
+  overrideMap(map: Dict<unknown> | null | undefined): Registry
   resetOverrides(): Registry
   use(name: string): Registry
   useAccent(name: string): Registry
@@ -103,6 +105,16 @@ export function createRegistry(): Registry {
       } else {
         overrides[key] = value
       }
+      return api
+    },
+    /**
+     * 批量覆盖。跟连着调 override() 的结果一样，但只走一轮；
+     * 上层（比如拖动滑块改圆角）一次要改好几个令牌时用它。
+     */
+    overrideMap(map: Dict<unknown> | null | undefined) {
+      each(map, (value, key) => {
+        api.override(key as string, value)
+      })
       return api
     },
     resetOverrides() {

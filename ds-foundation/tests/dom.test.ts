@@ -10,8 +10,8 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createThemeManager, pickChannel, supportsCssVars } from '@ds/dom'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { createThemeManager, pickChannel, supportsCssVars, resetEnvCache } from '@ds/dom'
 
 function text(id: string): string {
   const el = document.getElementById(id)
@@ -229,7 +229,200 @@ describe('C. 通道判定', () => {
   })
 })
 
-describe('D. 自定义前缀落地到 DOM', () => {
+describe('E. 批量覆盖令牌', () => {
+  const make = () =>
+    createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+
+  it('overrideMap 一次改多个令牌', () => {
+    const m = make()
+    m.overrideMap({ 'radius-md': '20px', 'color-brand': '#010203' })
+    expect(m.tokens()['radius-md']).toBe('20px')
+    expect(m.tokens()['color-brand']).toBe('#010203')
+    m.destroy()
+  })
+
+  it('对象值仍然按组合并，跟单个 override 行为一致', () => {
+    const m = make()
+    m.override('color', { brand: '#111111' })
+    m.overrideMap({ color: { fg: '#222222' } })
+    expect(m.tokens()['color-brand']).toBe('#111111')
+    expect(m.tokens()['color-fg']).toBe('#222222')
+    m.destroy()
+  })
+
+  it('三个令牌只重绘一次', () => {
+    const m = make()
+    let calls = 0
+    m.subscribe(() => {
+      calls += 1
+    })
+    calls = 0
+    m.overrideMap({ 'radius-sm': '1px', 'radius-md': '2px', 'radius-lg': '3px' })
+    expect(calls).toBe(1)
+    m.destroy()
+  })
+
+  it('resetOverrides 之后回到主题自带值', () => {
+    const m = make()
+    const base = m.tokens()['radius-md']
+    m.overrideMap({ 'radius-md': '20px' })
+    expect(m.tokens()['radius-md']).toBe('20px')
+    m.resetOverrides()
+    expect(m.tokens()['radius-md']).toBe(base)
+    m.destroy()
+  })
+})
+
+/**
+ * jsdom 不实现 matchMedia，所以下面这些用例自己做一个，
+ * 并且每跑完一个就把 window.matchMedia 还原 + 清掉 env 的检测缓存 ——
+ * env.ts 的能力检测是带缓存的，不还原会让同一个文件里后面的用例读到假结果。
+ */
+interface FakeSystem {
+  setMatches(next: boolean): void
+  listenerCount(): number
+  restore(): void
+}
+
+function fakeSystem(prefersDarkNow: boolean): FakeSystem {
+  const listeners: Array<(e: MediaQueryListEvent) => void> = []
+  const original = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  let matches = prefersDarkNow
+
+  const mql = {
+    get matches() {
+      return matches
+    },
+    media: '(prefers-color-scheme: dark)',
+    addListener(fn: (e: MediaQueryListEvent) => void) {
+      listeners.push(fn)
+    },
+    removeListener(fn: (e: MediaQueryListEvent) => void) {
+      const i = listeners.indexOf(fn)
+      if (i > -1) listeners.splice(i, 1)
+    },
+  }
+
+  Object.defineProperty(window, 'matchMedia', {
+    value: () => mql,
+    configurable: true,
+    writable: true,
+  })
+  resetEnvCache()
+
+  return {
+    setMatches(next: boolean) {
+      matches = next
+      listeners.slice().forEach((fn) => {
+        fn({ matches: next } as MediaQueryListEvent)
+      })
+    },
+    listenerCount() {
+      return listeners.length
+    },
+    restore() {
+      if (original) Object.defineProperty(window, 'matchMedia', original)
+      else delete (window as { matchMedia?: unknown }).matchMedia
+      resetEnvCache()
+    },
+  }
+}
+
+describe('E. 跟随系统明暗（运行时开关）', () => {
+  let sys: FakeSystem | null = null
+
+  afterEach(() => {
+    if (sys) {
+      sys.restore()
+      sys = null
+    }
+  })
+
+  it('init 时就跟随：系统偏好深色则进 dark', () => {
+    sys = fakeSystem(true)
+    const m = createThemeManager({ channel: 'vars', followSystem: true, withClasses: false }).init()
+    expect(m.state().theme).toBe('dark')
+    m.destroy()
+  })
+
+  it('手动切过主题之后不再自动跟随', () => {
+    sys = fakeSystem(false)
+    const m = createThemeManager({ channel: 'vars', followSystem: true, withClasses: false }).init()
+    expect(m.state().theme).toBe('light')
+    m.use('dark')
+    sys.setMatches(true)
+    expect(m.state().theme).toBe('dark')
+    m.use('light')
+    sys.setMatches(false)
+    expect(m.state().theme).toBe('light') // pinned 住了，不动
+    m.destroy()
+  })
+
+  it('运行时打开 followSystem 会清掉手动标记并立刻切一次', () => {
+    sys = fakeSystem(false)
+    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    expect(m.state().theme).toBe('light')
+
+    sys.setMatches(true)
+    expect(m.state().theme).toBe('light') // 还没开 followSystem
+
+    m.followSystem(true)
+    expect(m.state().theme).toBe('dark')
+    expect(m.state().followSystem).toBe(true)
+    m.destroy()
+  })
+
+  it('关掉 followSystem 后系统再变也不动', () => {
+    sys = fakeSystem(false)
+    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    m.followSystem(true)
+    expect(m.state().theme).toBe('light')
+
+    m.followSystem(false)
+    sys.setMatches(true)
+    expect(m.state().theme).toBe('light')
+    expect(m.state().followSystem).toBe(false)
+    m.destroy()
+  })
+
+  it('开着的时候系统偏好一变就跟着换', () => {
+    sys = fakeSystem(false)
+    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    m.followSystem(true)
+    sys.setMatches(true)
+    expect(m.state().theme).toBe('dark')
+    sys.setMatches(false)
+    expect(m.state().theme).toBe('light')
+    m.destroy()
+  })
+
+  it('destroy 会摘掉系统监听', () => {
+    sys = fakeSystem(true)
+    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    m.followSystem(true)
+    expect(sys.listenerCount()).toBe(1)
+    m.destroy()
+    expect(sys.listenerCount()).toBe(0)
+  })
+
+  it('没有 matchMedia 的老浏览器（IE9）打开开关也不抛错', () => {
+    resetEnvCache() // 确保读到「不支持」
+    const m = createThemeManager({
+      channel: 'vars',
+      theme: 'light',
+      followSystem: true,
+      withClasses: false,
+    })
+    expect(() => {
+      m.init()
+      m.followSystem(true)
+    }).not.toThrow()
+    expect(m.state().theme).toBe('light')
+    m.destroy()
+  })
+})
+
+describe('F. 自定义前缀落地到 DOM', () => {
   it('style id 与 DOM 属性全部跟着换', () => {
     const m = createThemeManager({ channel: 'vars', theme: 'light', prefix: 'acme' })
     m.init()
