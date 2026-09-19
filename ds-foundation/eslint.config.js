@@ -33,6 +33,42 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import prettierRecommended from 'eslint-plugin-prettier/recommended'
 
+/**
+ * Prettier 的选项直接写在这里，不单独放 prettier.config.js。
+ * -------------------------------------------------------------
+ * 理由：仓库里 Prettier 只通过 eslint-plugin-prettier 跑（格式化错误 = lint 错误），
+ * 再留一份独立配置就等于有两个源头，改一处漏一处。
+ * 代价是 prettier CLI 用不了了（它读不到这些选项），所以没有独立的 format 脚本，
+ * 格式化统一走 ESLint：
+ *   pnpm run lint     检查（含格式）
+ *   pnpm run lint:fix 修（含格式）
+ *
+ * 这些值是在「迁就既有代码」和「用最新默认」之间取的结果：
+ *
+ *   semi / singleQuote —— 迁就。仓库现有代码全是单引号 + 无分号，
+ *     按 Prettier 默认（双引号 + 分号）跑一遍会改动几百行，
+ *     那种规模的重排会淹没掉真正有意义的 diff。
+ *
+ *   printWidth 100 —— 迁就。源码里有大量长注释和长参数行，80 会被拆得很难读。
+ *
+ *   trailingComma 'es5' —— 只给「对象 / 数组字面量」加尾逗号，函数参数不加。
+ *     前者是 ES5 语法，后者要 ES2017 才合法。虽然进 IE10 的是 SWC 产物
+ *     （实测 `function t(a, b,) {}` → `function t(a, b) {}`，尾逗号到不了 dist），
+ *     但源码这一层也没必要靠这个兜底 —— 函数参数尾逗号对可读性没帮助，
+ *     还会让老一点的解析器（含部分构建链里的中间工具）直接报错。取最小值。
+ */
+const prettierOptions = {
+  semi: false,
+  singleQuote: true,
+  printWidth: 100,
+  tabWidth: 2,
+  trailingComma: 'es5',
+  bracketSpacing: true,
+  arrowParens: 'always',
+  // 仓库在 Windows 上开发，但产物和源码统一 LF，避免 diff 里混进 CRLF 改动
+  endOfLine: 'lf',
+}
+
 /** IE10 不存在的全局构造器 / 对象 */
 const ie10MissingGlobals = [
   { name: 'Set', message: 'IE10 没有 Set，用数组 + indexOf' },
@@ -134,6 +170,8 @@ export default tseslint.config(
   // ==== 现代语法：全仓库一视同仁，源码不为 IE10 让步 ====
   {
     rules: {
+      // 把上面那份选项喂给 eslint-plugin-prettier
+      'prettier/prettier': ['error', prettierOptions],
       'no-var': 'error',
       'prefer-const': 'error',
       'object-shorthand': ['error', 'always'],
@@ -175,7 +213,6 @@ export default tseslint.config(
       'tests/**/*.ts',
       'scripts/**/*.{js,mjs,cjs}',
       'eslint.config.js',
-      'prettier.config.js',
       'rollup.config.js',
       'swc.config.js',
       'vitest.config.ts',
