@@ -17,7 +17,7 @@ export interface DsObservedState {
   accent: string
   mode: string
   label: string
-  tokens: Dict<any>
+  tokens: Dict<unknown>
 }
 
 /** 挂在 this.$ds 上的句柄（install 返回的也是它） */
@@ -41,11 +41,11 @@ export interface DsState {
   /** 明暗切换，返回 this */
   toggle(): DsState
   /** 手动覆盖令牌，返回 this */
-  override(key: string, value: any): DsState
+  override(key: string, value: unknown): DsState
   /** 清除覆盖，返回 this */
   resetOverrides(): DsState
   /** 读令牌：t('color-brand') */
-  t(key: string): any
+  t(key: string): unknown
   /** 取 var() 引用（仅 vars 通道有意义，static 通道返回实值） */
   ref(key: string): string | undefined
   /** 生成行内样式对象：:style="$ds.style({ color: 'color-fg-muted' })" */
@@ -56,7 +56,7 @@ export interface DsState {
 
 export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsState {
   // Vue 2.6+ 有 Vue.observable；更老的版本借一个空实例承载响应式数据
-  var state: DsObservedState =
+  const state: DsObservedState =
     typeof Vue.observable === 'function'
       ? (Vue.observable({
           theme: '',
@@ -66,83 +66,84 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
           tokens: {},
         }) as DsObservedState)
       : (new Vue({
-          data: function () {
+          data() {
             return { theme: '', accent: '', mode: 'light', label: '', tokens: {} }
           },
         }).$data as DsObservedState)
 
-  function sync(payload: Dict<any>): void {
-    state.theme = payload.theme || ''
-    state.accent = payload.accent || ''
-    state.mode = payload.mode || 'light'
-    state.label = payload.label || ''
+  function sync(payload?: Dict<unknown>): void {
+    const p: Dict<unknown> = payload || {}
+    state.theme = String(p.theme || '')
+    state.accent = String(p.accent || '')
+    state.mode = String(p.mode || 'light')
+    state.label = String(p.label || '')
 
-    var next: Dict<any> = {}
-    each(payload.tokens || {}, function (value, key) {
+    const next: Dict<unknown> = {}
+    each((p.tokens as Dict<unknown>) || {}, (value, key) => {
       next[key] = value
     })
     state.tokens = next
   }
 
-  var initial = manager.state()
+  const initial = manager.state()
   sync(assign({}, initial, { tokens: manager.tokens() }))
 
-  var off = manager.subscribe(sync)
+  const off = manager.subscribe(sync)
 
-  var api: DsState = {
-    state: state,
+  const api: DsState = {
+    state,
     channel: manager.channel,
-    manager: manager,
+    manager,
     /** 归一化前缀：{ ns, var, cls, attr, ... } */
     prefix: manager.prefix,
 
     /** 令牌键 -> CSS 变量名：varName('color-brand') -> '--acme-color-brand' */
-    varName: function (key: string): string {
+    varName(key: string): string {
       return manager.prefix.var + key
     },
 
     /** class 短名 -> 完整类名：'bg-brand' -> 'acme-bg-brand' */
-    className: function (short: string): string {
+    className(short: string): string {
       return manager.prefix.cls + short
     },
 
-    use: function (name: string): DsState {
+    use(name: string): DsState {
       manager.use(name)
       return api
     },
-    useAccent: function (name: string): DsState {
+    useAccent(name: string): DsState {
       manager.useAccent(name)
       return api
     },
-    toggle: function (): DsState {
+    toggle(): DsState {
       manager.toggle()
       return api
     },
-    override: function (key: string, value: any): DsState {
+    override(key: string, value: unknown): DsState {
       manager.override(key, value)
       return api
     },
-    resetOverrides: function (): DsState {
+    resetOverrides(): DsState {
       manager.resetOverrides()
       return api
     },
 
     /** 读令牌：t('color-brand') */
-    t: function (key: string): any {
+    t(key: string): unknown {
       return state.tokens[key]
     },
 
     /** 取 var() 引用（仅 vars 通道有意义，static 通道返回实值） */
-    ref: function (key: string): string | undefined {
+    ref(key: string): string | undefined {
       return manager.get(key, true)
     },
 
     /** 生成行内样式对象：:style="$ds.style({ color: 'color-fg-muted' })" */
-    style: function (map: Dict<string> | null | undefined): Dict<string> {
+    style(map: Dict<string> | null | undefined): Dict<string> {
       return manager.style(map)
     },
 
-    off: off,
+    off,
   }
 
   return api

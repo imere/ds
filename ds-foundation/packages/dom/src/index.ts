@@ -26,4 +26,4 @@ export function bootstrap(options?: ThemeManagerOptions): ThemeManager {
 
 export { createThemeManager as default }
 
-export var version: string = '0.1.0'
+export const version: string = '0.1.0'

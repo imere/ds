@@ -23,7 +23,7 @@ import { makeDirective } from './directive'
 
 // provide 的 key 直接用注入名，业务写 inject: ['dsContext'] 就行，
 // 不用再配 from —— 少一个记不住的字符串。
-export var DS_KEY = 'dsContext'
+export const DS_KEY = 'dsContext'
 
 // 模块增强：让业务代码里 this.$ds 有类型，也让 Vue.ds 静态句柄有类型。
 // 注意 only 增强实例与构造函数，不动运行时。
@@ -36,8 +36,8 @@ declare module 'vue/types/vue' {
   }
 }
 
-var _Vue: VueConstructor | null = null
-var _ds: DsState | null = null
+let _Vue: VueConstructor | null = null
+let _ds: DsState | null = null
 
 /** install 入参：ThemeManagerOptions + 可选的已建好的 manager */
 export interface DsPluginOptions extends ThemeManagerOptions {
@@ -53,19 +53,19 @@ export interface DsPlugin {
 export function install(Vue: VueConstructor, options?: DsPluginOptions): void {
   if (_Vue === Vue && _ds) return
 
-  var opts = options || {}
-  var manager = opts.manager || createThemeManager(opts)
-  var ds = createDsState(Vue, manager)
+  const opts = options || {}
+  const manager = opts.manager || createThemeManager(opts)
+  const ds = createDsState(Vue, manager)
 
   Vue.prototype.$ds = ds
   Vue.ds = ds
   Vue.directive('ds-theme', makeDirective(ds))
 
-  var provideMixin: ComponentOptions<Vue> = {
+  const provideMixin: ComponentOptions<Vue> = {
     // 只在根实例 provide，避免每个组件都往 provide 链里塞一份
-    provide: function (this: Vue) {
+    provide(this: Vue) {
       if (this !== this.$root) return
-      var ctx: Dict<any> = {}
+      const ctx: Dict<unknown> = {}
       ctx[DS_KEY] = ds
       return ctx
     },
@@ -108,8 +108,8 @@ export type {
   AutoStorageOptions,
 } from '@ds/dom'
 
-var plugin: DsPlugin = {
-  install: install,
+const plugin: DsPlugin = {
+  install,
   version: '0.1.0',
 }
 

@@ -47,7 +47,7 @@ export interface RegistryState {
 export interface Registry {
   theme(name: string, def: ThemeDef): Registry
   accent(name: string, def: AccentDef): Registry
-  override(key: string, value: any): Registry
+  override(key: string, value: unknown): Registry
   resetOverrides(): Registry
   use(name: string): Registry
   useAccent(name: string): Registry
@@ -76,65 +76,66 @@ export function createTheme(def: ThemeDef): Theme {
 
 /** 主题注册中心 */
 export function createRegistry(): Registry {
-  var themes: Dict<Theme> = {}
-  var accents: Dict<AccentDef> = {}
-  var overrides: Dict<any> = {}
-  var current = ''
-  var currentAccent = ''
+  const themes: Dict<Theme> = {}
+  const accents: Dict<AccentDef> = {}
+  let overrides: Dict<unknown> = {}
+  let current = ''
+  let currentAccent = ''
 
   // 用 api 而非 this：解构出单个方法后依然能链式调用
-  var api: Registry = {
-    theme: function (name: string, def: ThemeDef) {
+  const api: Registry = {
+    theme(name: string, def: ThemeDef) {
       if (!name) return api
       themes[name] = def && def.tokens ? (createTheme(def) as Theme) : (def as unknown as Theme)
       if (!current) current = name
       return api
     },
-    accent: function (name: string, def: AccentDef) {
+    accent(name: string, def: AccentDef) {
       if (!name || !def) return api
       accents[name] = def
       return api
     },
-    override: function (key: string, value: any) {
+    override(key: string, value: unknown) {
       if (!key) return api
       if (isPlainObject(value)) {
-        overrides[key] = assign(overrides[key] || {}, value)
+        const base: Dict = isPlainObject(overrides[key]) ? (overrides[key] as Dict) : {}
+        overrides[key] = assign(base, value as Dict)
       } else {
         overrides[key] = value
       }
       return api
     },
-    resetOverrides: function () {
+    resetOverrides() {
       overrides = {}
       return api
     },
-    use: function (name: string) {
+    use(name: string) {
       if (themes[name]) current = name
       return api
     },
-    useAccent: function (name: string) {
+    useAccent(name: string) {
       currentAccent = name || ''
       return api
     },
-    listThemes: function () {
+    listThemes() {
       return Object.keys(themes)
     },
-    listAccents: function () {
+    listAccents() {
       return Object.keys(accents)
     },
-    getTheme: function (name?: string) {
+    getTheme(name?: string) {
       return themes[name || current] || themes[current] || null
     },
-    getAccent: function (name?: string) {
+    getAccent(name?: string) {
       return accents[name === undefined ? currentAccent : name] || null
     },
     /** 当前生效的扁平令牌表 */
-    resolve: function () {
-      var theme = themes[current]
+    resolve() {
+      const theme = themes[current]
       if (!theme) return {}
-      var flat = flattenTokens(theme.tokens)
+      const flat = flattenTokens(theme.tokens)
 
-      var accent = accents[currentAccent]
+      const accent = accents[currentAccent]
       if (accent && accent.tokens) {
         assign(flat, flattenTokens(accent.tokens))
       }
@@ -142,8 +143,8 @@ export function createRegistry(): Registry {
       return flat
     },
     /** 当前主题名 / 强调色名 / 明暗模式 */
-    state: function () {
-      var theme = themes[current]
+    state() {
+      const theme = themes[current]
       return {
         theme: current,
         accent: currentAccent,
@@ -165,7 +166,7 @@ export function resolveTokens(
   overrides?: TokenTree | FlatTokens | null
 ): FlatTokens {
   if (!theme) return {}
-  var flat = flattenTokens(theme.tokens)
+  const flat = flattenTokens(theme.tokens)
   if (accent && accent.tokens) assign(flat, flattenTokens(accent.tokens))
   if (overrides) assign(flat, flattenTokens(overrides))
   return flat

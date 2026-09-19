@@ -18,4 +18,4 @@ export * from './class'
 export * from './output'
 export * from './preset'
 
-export var version = '0.1.0'
+export const version = '0.1.0'

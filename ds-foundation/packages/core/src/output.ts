@@ -16,9 +16,11 @@ import type { Dict } from './util'
 import { resolveVarValue } from './color'
 import { prefixOf } from './prefix'
 import type { Prefix } from './prefix'
+// 只取类型，编译后这一行会被擦掉，不会和 class.ts 形成运行时循环
+import type { CssRule } from './class'
 
-export var DEFAULT_PREFIX = '--ds-'
-export var DEFAULT_CLASS_PREFIX = 'ds-'
+export const DEFAULT_PREFIX = '--ds-'
+export const DEFAULT_CLASS_PREFIX = 'ds-'
 
 export type PrefixInput = string | Prefix | undefined | null
 
@@ -32,8 +34,8 @@ export function cssVarName(key: string, prefix?: PrefixInput): string {
 
 /** 'var(--ds-color-brand)'，给了 fallback 就是 'var(--ds-color-brand,#fff)' */
 export function cssVarRef(key: string, prefix?: PrefixInput, fallback?: string): string {
-  var name = cssVarName(key, prefix)
-  return fallback ? 'var(' + name + ',' + fallback + ')' : 'var(' + name + ')'
+  const name = cssVarName(key, prefix)
+  return fallback ? `var(${name},${fallback})` : `var(${name})`
 }
 
 export interface CssVarsOptions {
@@ -44,15 +46,15 @@ export interface CssVarsOptions {
 
 /** 现代通道：令牌表 -> 一条带自定义属性的规则 */
 export function toCssVars(flat: Dict<string>, opts?: CssVarsOptions): string {
-  opts = opts || {}
-  var selector = opts.selector || ':root'
-  var prefix = prefixOf(opts.prefix).var
-  var important = opts.important ? ' !important' : ''
-  var body = ''
-  each(flat, function (value, key) {
-    body += prefix + String(key) + ':' + value + important + ';'
+  opts ||= {}
+  const selector = opts.selector || ':root'
+  const prefix = prefixOf(opts.prefix).var
+  const important = opts.important ? ' !important' : ''
+  let body = ''
+  each(flat, (value, key) => {
+    body += `${prefix + String(key)}:${value}${important};`
   })
-  return selector + '{' + body + '}'
+  return `${selector}{${body}}`
 }
 
 /**
@@ -60,7 +62,7 @@ export function toCssVars(flat: Dict<string>, opts?: CssVarsOptions): string {
  *   toScopedCss(flat, '[data-ds-theme="dark"]')
  */
 export function toScopedCss(flat: Dict<string>, selector: string, opts?: CssVarsOptions): string {
-  return toCssVars(flat, assign({}, opts || {}, { selector: selector }))
+  return toCssVars(flat, assign({}, opts || {}, { selector }))
 }
 
 export interface ResolveVarsOptions {
@@ -73,16 +75,16 @@ export interface ResolveVarsOptions {
  * IE10 通道与 SSR 静态导出都依赖它。
  */
 export function resolveVars(flat: Dict<string>, opts?: ResolveVarsOptions): Dict<string> {
-  var out: Dict<string> = {}
-  each(flat, function (value, key) {
+  const out: Dict<string> = {}
+  each(flat, (value, key) => {
     out[String(key)] = value
   })
-  var prefix = prefixOf(opts && opts.prefix).ns
-  for (var pass = 0; pass < 5; pass++) {
-    var changed = false
-    each(out, function (value, key) {
-      var k = String(key)
-      var next = resolveVarValue(value, out, prefix)
+  const prefix = prefixOf(opts && opts.prefix).ns
+  for (let pass = 0; pass < 5; pass++) {
+    let changed = false
+    each(out, (value, key) => {
+      const k = String(key)
+      const next = resolveVarValue(value, out, prefix)
       if (next !== value) {
         out[k] = next
         changed = true
@@ -102,31 +104,28 @@ export interface RulesToCssOptions {
 }
 
 /** 规则数组 -> CSS 文本 */
-export function rulesToCss(rules: any, opts?: RulesToCssOptions): string {
-  opts = opts || {}
-  var important = opts.important ? ' !important' : ''
-  var resolved = opts.resolve || null
-  var prefix = prefixOf(opts.prefix).ns
-  var nl = opts.indent === false ? '' : '\n'
-  var out = ''
+export function rulesToCss(rules: CssRule[] | Dict<CssRule>, opts?: RulesToCssOptions): string {
+  opts ||= {}
+  const important = opts.important ? ' !important' : ''
+  const resolved = opts.resolve || null
+  const prefix = prefixOf(opts.prefix).ns
+  const nl = opts.indent === false ? '' : '\n'
+  let out = ''
 
-  each(rules, function (rule: any) {
+  each(rules, (rule: CssRule) => {
     if (!rule || !rule.decls) return
-    var body = ''
-    each(rule.decls, function (value: any, prop) {
-      var list =
-        Object.prototype.toString.call(value) === '[object Array]'
-          ? (value as string[])
-          : [value as string]
-      for (var i = 0; i < list.length; i++) {
-        var v = list[i]
+    let body = ''
+    each(rule.decls, (value, prop) => {
+      const list = Array.isArray(value) ? value : [value]
+      for (let i = 0; i < list.length; i++) {
+        let v = list[i]
         if (v === undefined || v === null) continue
         if (resolved) v = resolveVarValue(v, resolved, prefix)
-        body += String(prop) + ':' + v + important + ';'
+        body += `${String(prop)}:${v}${important};`
       }
     })
     if (!body) return
-    out += rule.selector + '{' + body + '}' + nl
+    out += `${rule.selector}{${body}}${nl}`
   })
 
   return out
@@ -139,20 +138,12 @@ export function toStyleTag(
   attrs?: Dict<string> | null,
   prefix?: PrefixInput
 ): string {
-  var extra = ''
-  each(attrs || {}, function (v, k) {
-    extra += ' ' + String(k) + '="' + v + '"'
+  let extra = ''
+  each(attrs || {}, (v, k) => {
+    extra += ` ${String(k)}="${v}"`
   })
-  var mark = 'data-' + prefixOf(prefix).ns + '-style'
-  return (
-    '<style' +
-    (id ? ' id="' + id + '"' : '') +
-    extra +
-    (id ? ' ' + mark + '="' + id + '"' : '') +
-    '>' +
-    css +
-    '</style>'
-  )
+  const mark = `data-${prefixOf(prefix).ns}-style`
+  return `<style${id ? ` id="${id}"` : ''}${extra}${id ? ` ${mark}="${id}"` : ''}>${css}</style>`
 }
 
 /** 生成 SSR 用的 style 标签串（多主题一次性吐出，避免首屏闪烁） */
@@ -160,9 +151,9 @@ export function renderStyleTags(
   blocks: Dict<string> | null | undefined,
   prefix?: PrefixInput
 ): string {
-  var cls = prefixOf(prefix).cls
-  var out = ''
-  each(blocks || {}, function (css, key) {
+  const { cls } = prefixOf(prefix)
+  let out = ''
+  each(blocks || {}, (css, key) => {
     if (!css) return
     out += toStyleTag(css, cls + String(key), null, prefix)
   })

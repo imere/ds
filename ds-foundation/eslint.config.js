@@ -1,25 +1,31 @@
 /**
  * ESLint 10 flat config
  * -------------------------------------------------------------
- * 两套尺度，这是本配置唯一需要解释清楚的设计：
+ * 一句话：**源码一律用最新语法，不迁就 IE10 —— 降级是 SWC 的事。**
  *
- *   产物层 packages/*\/src —— 这些代码要被 SWC 降到 ES5 跑在 IE10 上。
- *     这里[不]强制现代语法（不开 no-var / prefer-const）：
- *       1. 存量的 var 是刻意写的，改成 let/const 会改变循环里的闭包语义，
- *          这种改动风险远大于收益
- *       2. 语法现代化由 SWC 负责（tests/es5.test.ts 守住产物），
- *          ESLint 该管的是 SWC 管不了的东西 —— 运行时 API
- *     所以这一层的核心规则是「禁用 IE10 没有的全局和静态方法」。
+ * 所以规则不再按「能不能用现代语法」分层，全仓库一视同仁开到最严：
+ *   no-var / prefer-const / object-shorthand / prefer-template /
+ *   prefer-arrow-callback / prefer-spread / prefer-rest-params /
+ *   prefer-destructuring / logical-assignment-operators ...
  *
- *   工具层 tests / scripts / 各种 config —— 不进浏览器产物，
- *     在 Node 22 上跑，于是放开用最新语法：no-var / prefer-const /
- *     object-shorthand / prefer-template 全开。
+ * 分层只剩一条，而且只加在产物层（packages/*\/src）：
+ *   **禁掉 SWC 降不动的东西**，就两类：
  *
- *   一句话：SWC 管语法降级，ESLint 管运行时 API，两者互补，不重叠。
+ *   1. IE10 没有的运行时 API —— Set / Map / Promise / Object.assign /
+ *      .includes() 等。SWC 只转语法不注入 polyfill，写了就原样进产物，
+ *      在 IE10 上直接 ReferenceError。
  *
- * 关于 TypeScript：全仓库统一 TS 6.0.3，typescript-eslint 和 tsc 用同一份。
- * 别升 TS 7 —— 它是 Go 原生版，npm 包里没有 typescript.js、不提供 JS 编译器 API，
- * typescript-eslint 启动即 throw。要升只能等 typescript-eslint 跟上。
+ *   2. 降级后反而引入运行时依赖的语法 —— 这三条是实测出来的，不是猜的：
+ *        · for-of          → `l[Symbol.iterator]()`        （IE10 没有 Symbol）
+ *        · generator/yield → 依赖 Symbol + Iterator        （同上）
+ *        · async/await     → 依赖 Promise                  （IE10 没有）
+ *      反过来，下面这些实测降级干净，随便用：
+ *        let/const（含循环闭包 → `_loop` IIFE，语义正确）、箭头函数、
+ *        模板字符串（→ `"".concat`）、解构、数组/对象展开、可选链 `?.`、
+ *        `??`、`||=`、`**`（→ `Math.pow`）、class/extends、getter/setter、
+ *        计算属性名、标签模板、`catch {}`（→ `catch (unused)`）、函数参数尾逗号。
+ *
+ * 工具层（tests / scripts / 各 config）不进浏览器产物，自然不受上面两条限制。
  */
 
 import js from '@eslint/js'
@@ -34,7 +40,7 @@ const ie10MissingGlobals = [
   { name: 'WeakMap', message: 'IE10 没有 WeakMap' },
   { name: 'WeakSet', message: 'IE10 没有 WeakSet' },
   { name: 'Promise', message: 'IE10 没有 Promise，改回调' },
-  { name: 'Symbol', message: 'IE10 没有 Symbol' },
+  { name: 'Symbol', message: 'IE10 没有 Symbol（for-of / generator 降级后也会用到它）' },
   { name: 'Proxy', message: 'IE10 没有 Proxy' },
   { name: 'Reflect', message: 'IE10 没有 Reflect' },
   { name: 'BigInt', message: 'IE10 没有 BigInt' },
@@ -86,6 +92,26 @@ const ie10MissingInstanceMethods = [
   { property: 'find', message: 'IE10 没有 Array.prototype.find()，用循环' },
 ]
 
+/** 降级后会在产物里引入 IE10 没有的运行时依赖的语法 */
+const ie10UnsafeSyntax = [
+  {
+    selector: 'ForOfStatement',
+    message: 'for-of 降级后会调 Symbol.iterator()，IE10 没有 Symbol —— 用普通 for 循环',
+  },
+  {
+    selector: 'YieldExpression',
+    message: 'generator 降级后依赖 Symbol + Iterator，IE10 没有 —— 用普通函数',
+  },
+  {
+    selector: 'AwaitExpression',
+    message: 'await 降级后依赖 Promise，IE10 没有 —— 改回调',
+  },
+  {
+    selector: ':function[async=true]',
+    message: 'async 函数降级后依赖 Promise，IE10 没有 —— 改回调',
+  },
+]
+
 export default tseslint.config(
   {
     ignores: [
@@ -100,11 +126,37 @@ export default tseslint.config(
   },
 
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  // strict（不含类型感知那一层）：比 recommended 严，比如 no-explicit-any 直接 error
+  ...tseslint.configs.strict,
   // 这一条同时做了两件事：把 prettier 当 ESLint 规则跑，并关掉与之冲突的格式化规则
   prettierRecommended,
 
-  // ---- 产物层：进浏览器，要跑在 IE10 上 ----
+  // ==== 现代语法：全仓库一视同仁，源码不为 IE10 让步 ====
+  {
+    rules: {
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'object-shorthand': ['error', 'always'],
+      'prefer-template': 'error',
+      'prefer-arrow-callback': 'error',
+      'prefer-spread': 'error',
+      'prefer-rest-params': 'error',
+      'prefer-destructuring': 'error',
+      'prefer-object-spread': 'error',
+      'logical-assignment-operators': ['error', 'always'],
+      'operator-assignment': ['error', 'always'],
+      'no-useless-rename': 'error',
+      'no-useless-concat': 'error',
+      // == null 是同时判 null 和 undefined 的惯用写法，其余一律 ===
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'prefer-exponentiation-operator': 'error',
+      'no-else-return': 'error',
+      // 用法错了要报错，但 catch 参数用不上是常态 —— 现代写法就是 `catch {}`
+      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'all' }],
+    },
+  },
+
+  // ==== 产物层：只加 SWC 降不动的那两类禁令 ====
   {
     files: ['packages/*/src/**/*.{js,ts}'],
     languageOptions: {
@@ -113,25 +165,17 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': ['error', ...ie10MissingGlobals],
       'no-restricted-properties': ['error', ...ie10MissingMethods, ...ie10MissingInstanceMethods],
-      // 注释里写清楚为什么这一层不强制现代语法
-      'no-var': 'off',
-      'prefer-const': 'off',
-      'object-shorthand': 'off',
-      'prefer-template': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      // ES5 里要保住 this 只能 `var self = this`，ESLint 这条规则是给箭头函数时代写的
-      '@typescript-eslint/no-this-alias': 'off',
+      'no-restricted-syntax': ['error', ...ie10UnsafeSyntax],
     },
   },
 
-  // ---- 工具层：Node 22，不进产物，放开用最新语法 ----
+  // ==== 工具层：Node 22，不进产物 ====
   {
     files: [
       'tests/**/*.ts',
       'scripts/**/*.{js,mjs,cjs}',
       'eslint.config.js',
       'prettier.config.js',
-      '.pnpmfile.cjs',
       'rollup.config.js',
       'swc.config.js',
       'vitest.config.ts',
@@ -139,20 +183,9 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.node },
     },
-    rules: {
-      'no-var': 'error',
-      'prefer-const': 'error',
-      'object-shorthand': 'error',
-      'prefer-template': 'error',
-      'prefer-arrow-callback': 'error',
-      'prefer-spread': 'error',
-      'prefer-rest-params': 'error',
-      'prefer-destructuring': 'warn',
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
   },
 
-  // ---- 测试文件：browser + node 全局都要（jsdom 环境） ----
+  // ==== 测试文件：browser + node 全局都要（jsdom 环境） ====
   {
     files: ['tests/**/*.ts'],
     languageOptions: {
@@ -160,7 +193,7 @@ export default tseslint.config(
     },
   },
 
-  // ---- 示例：浏览器里跑，环境同产物层但不做 IE10 限制（示例本身用现代浏览器看）----
+  // ==== 示例：浏览器里跑，用现代浏览器看，不做 IE10 限制 ====
   {
     files: ['examples/**/*.js'],
     languageOptions: {
@@ -168,18 +201,6 @@ export default tseslint.config(
     },
     rules: {
       'no-console': 'off',
-      'no-var': 'error',
-      'prefer-const': 'error',
-    },
-  },
-
-  // ---- 全局：catch 参数允许不使用 ----
-  // 本仓库到处是 try/catch 兜底（localStorage 探测、CSS.supports 探测都要吞异常）。
-  // 现代写法是 `catch {}`（可选捕获绑定），但那是 ES2019 —— IE10 不认，
-  // 产物为了它必须保留 `catch (e)` 而 e 用不上。改规则而不是让代码迁就规则。
-  {
-    rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
     },
   }
 )

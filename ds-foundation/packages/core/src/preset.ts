@@ -11,7 +11,7 @@ import type { AccentDef } from './theme'
 import { mix, toRgba, luminance } from './color'
 
 /** 中性色令牌（明暗两套底） */
-export var lightTokens = {
+export const lightTokens = {
   color: {
     bg: '#ffffff',
     bgSubtle: '#f8fafc',
@@ -57,7 +57,7 @@ export var lightTokens = {
   motion: { fast: '120ms', base: '200ms', slow: '320ms', ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
 }
 
-export var darkTokens = {
+export const darkTokens = {
   color: {
     bg: '#0b1220',
     bgSubtle: '#111a2b',
@@ -95,18 +95,18 @@ export var darkTokens = {
   motion: lightTokens.motion,
 }
 
-export var lightTheme = createTheme({ label: '浅色', mode: 'light', tokens: lightTokens })
-export var darkTheme = createTheme({ label: '深色', mode: 'dark', tokens: darkTokens })
+export const lightTheme = createTheme({ label: '浅色', mode: 'light', tokens: lightTokens })
+export const darkTheme = createTheme({ label: '深色', mode: 'dark', tokens: darkTokens })
 
 /**
  * 强调色工厂：给一个主色，自动推出 hover / active / subtle / border / 前景色。
  * 业务接一个新品牌色只需要一行：registry.accent('brandA', makeAccent('#0ea5e9'))
  */
 export function makeAccent(hex: string, label?: string): AccentDef {
-  var subtle = toRgba(hex, 0.12)
-  var darker = mix(hex, '#000000', 0.12)
-  var darkest = mix(hex, '#000000', 0.24)
-  var onFill = luminance(hex) > 0.45 ? '#0f172a' : '#ffffff'
+  const subtle = toRgba(hex, 0.12)
+  const darker = mix(hex, '#000000', 0.12)
+  const darkest = mix(hex, '#000000', 0.24)
+  const onFill = luminance(hex) > 0.45 ? '#0f172a' : '#ffffff'
   return {
     label: label || hex,
     swatch: hex,
@@ -122,15 +122,15 @@ export function makeAccent(hex: string, label?: string): AccentDef {
         borderFocus: hex,
       },
       shadow: {
-        focus: '0 0 0 3px ' + toRgba(hex, 0.25),
+        focus: `0 0 0 3px ${toRgba(hex, 0.25)}`,
       },
     },
   }
 }
 
-export var DEFAULT_ACCENT = makeAccent('#4f46e5', '靛蓝')
+export const DEFAULT_ACCENT = makeAccent('#4f46e5', '靛蓝')
 
-export var accents = {
+export const accents = {
   indigo: DEFAULT_ACCENT,
   blue: makeAccent('#0ea5e9', '天蓝'),
   green: makeAccent('#16a34a', '青绿'),

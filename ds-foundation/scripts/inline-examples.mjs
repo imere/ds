@@ -49,5 +49,5 @@ targets.forEach((name) => {
 })
 
 process.stdout.write(
-  '\nESM 示例不生成单文件：原生 ES Module 在 file:// 下必被 CORS 拦，' + '只能走 pnpm run serve。\n'
+  '\nESM 示例不生成单文件：原生 ES Module 在 file:// 下必被 CORS 拦，只能走 pnpm run serve。\n'
 )

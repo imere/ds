@@ -13,7 +13,22 @@
 
 import { describe, it, expect, afterAll } from 'vitest'
 import Vue from 'vue'
+import type { CreateElement } from 'vue'
 import plugin, { install, DS_KEY, useDs } from '@ds/vue2'
+import type { DsState } from '@ds/vue2'
+
+// $ds 是插件挂到原型上的，Vue 2 自带类型里没有。
+// 与其到处写 `vm.$ds`，不如用模块增强补一次类型，测试里就能直接点出来。
+declare module 'vue/types/vue' {
+  interface Vue {
+    $ds: DsState
+  }
+}
+
+/** Vue 2 运行时把全局选项挂在 Vue.options 上，但类型定义里没有这一项 */
+interface VueWithGlobalOptions {
+  options: { directives: Record<string, unknown> }
+}
 
 const errors: unknown[] = []
 const warns: string[] = []
@@ -39,6 +54,14 @@ function txt(id: string): string {
   return el ? el.textContent || '' : ''
 }
 
+/** 取元素并确认它存在：测试里元素肯定在，用 throw 代替 `!` 断言，
+ *  失败时能直接看到是哪个 id 没渲染出来 */
+function must(id: string): HTMLElement {
+  const el = document.getElementById(id)
+  if (!el) throw new Error(`测试元素 #${id} 不存在`)
+  return el
+}
+
 const app = document.createElement('div')
 app.id = 'app'
 document.body.appendChild(app)
@@ -46,7 +69,7 @@ document.body.appendChild(app)
 const Child = {
   // 不需要 from，key 名即注入名
   inject: ['dsContext'],
-  render(this: any, h: any) {
+  render(this: Vue & { dsContext?: DsState }, h: CreateElement) {
     return h('i', { attrs: { id: 'child' } }, [
       this.dsContext ? this.dsContext.state.theme : 'none',
     ])
@@ -54,7 +77,7 @@ const Child = {
 }
 
 const vm = new Vue({
-  render(this: any, h: any) {
+  render(this: Vue, h: CreateElement) {
     return h('div', [
       h('span', { attrs: { id: 'theme' } }, [this.$ds.state.theme]),
       h('span', { attrs: { id: 'brand' } }, [String(this.$ds.t('color-brand'))]),
@@ -82,8 +105,7 @@ describe('0. 插件安装', () => {
   })
 
   it('v-ds-theme 已注册', () => {
-    // Vue.options 运行时存在，但 Vue 2 的类型定义里没导出，所以这里要断言一层
-    expect((Vue as any).options.directives['ds-theme']).toBeTruthy()
+    expect((Vue as unknown as VueWithGlobalOptions).options.directives['ds-theme']).toBeTruthy()
   })
 
   it('init 后注入了样式', () => {
@@ -115,7 +137,7 @@ describe('A. 响应式', () => {
   })
 
   it('$ds.style 生成行内样式', () => {
-    expect(document.getElementById('styled')!.style.color).toBe('var(--ds-color-fg)')
+    expect(must('styled').style.color).toBe('var(--ds-color-fg)')
   })
 
   it('provide/inject 拿到同一份句柄', () => {
@@ -123,7 +145,7 @@ describe('A. 响应式', () => {
   })
 
   it('换主题后视图更新', async () => {
-    ;(vm as any).$ds.use('dark')
+    vm.$ds.use('dark')
     await Vue.nextTick()
     expect(txt('theme')).toBe('dark')
   })
@@ -133,7 +155,7 @@ describe('A. 响应式', () => {
   })
 
   it('强调色变化触发重渲染', async () => {
-    ;(vm as any).$ds.useAccent('green')
+    vm.$ds.useAccent('green')
     await Vue.nextTick()
     expect(txt('brand')).toBe('#16a34a')
   })
@@ -149,53 +171,53 @@ const vm2 = new Vue({
   data() {
     return { local: 'dark' }
   },
-  render(this: any, h: any) {
+  render(this: Vue & { local: string }, h: CreateElement) {
     return h('section', {
       attrs: { id: 'box' },
       directives: [{ name: 'ds-theme', value: this.local }],
     })
   },
-})
+}) as Vue & { local: string }
 
 vm2.$mount(host)
 
 describe('B. v-ds-theme 局部换肤', () => {
   it('元素被打上主题标记', () => {
-    const local = document.getElementById('local')
-    expect(local!.getAttribute('data-ds-theme')).toBe('dark')
+    const local = must('local')
+    expect(local.getAttribute('data-ds-theme')).toBe('dark')
   })
 
   it('把该主题的令牌写成元素内联变量', () => {
-    const local = document.getElementById('local')
+    const local = must('local')
     // 局部区域必须拿到 dark 的底色，而不是继承 :root 的浅色
-    expect(local!.style.getPropertyValue('--ds-color-bg')).toBe('#0b1220')
+    expect(local.style.getPropertyValue('--ds-color-bg')).toBe('#0b1220')
   })
 
   it('写的是带前缀的变量名', () => {
-    const local = document.getElementById('local')
-    expect(local!.getAttribute('style')).toContain('--ds-color-bg')
+    const local = must('local')
+    expect(local.getAttribute('style')).toContain('--ds-color-bg')
   })
 
   it('初始值 dark 已写入', () => {
-    expect(document.getElementById('box')!.style.getPropertyValue('--ds-color-bg')).toBe('#0b1220')
+    expect(must('box').style.getPropertyValue('--ds-color-bg')).toBe('#0b1220')
   })
 
   it('指令值变化(update) 后重写局部变量', async () => {
-    ;(vm2 as any).local = 'light'
+    vm2.local = 'light'
     await Vue.nextTick()
-    expect(document.getElementById('box')!.style.getPropertyValue('--ds-color-bg')).toBe('#ffffff')
+    expect(must('box').style.getPropertyValue('--ds-color-bg')).toBe('#ffffff')
   })
 
   it('同一元素不被遗留的旧变量污染', () => {
     // 两次 apply 之间只切了主题，令牌键集合不变，值必须整体换成新的
-    expect(document.getElementById('box')!.getAttribute('data-ds-theme')).toBe('light')
+    expect(must('box').getAttribute('data-ds-theme')).toBe('light')
   })
 
   it('销毁(unbind) 后清掉内联变量', async () => {
-    const el = document.getElementById('box')
+    const el = must('box')
     vm2.$destroy()
     await Vue.nextTick()
-    expect(el!.style.getPropertyValue('--ds-color-bg')).toBe('')
+    expect(el.style.getPropertyValue('--ds-color-bg')).toBe('')
   })
 })
 
