@@ -4,7 +4,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue2'
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url))
-const ds = (pkg) => r(`../ds-foundation/packages/${pkg}/dist/index.js`)
+// 本目录是 ds-foundation/examples/demo-app，库产物在 ../../packages/*/dist。
+// 走别名而不是 node_modules：三个包都是 private 且依赖写 workspace: 协议，
+// npm / pnpm 都装不进来。代价是改完库要重新在仓库根跑 `pnpm build`。
+const ds = (pkg) => r(`../../packages/${pkg}/dist/index.js`)
 
 export default defineConfig({
   plugins: [vue()],
@@ -23,8 +26,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    // 上面三个别名指向项目根目录之外，dev server 默认不放行
-    fs: { allow: [r('.'), r('../ds-foundation')] },
+    // 上面三个别名指向本目录之外（../../packages），dev server 默认不放行
+    fs: { allow: [r('.'), r('../..')] },
   },
   build: {
     target: 'esnext',

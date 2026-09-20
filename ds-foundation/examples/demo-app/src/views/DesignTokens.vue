@@ -64,6 +64,43 @@
         </DsCard>
 
         <DsCard padding="md">
+          <template #header>
+            <h3 class="panel-title">派生主题：给一个种子色，算出整套令牌</h3>
+          </template>
+          <p class="panel-desc">
+            上面 5 套主题是手写的（每个色值都人挑）。这里走另一条路：<code>seed</code> 只给一个品牌色，
+            经 <code>algorithm</code> 管道算出 hover / active / subtle / 语义色 / 中性色阶。
+            改下面任一开关都会立刻重算并应用到整站 —— 一次 <code>registry.theme()</code>，
+            没有一个色值是手写的。
+          </p>
+
+          <div class="derive">
+            <div class="derive__controls">
+              <div class="derive__field">
+                <label for="seed-brand">种子品牌色</label>
+                <div class="derive__color">
+                  <input id="seed-brand" v-model="seedBrand" type="color" />
+                  <code>{{ seedBrand }}</code>
+                </div>
+              </div>
+              <DsSwitch v-model="seedDark">暗色（追加 darkAlgorithm）</DsSwitch>
+              <DsSwitch v-model="seedCompact">紧凑（追加 compactAlgorithm）</DsSwitch>
+              <DsButton size="sm" variant="primary" @click="applyDerived">生成并应用</DsButton>
+            </div>
+
+            <div class="derive__result">
+              <div v-for="s in derivedSwatches" :key="s.key" class="derive__swatch">
+                <span class="derive__chip" :style="{ background: s.value }" />
+                <span class="derive__key">{{ s.key }}</span>
+                <code>{{ s.value }}</code>
+              </div>
+            </div>
+
+            <pre class="code"><code>{{ deriveCode }}</code></pre>
+          </div>
+        </DsCard>
+
+        <DsCard padding="md">
           <template #header><h3 class="panel-title">在业务代码中使用</h3></template>
           <pre class="code"><code>{{ usageCode }}</code></pre>
         </DsCard>
@@ -81,8 +118,11 @@
 import PageHeader from '@/docs/components/PageHeader.vue'
 import DsCard from '@/components/DsCard.vue'
 import DsBadge from '@/components/DsBadge.vue'
+import DsButton from '@/components/DsButton.vue'
 import DsInput from '@/components/DsInput.vue'
+import DsSwitch from '@/components/DsSwitch.vue'
 import ThemeSwitcher from '@/docs/components/ThemeSwitcher.vue'
+import { createDerivedTheme, defaultAlgorithm, darkAlgorithm, compactAlgorithm } from '@/theme/derived'
 
 const COLOR_GROUPS = [
   { name: 'surface', label: '表面 Surface', match: /^color-(bg|overlay|skeleton)/ },
@@ -94,10 +134,13 @@ const COLOR_GROUPS = [
 
 export default {
   name: 'DesignTokens',
-  components: { PageHeader, DsCard, DsBadge, DsInput, ThemeSwitcher },
+  components: { PageHeader, DsCard, DsBadge, DsButton, DsInput, DsSwitch, ThemeSwitcher },
   data() {
     return {
       keyword: '',
+      seedBrand: '#0d9480',
+      seedDark: false,
+      seedCompact: false,
       usageCode: `/* 业务样式只消费令牌，永远不写死颜色 */
 .my-panel {
   background: var(--ds-color-bg-elevated);
@@ -171,8 +214,49 @@ ds.use('brand-x')   // 立即生效`,
         { name: 'z', label: '层级 Z-Index', items: pick('z-') },
       ]
     },
+    /** 页面上那张派生演示卡里展示的 6 个令牌，全部来自当前生效的令牌表 */
+    derivedSwatches() {
+      const keys = [
+        'color-brand',
+        'color-brand-hover',
+        'color-brand-active',
+        'color-brand-subtle',
+        'color-bg',
+        'color-fg',
+      ]
+      return keys.map((k) => ({ key: `--ds-${k}`, value: this.tokens[k] || '' }))
+    },
+    deriveCode() {
+      const list = ['defaultAlgorithm']
+      if (this.seedDark) list.push('darkAlgorithm')
+      if (this.seedCompact) list.push('compactAlgorithm')
+      return `import { createDerivedTheme, ${list.join(', ')} } from '@/theme/derived'
+
+registry.theme('derived', createDerivedTheme({
+  label: '派生 ${this.seedBrand}',
+  mode: '${this.seedDark ? 'dark' : 'light'}',
+  seed: { color: { brand: '${this.seedBrand}' } },
+  algorithm: [${list.join(', ')}],
+}))
+ds.use('derived')`
+    },
   },
   methods: {
+    /** 重算一遍派生主题并立即应用到整站 */
+    applyDerived() {
+      const algorithm = [defaultAlgorithm]
+      if (this.seedDark) algorithm.push(darkAlgorithm)
+      if (this.seedCompact) algorithm.push(compactAlgorithm)
+
+      const def = createDerivedTheme({
+        label: `派生 ${this.seedBrand}`,
+        mode: this.seedDark ? 'dark' : 'light',
+        seed: { color: { brand: this.seedBrand } },
+        algorithm,
+      })
+      this.$ds.manager.registry.theme('derived', def)
+      this.$ds.use('derived')
+    },
     previewStyle(kind, value) {
       if (kind === 'space') return { width: value, height: '12px', background: 'var(--ds-color-brand)', borderRadius: '2px' }
       return { width: '28px', height: '28px', background: 'var(--ds-color-brand-subtle)', border: '1px solid var(--ds-color-brand)', borderRadius: value }
@@ -301,6 +385,88 @@ ds.use('brand-x')   // 立即生效`,
 .token-row__preview {
   flex: none;
   border-radius: 2px;
+}
+
+.panel-desc {
+  margin-bottom: var(--ds-space-4);
+  font-size: var(--ds-font-size-xs);
+  line-height: 1.7;
+  color: var(--ds-color-fg-muted);
+}
+.panel-desc code {
+  padding: 1px 5px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-bg-inset);
+  color: var(--ds-color-fg);
+}
+
+.derive {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+}
+.derive__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-4);
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-color-fg-muted);
+}
+.derive__field {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+}
+.derive__color {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+}
+.derive__color input[type='color'] {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+}
+.derive__color code {
+  padding: 2px 6px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-bg-inset);
+  color: var(--ds-color-fg);
+}
+
+.derive__result {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--ds-space-2);
+}
+.derive__swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-2);
+  border: 1px solid var(--ds-color-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-bg-subtle);
+  font-size: var(--ds-font-size-xs);
+}
+.derive__chip {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-sm);
+}
+.derive__key {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-color-fg-muted);
 }
 
 .code {
