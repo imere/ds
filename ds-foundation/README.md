@@ -257,8 +257,8 @@ ds-foundation/
 │  ├─ dom/src/     env / style / emitter / theme / ssr / storage                     (.ts)
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
-├─ examples/       umd / esm / vue2
-├─ tests/          core / dom / vue2 / storage / breakpoint / es5 六个 .test.ts（vitest）
+├─ examples/       umd / esm / vue2（最小用法）+ demo-app/（完整演示项目，见下）
+├─ tests/          core / dom / vue2 / storage / breakpoint / derive / es5 七个 .test.ts（vitest）
 ├─ scripts/        clean / serve / dts / inline-examples
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
@@ -387,6 +387,30 @@ TS 7 起直接移除。所以职责必须拆开 —— 降级不能压在 tsc �
 `getInitScript()` 的返回值里就含这个字符串，不转义会把标签提前闭合，后面的代码全变成文本。
 
 ESM 那一页不生成单文件：原生 ES Module 在 `file://` 下必被 CORS 拦，只能走 `pnpm run serve`。
+
+### 完整演示项目 `examples/demo-app/`
+
+上面三组是「最小用法」，只看一个 API 怎么调。真正的样子在 `examples/demo-app/` ——
+一个 Vue 2 组件库 + 文档站，把库的三层能力全用上了：多主题、强调色正交、
+令牌微调、局部换肤、SSR 防闪烁、持久化、断点栅格。
+
+```bash
+pnpm build          # 先出库产物：demo-app 靠 vite 别名指向 ../../packages/*/dist
+cd examples/demo-app && npm install
+pnpm run example    # 等价于 npm --prefix examples/demo-app run dev
+```
+
+三个入口：`pnpm run example` / `example:build` / `example:test`。
+
+它**不进库的 lint / typecheck / test**：
+
+- `eslint.config.js` 里 `ignores` 加了 `examples/demo-app/**` —— 它是另一个工程，
+  有自己的依赖和构建配置，不该被库的 IE10 规则和产品层规则扫
+- `tsconfig.json` 的 `include` 只有 `packages/*/src/**/*.ts`
+- `vitest.config.ts` 的 `include` 只有 `tests/**/*.test.ts`，demo-app 的测试是 `*.spec.js`
+
+反过来，**改完库一定要重新 `pnpm build`**，demo-app 才会看到新产物 ——
+它用的是 `dist` 不是 `src`（三个包 private + `workspace:` 协议，装不进 node_modules，只能走别名）。
 
 ## 七、产物格式与扩展名
 

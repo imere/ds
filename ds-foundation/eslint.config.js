@@ -155,6 +155,9 @@ export default tseslint.config(
       '**/node_modules/**',
       // 第三方源码，不归我们管
       'examples/**/vendor/**',
+      // 完整演示项目：自带 package.json / 依赖 / 构建配置，是另一个工程，
+      // 不是库源码 —— 它自己跑自己的，不进 eslint .
+      'examples/demo-app/**',
       // 脚本生成的自包含示例
       '**/standalone.html',
       'pnpm-lock.yaml',

@@ -7,6 +7,7 @@
  * 这里新增主题时记得同步（那是一段内联 <script>，没法 import）。
  */
 import { createTheme } from './tokens'
+import { createDerivedTheme, defaultAlgorithm, darkAlgorithm, compactAlgorithm } from './derived'
 
 export const themes = {
   light: createTheme({
@@ -252,6 +253,23 @@ export const themes = {
       skeleton: 'rgba(255, 255, 255, 0.08)',
     },
     shadowColor: '0 0 0',
+  }),
+
+  // ---- 下面两套不是手写的，是 seed 经算法算出来的 ----
+  // 只给一个品牌色，hover / active / subtle / 语义色 / 中性色阶全部由 @ds/core 派生。
+  // 想验证：在这个文件里改 seed.color.brand 一个值，整套颜色跟着变。
+  aurora: createDerivedTheme({
+    label: '极光 Aurora · 派生',
+    mode: 'light',
+    seed: { color: { brand: '#0d9480', bg: '#f8fafc', fg: '#0f172a' } },
+  }),
+
+  ember: createDerivedTheme({
+    label: '熔岩 Ember · 派生',
+    mode: 'dark',
+    seed: { color: { brand: '#f97316' } },
+    // 显式给算法数组：先补全，再翻暗，最后收紧尺度（圆角 ×0.75、动效 ×0.8）
+    algorithm: [defaultAlgorithm, darkAlgorithm, compactAlgorithm],
   }),
 }
 

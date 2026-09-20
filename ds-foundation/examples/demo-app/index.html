@@ -14,7 +14,15 @@
       (function () {
         try {
           var name = localStorage.getItem('ds-theme') || 'light'
-          var modes = { light: 'light', sunrise: 'light', dark: 'dark', midnight: 'dark', violet: 'dark' }
+          var modes = {
+            light: 'light',
+            sunrise: 'light',
+            aurora: 'light',
+            dark: 'dark',
+            midnight: 'dark',
+            violet: 'dark',
+            ember: 'dark',
+          }
           document.documentElement.setAttribute('data-ds-mode', modes[name] || 'light')
         } catch (e) {
           /* noop */

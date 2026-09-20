@@ -75,3 +75,4 @@ export function resetThemeManager() {
 
 export { themes, DEFAULT_THEME, accents }
 export { createTheme, scale, shadowPresets } from './tokens'
+export { createDerivedTheme, defaultAlgorithm, darkAlgorithm, compactAlgorithm } from './derived'

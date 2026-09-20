@@ -15,6 +15,7 @@ import { installTheme, getThemeManager } from '@/theme'
 import { themes } from '@/theme/themes'
 import { accents } from '@/theme/accents'
 import { createTheme } from '@/theme/tokens'
+import { createDerivedTheme, defaultAlgorithm, darkAlgorithm, compactAlgorithm } from '@/theme/derived'
 
 describe('主题接线', () => {
   let ds
@@ -135,5 +136,131 @@ describe('主题接线', () => {
     expect(vm.$ds.state.mode).toBe('dark')
     ds.use('light')
     vm.$destroy()
+  })
+})
+
+/**
+ * 派生主题的断言分两类：
+ *   · 产品语义层必须齐全 —— 业务 CSS 消费的是 color-fg-on-brand / color-overlay 这些
+ *     产品命名，库派生出来的是 color-on-brand / color-bg-overlay，翻译漏一个就会有个变量是空的
+ *   · 算法确实生效 —— 暗色翻了、紧凑收紧了、改种子色整套跟着变
+ */
+describe('派生主题 seed + algorithm', () => {
+  let ds
+
+  beforeAll(() => {
+    installTheme(Vue)
+    ds = getThemeManager()
+  })
+
+  /** 业务 CSS 里出现过的全部 color 令牌（改动样式时这份清单也要跟着验） */
+  const REQUIRED_COLOR = [
+    'color-bg',
+    'color-bg-subtle',
+    'color-bg-elevated',
+    'color-bg-inset',
+    'color-bg-hover',
+    'color-bg-active',
+    'color-bg-disabled',
+    'color-fg',
+    'color-fg-muted',
+    'color-fg-subtle',
+    'color-fg-disabled',
+    'color-fg-on-brand',
+    'color-border',
+    'color-border-strong',
+    'color-border-subtle',
+    'color-brand',
+    'color-brand-hover',
+    'color-brand-active',
+    'color-brand-subtle',
+    'color-brand-border',
+    'color-brand-fg',
+    'color-focus',
+    'color-success',
+    'color-success-subtle',
+    'color-success-fg',
+    'color-warning',
+    'color-warning-subtle',
+    'color-warning-fg',
+    'color-danger',
+    'color-danger-subtle',
+    'color-danger-fg',
+    'color-info',
+    'color-info-subtle',
+    'color-info-fg',
+    'color-overlay',
+    'color-skeleton',
+  ]
+
+  it('派生出来的颜色覆盖了业务 CSS 要的每一个键', () => {
+    ds.use('aurora')
+    const flat = ds.tokens()
+    REQUIRED_COLOR.forEach((key) => {
+      expect(flat[key], `${key} 缺失`).toBeTruthy()
+    })
+  })
+
+  it('只给了 brand / bg / fg，其余颜色由算法算出', () => {
+    ds.use('aurora')
+    const flat = ds.tokens()
+    expect(flat['color-brand']).toBe('#0d9480')
+    expect(flat['color-bg']).toBe('#f8fafc')
+    expect(flat['color-fg']).toBe('#0f172a')
+    // hover / active / subtle 是算出来的，不是抄的
+    expect(flat['color-brand-hover']).not.toBe(flat['color-brand'])
+    expect(flat['color-brand-active']).not.toBe(flat['color-brand-hover'])
+    expect(flat['color-brand-subtle']).toContain('rgba(')
+    expect(flat['color-success']).toBeTruthy()
+    expect(flat['color-success-subtle']).toContain('rgba(')
+  })
+
+  it('暗色派生主题：底比前景暗，阴影基色也跟着翻黑', () => {
+    ds.use('ember')
+    const flat = ds.tokens()
+    expect(flat['color-bg']).toBe('#0f172a')
+    expect(flat['color-fg']).toBe('#ffffff')
+    expect(flat['shadow-color']).toBe('0 0 0')
+  })
+
+  it('compactAlgorithm 只收紧尺度，间距字号这些产品尺度不动', () => {
+    ds.use('aurora')
+    const normal = ds.tokens()
+    expect(normal['radius-md']).toBe('8px')
+    expect(normal['motion-duration-base']).toBe('220ms')
+
+    ds.use('ember')
+    const compact = ds.tokens()
+    expect(compact['radius-md']).toBe('6px')
+    expect(compact['motion-duration-base']).toBe('176ms')
+    // 产品自己的尺度不受派生影响
+    expect(compact['space-4']).toBe('16px')
+    expect(compact['font-size-md']).toBe('14px')
+    expect(compact['radius-xl']).toBe('16px')
+  })
+
+  it('改一个种子色，整套品牌色一族跟着变', () => {
+    const one = createDerivedTheme({ label: 'A', seed: { color: { brand: '#0d9480' } } })
+    const two = createDerivedTheme({ label: 'B', seed: { color: { brand: '#e11d48' } } })
+    expect(one.tokens.color.brandHover).not.toBe(two.tokens.color.brandHover)
+    expect(one.tokens.color.brandSubtle).not.toBe(two.tokens.color.brandSubtle)
+  })
+
+  it('算法数组可以现场组合，注册后立即生效', () => {
+    ds.registry.theme(
+      'unit-derived',
+      createDerivedTheme({
+        label: '单测派生',
+        mode: 'dark',
+        seed: { color: { brand: '#7c3aed' } },
+        algorithm: [defaultAlgorithm, darkAlgorithm, compactAlgorithm],
+      }),
+    )
+    ds.use('unit-derived')
+    const flat = ds.tokens()
+    expect(flat['color-brand']).toBe('#7c3aed')
+    expect(flat['color-bg']).toBe('#0f172a')
+    expect(flat['radius-md']).toBe('6px')
+    ds.use('light')
   })
 })
