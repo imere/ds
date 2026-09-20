@@ -73,6 +73,14 @@ describe('断点：自定义表', () => {
   })
 })
 
+describe('断点：空表', () => {
+  it('一张空表不会崩，落在空串上', () => {
+    expect(currentBreakpoint(1024, {})).toBe('')
+    expect(breakpointOrder({})).toEqual([])
+    expect(mediaOf({})).toEqual({})
+  })
+})
+
 describe('断点：非法输入', () => {
   it('未知断点名抛错，而不是拼出 NaNpx 的媒体查询', () => {
     expect(() => up('nope')).toThrow(/未知断点/)

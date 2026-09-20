@@ -110,10 +110,12 @@ export function writeStyle(
     }
   }
 
-  // 上一次用了更多切片、这次变少了，把多余的标签删掉
+  // 上一次用了更多切片、这次变少了，把多余的标签删掉。
+  // j 从 chunks.length 起（至少 1），所以清理的一定是带序号的那些，
+  // 第 0 片用的就是 id 本身，永远不会被这里删到。
   if (options.cleanup !== false) {
     for (let j = chunks.length; j < (options.previousCount || chunks.length); j++) {
-      const old = doc.getElementById(j === 0 ? id : `${id}-${j}`)
+      const old = doc.getElementById(`${id}-${j}`)
       if (old && old.parentNode) old.parentNode.removeChild(old)
     }
   }

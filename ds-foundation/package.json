@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "es5": "vitest run tests/es5.test.ts",
     "serve": "node scripts/serve.mjs 5199",
     "examples:standalone": "node scripts/inline-examples.mjs",
@@ -22,7 +23,7 @@
     "example:build": "npm --prefix examples/demo-app run build",
     "example:test": "npm --prefix examples/demo-app test",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
-    "verify": "pnpm run typecheck && pnpm run lint && pnpm run build && pnpm run test"
+    "verify": "pnpm run typecheck && pnpm run lint && pnpm run build && pnpm run coverage"
   },
   "devDependencies": {
     "@ds/core": "workspace:*",
@@ -34,6 +35,7 @@
     "@swc/core": "^1.16.2",
     "@swc/helpers": "^0.5.23",
     "@types/node": "^26.5.1",
+    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",

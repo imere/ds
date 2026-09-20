@@ -56,7 +56,11 @@ export const DEFAULT_SEED: TokenTree = {
 const D_BRAND = '#4f46e5'
 const D_BG = '#ffffff'
 const D_FG = '#0f172a'
-const D_SHADOW = '15 23 42'
+/**
+ * 阴影基色的兜底。必须是逗号分隔的通道串 —— 它会原样拼进 rgba(...)，
+ * 而 IE10 只认 rgba(r, g, b, a)，空格写法整条声明会被丢弃。
+ */
+const D_SHADOW = '15, 23, 42'
 const D_SUCCESS = '#16a34a'
 const D_WARNING = '#d97706'
 const D_DANGER = '#dc2626'

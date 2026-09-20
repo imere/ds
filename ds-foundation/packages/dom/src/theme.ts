@@ -296,19 +296,26 @@ export function createThemeManager(options?: ThemeManagerOptions): ThemeManager 
 
   function paint(): void {
     const flat = currentFlat()
-    const state = registry.state()
+    /**
+     * 用 api.state() 而不是 registry.state()：前者才带 channel 与 followSystem。
+     * 订阅者（Vue 绑定层的响应式状态、持久化辅助）要读这两个字段，
+     * 用 registry 那份的话 followSystem 永远是 false —— 开关的显示会一直不对。
+     */
+    const state = api.state()
 
     if (target) {
-      target.setAttribute(attr, state.theme)
-      target.setAttribute(modeAttr, state.mode)
-      if (state.accent) target.setAttribute(accentAttr, state.accent)
+      // state() 对外声明成 Dict<unknown>（它还要塞 channel / followSystem），
+      // 写属性前统一 String() 一遍
+      target.setAttribute(attr, String(state.theme))
+      target.setAttribute(modeAttr, String(state.mode))
+      if (state.accent) target.setAttribute(accentAttr, String(state.accent))
       else target.removeAttribute(accentAttr)
     }
 
     writeTokens(flat)
     writeClasses(flat)
 
-    emitter.emit(assign({ tokens: flat, channel }, state))
+    emitter.emit(assign({ tokens: flat }, state))
   }
 
   /** 系统偏好对应的主题名。没有同名主题就返回空，调用方决定是否切换 */

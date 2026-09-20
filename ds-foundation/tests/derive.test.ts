@@ -198,6 +198,77 @@ describe('5. createTheme 接上 seed / algorithm', () => {
   })
 })
 
+describe('7. 解析不了的入参：宁可退回种子值，也不把令牌写成空', () => {
+  /**
+   * 派生链上 mix / toRgba / parseColor 都可能因为色值写法不认识而返回 null。
+   * 令牌值不允许是 null —— 写进去就是一个空变量，页面上表现为颜色消失。
+   */
+  it('色值解析不了时退回种子值', () => {
+    const out = flat({ color: { brand: 'nope', bg: 'nope', fg: 'nope' } })
+    expect(out['color-brand']).toBe('nope')
+    expect(out['color-bg']).toBe('nope')
+    expect(out['color-bg-subtle']).toBe('nope')
+    expect(out['color-bg-overlay']).toBe('nope')
+    expect(out['color-brand-subtle']).toBe('nope')
+    expect(out['color-brand-border']).toBe('nope')
+    expect(out['color-ring']).toBe('nope')
+  })
+
+  it('阴影基色解析不了时退回内置通道值', () => {
+    const out = flat({ color: { brand: 'nope' } })
+    expect(out['shadow-sm']).toContain('rgba(15, 23, 42')
+    expect(out['shadow-focus']).toContain('rgba(79, 70, 229')
+  })
+
+  it('阴影种子填空串时走内置通道值（逗号语法）', () => {
+    const out = flat({ color: { shadow: '' } })
+    expect(out['shadow-sm']).toContain('rgba(15, 23, 42')
+  })
+
+  it('数字也能当种子值（String 一遍再用）', () => {
+    const out = flat({ color: { bg: 0 }, radius: { md: 8 } })
+    expect(out['color-bg']).toBe('0')
+    expect(out['radius-md']).toBe('8px')
+  })
+
+  it('带单位 / 无单位的字符串都能读成数字', () => {
+    expect(flat({ radius: { md: '10px' } })['radius-md']).toBe('10px')
+    expect(flat({ radius: { md: 'big' } })['radius-md']).toBe('4px') // 读不出来就走默认
+  })
+})
+
+describe('8. 品牌色明暗决定其上的文字色', () => {
+  it('浅色品牌上用深字', () => {
+    expect(flat({ color: { brand: '#facc15' } })['color-on-brand']).toBe('#0f172a')
+  })
+
+  it('深色品牌上用浅字', () => {
+    expect(flat({ color: { brand: '#1e1b4b' } })['color-on-brand']).toBe('#ffffff')
+  })
+
+  it('填充色上的前景色同规则', () => {
+    expect(flat({ color: { brand: '#facc15' } })['color-fg-on-fill']).toBe('#0f172a')
+  })
+})
+
+describe('9. 管道的防御', () => {
+  it('算法返回非对象时保留上一步的结果', () => {
+    const out = deriveTokens({ color: { brand: '#123456' } }, [
+      () => 'nope' as never,
+      defaultAlgorithm,
+    ])
+    expect(flattenTokens(out)['color-brand']).toBe('#123456')
+  })
+
+  it('暗色算法下阴影基色解析不了也用内置值', () => {
+    const out = flat({ color: { brand: 'nope', bg: '#ffffff', fg: '#000000' } }, [
+      defaultAlgorithm,
+      darkAlgorithm,
+    ])
+    expect(out['shadow-focus']).toContain('rgba(79, 70, 229')
+  })
+})
+
 describe('6. 手写 preset 不受派生影响', () => {
   it('内置 light / dark 的解析结果保持原样', () => {
     const registry = createRegistry()
