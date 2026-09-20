@@ -73,9 +73,8 @@ function trim(s: string): string {
  * 'ds' / '--ds-' / 'ds-' -> 'ds'
  * 只砍开头的一对 -- 和末尾的 -；中间的 - 是前缀的一部分，保留。
  */
-function strip(raw: unknown): string {
-  if (raw === null || raw === undefined) return ''
-  let s = trim(String(raw))
+function strip(raw: string): string {
+  let s = trim(raw)
   if (s.indexOf('--') === 0) s = s.slice(2)
   while (s.charAt(s.length - 1) === '-') s = s.slice(0, -1)
   return s

@@ -68,3 +68,6 @@ vite.config.js.timestamp-*
 # pnpm 启动时会在 store 里写这种 0 字节临时文件，正常情况自己会删干净，
 # 偶尔被中断才留下
 _tmp_*
+
+# vitest 覆盖率输出（含被保留下来的临时目录，见 vitest.config.ts 的 clean: false）
+coverage/

@@ -258,7 +258,7 @@ ds-foundation/
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
 ├─ examples/       umd / esm / vue2（最小用法）+ demo-app/（完整演示项目，见下）
-├─ tests/          core / dom / vue2 / storage / breakpoint / derive / es5 七个 .test.ts（vitest）
+├─ tests/          一个模块一个 .test.ts（vitest，584 项；门槛 100% 覆盖率）
 ├─ scripts/        clean / serve / dts / inline-examples
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
@@ -300,12 +300,13 @@ pnpm install
 pnpm run build      # 三个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
 pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
-pnpm test           # vitest，173 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
+pnpm test           # vitest，584 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
+pnpm run coverage   # 跑测试 + 覆盖率，门槛 100%（未达标直接失败）
 pnpm run typecheck  # tsc --noEmit
 pnpm run lint       # eslint .（含格式检查 —— prettier 是里面的一条规则）
 pnpm run lint:fix   # 能自动修的先修掉，格式也一起修
 pnpm run es5        # 只跑 ES5 那一项（已在 pnpm test 里，单独调方便）
-pnpm run verify     # typecheck → lint → build → test，串起来跑
+pnpm run verify     # typecheck → lint → build → coverage，串起来跑
                     # 注意 build 在 test 前：ES5 检查里有 6 项验的是 dist 产物，
                     # 没构建时它们会自动跳过，构建后再跑才验得全
 pnpm run serve      # http://localhost:5199
@@ -441,17 +442,40 @@ pnpm run example    # 等价于 npm --prefix examples/demo-app run dev
 ```bash
 pnpm test          # 单次跑完，CI 用
 pnpm run test:watch
+pnpm run coverage  # 带覆盖率，门槛 100%
 ```
 
-四个文件的环境与职责：
+一个源文件一个（或一组）测试文件，按被测模块命名，不再是「一个大文件里揉所有东西」：
 
-| 文件           | 环境  | 验什么                                                                                                               |
-| -------------- | ----- | -------------------------------------------------------------------------------------------------------------------- |
-| `core.test.ts` | node  | 令牌解析、`var()` 链式求值、两层 class、CSS 输出切片、SSR 脚本、前缀归一化                                           |
-| `dom.test.ts`  | jsdom | **两条通道分别验**：vars 通道注入 `--ds-*`，static 通道注入实值且全程不含 `var(`；换主题、订阅、局部前缀、批量覆盖、跟随系统开关 |
-| `vue2.test.ts` | jsdom | `$ds` 响应式、`t()` / `style()`、provide/inject 同步、`v-ds-theme` 局部变量的写入 / 更新 / 卸载清理、零 Vue 报错告警 |
-| `breakpoint.test.ts` | node | 断点分档边界、`up/down/between` 互不重叠、自定义断点表、未知名字抛错                                              |
-| `es5.test.ts`  | node  | **IE10 硬约束**：源码转译后无 ES6+ 残留、无 TS 残留；构建产物同样扫一遍                                              |
+| 被测模块         | 测试文件                                              | 环境  |
+| ---------------- | ----------------------------------------------------- | ----- |
+| `core/util`      | `util.test.ts`                                        | node  |
+| `core/token`     | `token.test.ts`                                       | node  |
+| `core/color`     | `color.test.ts`                                       | node  |
+| `core/prefix`    | `prefix.test.ts`                                      | node  |
+| `core/output`    | `output.test.ts`                                      | node  |
+| `core/class`     | `class.test.ts`                                       | node  |
+| `core/theme`     | `theme.test.ts`                                       | node  |
+| `core/derive`    | `derive.test.ts`                                      | node  |
+| `core/preset`    | `preset.test.ts`                                      | node  |
+| `core/breakpoint`| `breakpoint.test.ts`                                  | node  |
+| `core` 主干      | `core.test.ts`（跨模块的端到端断言：解析 → class → CSS） | node  |
+| `dom/theme`      | `dom.test.ts`（主干）+ `manager.test.ts`（边角）+ `manager-node.test.ts`（无 DOM） | jsdom / node |
+| `dom/env`        | `env.test.ts`（能力检测的三种结果：有 / 没有 / 抛异常） | jsdom |
+| `dom/emitter`    | `emitter.test.ts`                                     | jsdom |
+| `dom/style`      | `style.test.ts`（切片、复用、清理、IE 老分支）        | jsdom |
+| `dom/ssr`        | `ssr.test.ts`                                         | jsdom |
+| `dom/storage`    | `storage.test.ts` + `storage-edge.test.ts`（降级路径） | jsdom |
+| `vue2/state`     | `vue2-state.test.ts`                                  | jsdom |
+| `vue2/directive` | `vue2-directive.test.ts` + `vue2-directive-warn.test.ts` | jsdom |
+| `vue2/install`   | `vue2-install.test.ts`（模块级单例，必须独立文件）    | jsdom |
+| `vue2` 主干      | `vue2.test.ts`                                        | jsdom |
+| 全仓库           | `es5.test.ts`：**IE10 硬约束**，源码与产物各扫一遍    | node  |
+
+`vue2-directive-warn.test.ts` 与 `vue2-install.test.ts` 之所以要单独成文件：
+前者测的是「告警只打一次」里的那一次（模块级 flag 会被同文件里先跑的用例吃掉），
+后者测的是 `install` 的模块级单例（第二次安装会被幂等判断挡掉）。
+这类**模块级状态**没法在同一个文件里既测「首次」又测「再次」。
 
 两个容易踩的点，写新测试时注意：
 
@@ -459,6 +483,31 @@ pnpm run test:watch
    后者在新版本里已经废弃，而前者跨版本稳定。
 2. **`vitest.config.ts` 把 `@ds/*` 别名到了 `src`**，测试跑的是源码不是 `dist`，
    省掉"先 build 再 test"的顺序依赖 —— 改一行代码立刻能验，CI 里也不会因为没构建而假失败。
+
+### 覆盖率：门槛为什么钉在 100
+
+`pnpm run coverage` = vitest + v8 覆盖率，四项（语句 / 分支 / 函数 / 行）**全部要求 100**，
+写在 `vitest.config.ts` 的 `thresholds` 里，达不到就直接失败（`verify` 里跑的也是它）。
+
+理由是这个库的价值几乎全在**降级路径**上：IE10 没有 CSS 变量、localStorage 被隐私模式禁掉、
+matchMedia 不存在、单个样式表撞规则上限。这些分支在本地开发时永远跑不到 ——
+覆盖了才说明它们真的能跑，而不是「写的时候觉得应该能跑」。
+100 还能挡住一种偷懒：为了过 95% 给整段代码贴 ignore 注释。
+
+补到 100 的过程里总结的三条经验：
+
+1. **先补拒绝分支，再补主干**。空名字、不存在的主题、一个主题都没注册时的 `resolve()` ——
+   平时不会走，但一旦走到必须是确定行为而不是崩。
+2. **不可达的分支要么删掉，要么写明理由**。100% 会逼出真正的死代码，本次删掉了两处：
+   `writeStyle` 清理循环里的 `j === 0` 那一支（`j` 从 `chunks.length` 起，而它至少是 1，
+   该分支恒不成立），以及 `normalizePrefix` 里 `strip(null)` 的防御（调用点保证传字符串）。
+   留着它们只会让人以为「这里还有个情况没测」。
+3. **模块级状态必须拆文件测**。一次性的告警 flag、`install` 的单例、env 的探测缓存 ——
+   同一个文件里只能测到第一条路径，第二条会被状态挡住。
+
+覆盖率还顺带查出一个真缺陷：`paint()` 通知订阅者时用的是 `registry.state()`，
+里面没有 `channel` 与 `followSystem`，所以 Vue 绑定层的「跟随系统」开关永远是关的。
+主干测试（换主题 → 视图更新）发现不了它 —— 只有盯着「这个字段为什么没被覆盖」才会发现。
 
 ### ES5 合规为什么做进 vitest
 
