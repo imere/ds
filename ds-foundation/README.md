@@ -69,6 +69,18 @@ Tier 3 组件层   --ds-button-bg-hover       （组件内部用）
 - **主题**换明暗底（bg / fg / border / shadow）
 - **强调色**换品牌色（brand 一族），`makeAccent('#0ea5e9')` 一行生成 hover / active / subtle / 前景色
 
+这两根轴都是**覆盖**关系：后者盖前者，改 `color-brand` 不会让 `brand-hover` 跟着动。
+需要「改一个种子，整套派生跟着变」时用 `derive`：
+
+```js
+registry.theme('brand', {
+  seed: { color: { brand: '#4f46e5' } }, // 稀疏，填什么改什么
+  algorithm: [defaultAlgorithm, darkAlgorithm, compactAlgorithm], // 管道，从左到右
+})
+```
+
+`seed` 与 `tokens` 可同时给，先派生再让手写的盖上去。详见 `@ds/core` 的「派生层」一节。
+
 ### 断点
 
 ```js

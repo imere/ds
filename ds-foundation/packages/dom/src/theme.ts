@@ -30,6 +30,7 @@ import type {
   Prefix,
   Dict,
   FlatTokens,
+  TokenKey,
   Theme,
   ThemeDef,
   AccentDef,
@@ -115,14 +116,14 @@ export interface ThemeManager {
   followSystem(on?: boolean): ThemeManager
   /** 在明暗之间切换 */
   toggle(): ThemeManager
-  override(key: string, value: unknown): ThemeManager
+  override(key: TokenKey, value: unknown): ThemeManager
   /** 批量覆盖令牌，只重绘一次 */
   overrideMap(map: Dict<unknown> | null | undefined): ThemeManager
   resetOverrides(): ThemeManager
   /** 取令牌值。IE10 通道下返回已求值的实值，现代通道返回 var() 引用 */
-  get(key: string, asRef?: boolean): string | undefined
+  get(key: TokenKey, asRef?: boolean): string | undefined
   /** 生成行内样式对象，例如 :style="ds.style({ color: 'color-fg-muted' })" */
-  style(map: Dict<string> | null | undefined): Dict<string>
+  style(map: Dict<TokenKey> | null | undefined): Dict<string>
   tokens(): FlatTokens
   state(): Dict<unknown>
   subscribe(fn: Handler): () => void

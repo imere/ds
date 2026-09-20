@@ -8,7 +8,7 @@
  */
 
 import { VueConstructor } from 'vue'
-import { each, assign, Dict, Prefix } from '@ds/core'
+import { each, assign, Dict, Prefix, TokenKey } from '@ds/core'
 import { ThemeManager } from '@ds/dom'
 
 /** 被 Vue 接管的响应式状态对象 */
@@ -33,7 +33,7 @@ export interface DsState {
   /** 归一化前缀对象：{ ns, var, cls, attr, ... } */
   prefix: Prefix
   /** 令牌键 -> CSS 变量名：'color-brand' -> '--acme-color-brand' */
-  varName(key: string): string
+  varName(key: TokenKey): string
   /** class 短名 -> 完整类名：'bg-brand' -> 'acme-bg-brand' */
   className(short: string): string
   /** 切换主题，返回 this 以便链式 */
@@ -43,7 +43,7 @@ export interface DsState {
   /** 明暗切换，返回 this */
   toggle(): DsState
   /** 手动覆盖令牌，返回 this */
-  override(key: string, value: unknown): DsState
+  override(key: TokenKey, value: unknown): DsState
   /** 批量覆盖令牌（只重绘一次），返回 this */
   overrideMap(map: Dict<unknown> | null | undefined): DsState
   /** 清除覆盖，返回 this */
@@ -51,11 +51,11 @@ export interface DsState {
   /** 运行时开关「跟随系统明暗」，返回 this */
   followSystem(on?: boolean): DsState
   /** 读令牌：t('color-brand') */
-  t(key: string): unknown
+  t(key: TokenKey): unknown
   /** 取 var() 引用（仅 vars 通道有意义，static 通道返回实值） */
-  ref(key: string): string | undefined
+  ref(key: TokenKey): string | undefined
   /** 生成行内样式对象：:style="$ds.style({ color: 'color-fg-muted' })" */
-  style(map: Dict<string> | null | undefined): Dict<string>
+  style(map: Dict<TokenKey> | null | undefined): Dict<string>
   /** 退订同步回调 */
   off: () => void
 }
@@ -113,7 +113,7 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
     prefix: manager.prefix,
 
     /** 令牌键 -> CSS 变量名：varName('color-brand') -> '--acme-color-brand' */
-    varName(key: string): string {
+    varName(key: TokenKey): string {
       return manager.prefix.var + key
     },
 
@@ -134,7 +134,7 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
       manager.toggle()
       return api
     },
-    override(key: string, value: unknown): DsState {
+    override(key: TokenKey, value: unknown): DsState {
       manager.override(key, value)
       return api
     },
@@ -154,17 +154,17 @@ export function createDsState(Vue: VueConstructor, manager: ThemeManager): DsSta
     },
 
     /** 读令牌：t('color-brand') */
-    t(key: string): unknown {
+    t(key: TokenKey): unknown {
       return state.tokens[key]
     },
 
     /** 取 var() 引用（仅 vars 通道有意义，static 通道返回实值） */
-    ref(key: string): string | undefined {
+    ref(key: TokenKey): string | undefined {
       return manager.get(key, true)
     },
 
     /** 生成行内样式对象：:style="$ds.style({ color: 'color-fg-muted' })" */
-    style(map: Dict<string> | null | undefined): Dict<string> {
+    style(map: Dict<TokenKey> | null | undefined): Dict<string> {
       return manager.style(map)
     },
 
