@@ -70,6 +70,20 @@ Tier 3 组件层   --ds-button-bg-hover       （组件内部用）
 - **强调色**换品牌色（brand 一族），`makeAccent('#0ea5e9')` 一行生成 hover / active / subtle / 前景色
 
 这两根轴都是**覆盖**关系：后者盖前者，改 `color-brand` 不会让 `brand-hover` 跟着动。
+
+> ⚠️ **自建 `accents` 表时要显式 `defaultAccent: false`**
+> `@ds/dom` 有个兜底：不给 `accent`（或给空串）且 `accents` 表里有 `indigo` 时，
+> 会自动把它套上 —— 初衷是「别让 brand 一族空着」。但强调色盖在主题之上，
+> 于是**每套主题的 brand 都会被按成同一个靛蓝**，换主题时品牌色纹丝不动。
+> 只想让品牌色跟随主题的话：
+>
+> ```js
+> createThemeManager({ themes, accents, theme: 'light', accent: '', defaultAccent: false })
+> ```
+>
+> 这个坑的现象很有迷惑性：内置 `light` 的 `color-brand` 恰好也是 `#4f46e5`，
+> 所以「所有主题品牌色一样」在默认主题上完全看不出来。
+
 需要「改一个种子，整套派生跟着变」时用 `derive`：
 
 ```js
