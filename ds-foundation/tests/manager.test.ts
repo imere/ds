@@ -252,6 +252,66 @@ describe('没有强调色时', () => {
   })
 })
 
+/**
+ * 默认强调色的兜底
+ * -------------------------------------------------------------
+ * 这一组是踩出来的：库的默认行为是「accent 为空且 accents 表里有 indigo 就强行套上」，
+ * 而强调色在 resolve 顺序里盖住 theme.tokens，整组 brand 会被换掉。
+ * 使用方只要自建了 accents 表却想「品牌色跟随主题」，就必须显式 defaultAccent: false，
+ * 否则每套主题的品牌色都会被按成同一个靛蓝 —— 而浅色主题的 brand 恰好也是那个色，
+ * 现象会被完全掩盖。覆盖率 100% 拦不住它：那行代码被执行到了，行为却没人断言。
+ */
+describe('默认强调色的兜底', () => {
+  const themes = {
+    light: { mode: 'light', tokens: { color: { brand: '#111111' } } },
+  }
+  const withIndigo = {
+    indigo: { label: '靛蓝', swatch: '#4f46e5', tokens: { color: { brand: '#4f46e5' } } },
+  }
+
+  it('不传 accent 且表里有 indigo —— 自动套上，brand 被它接管', () => {
+    const m = createThemeManager({ themes, accents: withIndigo })
+    m.init()
+    expect(m.state().accent).toBe('indigo')
+    expect(m.tokens()['color-brand']).toBe('#4f46e5')
+  })
+
+  it('defaultAccent: false —— accent 保持空，brand 就是主题自己的', () => {
+    const m = createThemeManager({ themes, accents: withIndigo, defaultAccent: false })
+    m.init()
+    expect(m.state().accent).toBe('')
+    expect(m.tokens()['color-brand']).toBe('#111111')
+    expect(document.documentElement.hasAttribute('data-ds-accent')).toBe(false)
+  })
+
+  it('表里没有 indigo 就不兜 —— 没有可兜的对象', () => {
+    const m = createThemeManager({
+      themes,
+      accents: {
+        teal: { label: '青', swatch: '#0d9480', tokens: { color: { brand: '#0d9480' } } },
+      },
+    })
+    m.init()
+    expect(m.state().accent).toBe('')
+    expect(m.tokens()['color-brand']).toBe('#111111')
+  })
+
+  it('显式给了 accent 就不走兜底', () => {
+    const m = createThemeManager({ themes, accents: withIndigo, accent: '' })
+    m.useAccent('indigo')
+    expect(m.state().accent).toBe('indigo')
+    // 再切回空串也不该被重新兜回去
+    m.useAccent('')
+    expect(m.state().accent).toBe('')
+  })
+
+  it('兜底来的强调色同样会写进 data-ds-accent', () => {
+    const m = createThemeManager({ themes, accents: withIndigo })
+    m.init()
+    expect(document.documentElement.getAttribute('data-ds-accent')).toBe('indigo')
+  })
+})
+
 describe('跟随系统：三种监听挂载方式', () => {
   it('只有 addEventListener 的新内核也能挂上', () => {
     const handlers: Array<(e: { matches: boolean }) => void> = []

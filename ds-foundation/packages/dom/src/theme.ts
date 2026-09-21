@@ -66,7 +66,16 @@ export interface ThemeManagerOptions {
   followSystem?: boolean
   /** 默认主题名 */
   theme?: string
+  /**
+   * 默认强调色名。传空串表示「跟随主题」（品牌色用主题自带那一组）。
+   * 注意：不给的话会被兜成 accents 表里的 indigo（见 defaultAccent）。
+   */
   accent?: string
+  /**
+   * 关掉上面那个兜底。自建了 accents 表又想让品牌色跟随主题时必须显式传 false，
+   * 否则 accent 的空串会被静默换成 indigo，而强调色在 resolve 顺序里盖住
+   * theme.tokens —— 每套主题的 brand 一族都会被按成同一个靛蓝。
+   */
   defaultAccent?: boolean
   /** 'auto' 时按能力检测二选一 */
   channel?: 'auto' | 'vars' | 'static'
