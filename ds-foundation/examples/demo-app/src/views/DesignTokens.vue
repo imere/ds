@@ -74,6 +74,12 @@
             没有一个色值是手写的。
           </p>
 
+          <p v-if="accentActive" class="panel-note">
+            当前强调色「{{ accentLabel }}」正在接管品牌色（强调色的优先级高于主题），
+            所以下面的种子色现在改不动 <code>color-brand</code> 一族。
+            想看派生结果，先在主题面板里切回「跟随主题」。
+          </p>
+
           <div class="derive">
             <div class="derive__controls">
               <div class="derive__field">
@@ -213,6 +219,18 @@ ds.use('brand-x')   // 立即生效`,
         { name: 'motion', label: '动效 Motion', items: pick('motion-') },
         { name: 'z', label: '层级 Z-Index', items: pick('z-') },
       ]
+    },
+    /**
+     * 强调色是盖在主题之上的一层，会把 brand 一族整组换掉。
+     * 演示派生主题时必须知道它在不在 —— 否则「改了种子色没反应」会让人以为是派生失灵。
+     */
+    accentActive() {
+      return !!this.$ds.state.accent
+    },
+    accentLabel() {
+      const reg = this.$ds.manager.registry
+      const def = reg.getAccent()
+      return def ? def.label : ''
     },
     /** 页面上那张派生演示卡里展示的 6 个令牌，全部来自当前生效的令牌表 */
     derivedSwatches() {
@@ -398,6 +416,23 @@ ds.use('derived')`
   border-radius: var(--ds-radius-sm);
   background: var(--ds-color-bg-inset);
   color: var(--ds-color-fg);
+}
+
+.panel-note {
+  margin-bottom: var(--ds-space-4);
+  padding: var(--ds-space-3);
+  border: 1px solid var(--ds-color-warning-border, var(--ds-color-warning));
+  border-left-width: 3px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-warning-subtle);
+  font-size: var(--ds-font-size-xs);
+  line-height: 1.7;
+  color: var(--ds-color-warning-fg);
+}
+.panel-note code {
+  padding: 1px 5px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-bg-inset);
 }
 
 .derive {

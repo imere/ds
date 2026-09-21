@@ -5,6 +5,11 @@
         <h4>明暗主题</h4>
         <span class="theme-switcher__hint">{{ currentLabel }}</span>
       </header>
+      <p v-if="state.accent" class="theme-switcher__note">
+        已选强调色「{{ accentLabel }}」—— 它的优先级高于主题，会整组接管
+        品牌色（brand / brandHover / brandFg / focus），换主题时品牌色不会跟着变。
+        点上面的「跟随主题」即可看到主题自带的那一组。
+      </p>
       <div class="theme-switcher__grid">
         <button
           v-for="theme in themes"
@@ -171,6 +176,11 @@ export default {
       const t = this.themes.find((item) => item.name === this.state.theme)
       return t ? t.label : ''
     },
+    /** 强调色盖在主题之上，切主题时得让人知道品牌色为什么不动 */
+    accentLabel() {
+      const def = this.$ds.manager.registry.getAccent()
+      return def ? def.label : ''
+    },
     hasOverrides() {
       return this.touched
     },
@@ -259,6 +269,16 @@ export default {
 .theme-switcher__hint {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-color-fg-subtle);
+}
+
+.theme-switcher__note {
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border-left: 3px solid var(--ds-color-warning);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-warning-subtle);
+  font-size: var(--ds-font-size-xs);
+  line-height: 1.7;
+  color: var(--ds-color-warning-fg);
 }
 
 .theme-switcher__grid {
