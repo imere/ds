@@ -263,4 +263,19 @@ describe('派生主题 seed + algorithm', () => {
     expect(flat['radius-md']).toBe('6px')
     ds.use('light')
   })
+
+  it('不传强调色时就是「跟随主题」，不能被兜成某个内置预设', () => {
+    // @ds/dom 有这个兜底：accent 为空且 accents 里有同名项时会强行套上 indigo
+    // （components/theme 层靠 defaultAccent: false 关掉），强调色整组覆盖
+    // brand / brandHover / brandFg / focus —— 一旦踩到，所有主题的品牌色
+    // 都会被按成同一个靛蓝，派生主题换的种子色完全看不出来。
+    expect(ds.state().accent).toBe('')
+    ds.use('aurora')
+    expect(ds.tokens()['color-brand']).toBe('#0d9480')
+    ds.use('ember')
+    expect(ds.tokens()['color-brand']).toBe('#f97316')
+    ds.use('sunrise')
+    expect(ds.tokens()['color-brand']).toBe('#ea580c')
+    ds.use('light')
+  })
 })
