@@ -11,9 +11,9 @@
  * 分层只剩一条，而且只加在产物层（packages/*\/src）：
  *   **禁掉 SWC 降不动的东西**，就两类：
  *
- *   1. IE10 没有的运行时 API —— Set / Map / Promise / Object.assign /
- *      .includes() 等。SWC 只转语法不注入 polyfill，写了就原样进产物，
- *      在 IE10 上直接 ReferenceError。
+ *   1. IE10 没有的运行时 API。`Object.assign` / `.includes()` 之类的用了就
+ *      ReferenceError，但 MDN 的 compat 数据知道答案，不需要我们手写清单 ——
+ *      交给 eslint-plugin-compat（目标浏览器 `ie 10`），数据是活的，会跟着更新。
  *
  *   2. 降级后反而引入运行时依赖的语法 —— 这三条是实测出来的，不是猜的：
  *        · for-of          → `l[Symbol.iterator]()`        （IE10 没有 Symbol）
@@ -32,6 +32,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import prettierRecommended from 'eslint-plugin-prettier/recommended'
+import compat from 'eslint-plugin-compat'
 
 /**
  * Prettier 的选项直接写在这里，不单独放 prettier.config.js。
@@ -68,65 +69,6 @@ const prettierOptions = {
   // 仓库在 Windows 上开发，但产物和源码统一 LF，避免 diff 里混进 CRLF 改动
   endOfLine: 'lf',
 }
-
-/** IE10 不存在的全局构造器 / 对象 */
-const ie10MissingGlobals = [
-  { name: 'Set', message: 'IE10 没有 Set，用数组 + indexOf' },
-  { name: 'Map', message: 'IE10 没有 Map，用普通对象' },
-  { name: 'WeakMap', message: 'IE10 没有 WeakMap' },
-  { name: 'WeakSet', message: 'IE10 没有 WeakSet' },
-  { name: 'Promise', message: 'IE10 没有 Promise，改回调' },
-  { name: 'Symbol', message: 'IE10 没有 Symbol（for-of / generator 降级后也会用到它）' },
-  { name: 'Proxy', message: 'IE10 没有 Proxy' },
-  { name: 'Reflect', message: 'IE10 没有 Reflect' },
-  { name: 'BigInt', message: 'IE10 没有 BigInt' },
-  { name: 'globalThis', message: 'IE10 没有 globalThis，用 window' },
-]
-
-/** IE10 不存在的静态方法 */
-const ie10MissingMethods = [
-  {
-    object: 'Object',
-    property: 'assign',
-    message: 'IE10 没有 Object.assign，用 core 里的手写 assign()',
-  },
-  {
-    object: 'Object',
-    property: 'entries',
-    message: 'IE10 没有 Object.entries，用 Object.keys 自己取',
-  },
-  {
-    object: 'Object',
-    property: 'values',
-    message: 'IE10 没有 Object.values，用 Object.keys 自己取',
-  },
-  { object: 'Object', property: 'fromEntries', message: 'IE10 没有 Object.fromEntries' },
-  {
-    object: 'Object',
-    property: 'getOwnPropertySymbols',
-    message: 'IE10 没有 Object.getOwnPropertySymbols',
-  },
-  { object: 'Array', property: 'from', message: 'IE10 没有 Array.from，用 slice 或手写循环' },
-  { object: 'Array', property: 'of', message: 'IE10 没有 Array.of' },
-  { object: 'Number', property: 'isNaN', message: 'IE10 没有 Number.isNaN，用 value !== value' },
-  { object: 'Number', property: 'isInteger', message: 'IE10 没有 Number.isInteger' },
-  { object: 'Number', property: 'isFinite', message: 'IE10 没有 Number.isFinite，用 isFinite()' },
-  { object: 'String', property: 'raw', message: 'IE10 没有 String.raw' },
-]
-
-/** 任意对象上的实例方法（数组 / 字符串都算） */
-const ie10MissingInstanceMethods = [
-  { property: 'includes', message: 'IE10 没有 includes()，用 indexOf() !== -1' },
-  { property: 'startsWith', message: 'IE10 没有 startsWith()，用 indexOf() === 0' },
-  { property: 'endsWith', message: 'IE10 没有 endsWith()，用 indexOf 自己算' },
-  { property: 'padStart', message: 'IE10 没有 padStart()' },
-  { property: 'padEnd', message: 'IE10 没有 padEnd()' },
-  { property: 'trimStart', message: 'IE10 没有 trimStart()，用正则' },
-  { property: 'trimEnd', message: 'IE10 没有 trimEnd()，用正则' },
-  { property: 'entries', message: 'IE10 没有 entries()' },
-  { property: 'findIndex', message: 'IE10 没有 Array.prototype.findIndex()，用循环' },
-  { property: 'find', message: 'IE10 没有 Array.prototype.find()，用循环' },
-]
 
 /** 降级后会在产物里引入 IE10 没有的运行时依赖的语法 */
 const ie10UnsafeSyntax = [
@@ -203,9 +145,22 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.browser },
     },
+    plugins: { compat },
+    // 目标浏览器写在这里，跟 Prettier 选项一个道理：配置只有一处，
+    // 不再另开 .browserslistrc —— 两个源头改一处漏一处。
+    settings: { browsers: ['ie 10'] },
     rules: {
-      'no-restricted-globals': ['error', ...ie10MissingGlobals],
-      'no-restricted-properties': ['error', ...ie10MissingMethods, ...ie10MissingInstanceMethods],
+      // 「IE10 有没有这个 API」交给 MDN 的 compat 数据答，不手写清单。
+      // 数据会跟着浏览器 / 标准更新，手写清单只会越来越漏 —— 见 README。
+      'compat/compat': 'error',
+      // compat 数据里 globalThis 缺 IE 条目（它出现在 es2020，MDN 没标 IE 支持情况），
+      // 这一条得手写补上。
+      'no-restricted-globals': [
+        'error',
+        { name: 'globalThis', message: 'IE10 没有 globalThis，用 window' },
+      ],
+      // 降级后才引入运行时依赖的语法。这件事没有任何数据源记录
+      // （它取决于 SWC 怎么降，不是 API 支不支持），只能手写。
       'no-restricted-syntax': ['error', ...ie10UnsafeSyntax],
     },
   },

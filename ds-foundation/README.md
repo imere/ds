@@ -345,8 +345,12 @@ pnpm run examples:standalone   # 生成自包含单文件示例（见下）
 
 **第一类：IE10 没有的运行时 API。** SWC 只转语法不注入 polyfill，
 写一个 `Object.assign` 或 `Set` 就原样进产物、在 IE10 上直接 ReferenceError，
-而 `tests/es5.test.ts` 扫语法是扫不出来的。`no-restricted-globals` 拦 `Set`/`Map`/`Promise`/`Symbol`，
-`no-restricted-properties` 拦 `Object.assign` / `Array.from` / `.includes()` 等。
+而 `tests/es5.test.ts` 用 acorn 验语法是验不出来的 —— 那些调用在语法上完全合法。
+
+这一层交给 **eslint-plugin-compat**（目标浏览器 `ie 10`）判定：
+它查的是 MDN 的 browser-compat-data，**数据是活的**，每年进标准的新 API 自动被覆盖。
+早先这里是手写的 31 条清单（`Set` / `Map` / `Promise` / `Object.assign` / `.includes()` …），
+实测下来守不住 — 见下一节。
 
 **第二类：降级后反而引入运行时依赖的语法。** 这三条是实测出来的，不是猜的：
 
@@ -365,6 +369,34 @@ getter/setter、计算属性名、标签模板、`catch {}`（→ `catch (unused
 > 全仓库唯一刻意保留 `var` 的地方是 `ssr.ts` 里那段防闪烁脚本 ——
 > 它是**字符串**，SWC 不转译字符串内容，而它要内联进 HTML 直接在 IE10 上跑，只能手写 ES5。
 > 源码里已经没有 `var` 了。
+
+#### 为什么 IE10 API 清单不能手写
+
+曾经这里手写着 31 条 API 禁令。它看起来能站得住 —— 「IE10 早就冻结了，不会再改」，
+于是结论是「清单写全一次就行」。这个推理混淆了两个集合：
+
+- 封闭的：**IE10 支持哪些 API**（确实冻结了）
+- 增长的：**开发者可能写出哪些 IE10 不支持的 API**（ES 每年进标准的新 API，IE10 一律不支持）
+
+要防的是后者。两批探针实测（每批每行一类 IE10 违规）：
+
+| 探针                     | 手写 31 条 | TS `lib: ES5` | compat（MDN 数据） | acorn |
+| ------------------------ | ---------- | ------------- | ------------------ | ----- |
+| 清单**内**的老 API（30 条） | **30 / 30** | 9 / 30        | 29 / 30            | 0 / 30 |
+| 清单**外**的新 API（14 条） | **3 / 14**  | 10 / 14       | **13 / 14**        | 0 / 14 |
+
+手写清单只认识它被写下时的那批，第二批基本全漏 —— `structuredClone` /
+`AbortController` / `queueMicrotask` / `Array.flat()` / `String.replaceAll()` 一路绿灯。
+
+TS 的 `lib: ES5` 对新 API 反倒覆盖不错，漏的四条全是 `lib.dom.d.ts` 带进来的 Web API；
+这个洞补不上，因为 `packages/dom` 必须用 DOM lib。
+
+**判断标准**：要看的那个集合会不会继续增长。会增长就别手写清单，换能自动跟进的答案
+（语法用解析器、API 兼容性用 compat 数据）；真正封闭的才轮到手写。
+
+剩下仍然手写的只有两样，共 4 条：
+`globalThis`（MDN 数据缺 IE 条目）和三条降级后才引入运行时依赖的语法
+（那取决于 SWC 怎么降级，没有任何数据源会记录这件事）。
 
 > **TS 版本锁在 6.0.3，别升 7**。typescript-eslint 8 的 peer 是 `>=4.8.4 <6.1.0`，
 > 而 TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
