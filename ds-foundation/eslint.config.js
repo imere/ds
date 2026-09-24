@@ -153,8 +153,8 @@ export default tseslint.config(
       // 「IE10 有没有这个 API」交给 MDN 的 compat 数据答，不手写清单。
       // 数据会跟着浏览器 / 标准更新，手写清单只会越来越漏 —— 见 README。
       'compat/compat': 'error',
-      // compat 数据里 globalThis 缺 IE 条目（它出现在 es2020，MDN 没标 IE 支持情况），
-      // 这一条得手写补上。
+      // BCD 里 globalThis 的 IE 条目是「不支持」，但 compat 插件的 ast-metadata-inferer
+      // 不认识这个标识符（插件与 inferer 源码里都没有它），查不到 —— 这一条得手写补上。
       'no-restricted-globals': [
         'error',
         { name: 'globalThis', message: 'IE10 没有 globalThis，用 window' },

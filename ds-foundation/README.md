@@ -395,8 +395,12 @@ TS 的 `lib: ES5` 对新 API 反倒覆盖不错，漏的四条全是 `lib.dom.d.
 （语法用解析器、API 兼容性用 compat 数据）；真正封闭的才轮到手写。
 
 剩下仍然手写的只有两样，共 4 条：
-`globalThis`（MDN 数据缺 IE 条目）和三条降级后才引入运行时依赖的语法
-（那取决于 SWC 怎么降级，没有任何数据源会记录这件事）。
+
+- `globalThis` —— 数据其实有（BCD 里 IE 标为不支持），是 `eslint-plugin-compat` 的
+  `ast-metadata-inferer` 压根不认识这个标识符，插件与 inferer 源码里都没有 `globalThis`
+  这根映射，于是永远查不到。属于工具盲区，不是数据缺口。
+- 三条降级后才引入运行时依赖的语法（`for-of` / `yield` / `await`）——
+  那取决于 SWC 怎么降级，没有任何数据源会记录这件事。
 
 > **TS 版本锁在 6.0.3，别升 7**。typescript-eslint 8 的 peer 是 `>=4.8.4 <6.1.0`，
 > 而 TS 7 是 Go 原生版，npm 包里只有 `getExePath.js` / `tsc.js`，**不提供 JS 编译器 API**，
