@@ -106,6 +106,15 @@ export default tseslint.config(
     ],
   },
 
+  // Node 脚本（构建期生成器等）：跑在 Node 上，给它一套 Node 的全局变量。
+  // 注意它不在 ignores 里 —— 是我们自己的代码，该守的规则一样要守。
+  {
+    files: ['examples/**/*.mjs', 'scripts/**/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+
   js.configs.recommended,
   // strict（不含类型感知那一层）：比 recommended 严，比如 no-explicit-any 直接 error
   ...tseslint.configs.strict,
