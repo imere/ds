@@ -16,7 +16,8 @@ import Vue from 'vue'
 import { computed, onMounted, onUnmounted } from 'vue'
 // 断点数值来自 @ds/core —— 组件、CSS 工具类、这里共用同一份定义。
 // 具体怎么把它接进框架的响应式系统是绑定层的事：Vue 就该写成 composable。
-import { defaultBreakpoints as breakpoints, breakpointOrder, currentBreakpoint } from '@ds/core'
+import { breakpointOrder, currentBreakpoint } from '@ds/core'
+import { defaultBreakpoints as breakpoints } from '@ds/tokens'
 
 export const bpState = Vue.observable({
   width: typeof window === 'undefined' ? 1280 : window.innerWidth,
@@ -61,8 +62,8 @@ export function useBreakpoint() {
 
   const width = computed(() => bpState.width)
   const height = computed(() => bpState.height)
-  const name = computed(() => currentBreakpoint(bpState.width))
-  const index = computed(() => breakpointOrder().indexOf(name.value))
+  const name = computed(() => currentBreakpoint(bpState.width, breakpoints))
+  const index = computed(() => breakpointOrder(breakpoints).indexOf(name.value))
 
   const up = (key) => computed(() => bpState.width >= breakpoints[key])
   const down = (key) => computed(() => bpState.width < breakpoints[key])
@@ -107,7 +108,7 @@ export const breakpointMixin = {
       return {
         width: bpState.width,
         height: bpState.height,
-        name: currentBreakpoint(bpState.width),
+        name: currentBreakpoint(bpState.width, breakpoints),
         isXs: bpState.width < breakpoints.sm,
         isMobile: bpState.width < breakpoints.md,
         isTablet: bpState.width >= breakpoints.md && bpState.width < breakpoints.lg,

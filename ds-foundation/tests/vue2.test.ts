@@ -16,6 +16,7 @@ import Vue from 'vue'
 import type { CreateElement } from 'vue'
 import plugin, { install, DS_KEY, useDs } from '@ds/vue2'
 import type { DsState } from '@ds/vue2'
+import { baseOpts } from './fixtures'
 
 // $ds 是插件挂到原型上的，Vue 2 自带类型里没有。
 // 与其到处写 `vm.$ds`，不如用模块增强补一次类型，测试里就能直接点出来。
@@ -43,7 +44,7 @@ console.warn = (...args: unknown[]) => {
   warns.push(args.join(' '))
 }
 
-Vue.use(plugin, { channel: 'vars', theme: 'light' })
+Vue.use(plugin, { ...baseOpts, channel: 'vars', theme: 'light', accent: 'indigo' })
 
 afterAll(() => {
   console.warn = origWarn
@@ -122,7 +123,7 @@ describe('0. 插件安装', () => {
 
   it('重复 use 同一个 Vue 不会重建句柄', () => {
     const before = Vue.prototype.$ds
-    Vue.use(plugin, { channel: 'vars' })
+    Vue.use(plugin, { ...baseOpts, channel: 'vars' })
     expect(Vue.prototype.$ds).toBe(before)
   })
 })

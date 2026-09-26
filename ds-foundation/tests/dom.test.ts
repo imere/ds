@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createThemeManager, pickChannel, supportsCssVars, resetEnvCache } from '@ds/dom'
+import { baseOpts, themes } from './fixtures'
 
 function text(id: string): string {
   const el = document.getElementById(id)
@@ -27,35 +28,35 @@ beforeEach(() => {
 
 describe('A. 现代通道（vars）', () => {
   it('通道判定为 vars', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(m.channel).toBe('vars')
     m.destroy()
   })
 
   it('写入 #ds-tokens', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(document.getElementById('ds-tokens')).toBeTruthy()
     m.destroy()
   })
 
   it('变量块挂在 :root 上', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-tokens').indexOf(':root{--ds-color-bg:#ffffff;')).toBe(0)
     m.destroy()
   })
 
   it('primitive class 已注入', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-class-primitive')).toContain('.ds-p-4{padding:16px;}')
     m.destroy()
   })
 
   it('semantic class 用 var()', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(text('ds-class-semantic')).toContain(
       '.ds-bg-subtle{background-color:var(--ds-color-bg-subtle);}'
@@ -64,21 +65,21 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('html 上打了主题属性', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(document.documentElement.getAttribute('data-ds-theme')).toBe('light')
     m.destroy()
   })
 
   it('style() 返回 var 引用', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     expect(m.style({ color: 'color-fg' }).color).toBe('var(--ds-color-fg)')
     m.destroy()
   })
 
   it('换主题触发订阅', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     let hits = 0
     m.subscribe(() => {
@@ -90,7 +91,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('变量块随主题更新', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(text('ds-tokens')).toContain('--ds-color-bg:#0b1220;')
@@ -98,7 +99,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('semantic class 没被重写（仍是一份 var）', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(text('ds-class-semantic')).toContain('var(--ds-color-bg-subtle)')
@@ -108,7 +109,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('html 属性同步', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     expect(document.documentElement.getAttribute('data-ds-mode')).toBe('dark')
@@ -116,7 +117,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('toggle 切回浅色', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     m.use('dark')
     m.toggle()
@@ -125,7 +126,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('semantic 在 vars 通道下不随强调色重写', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     const before = text('ds-class-semantic')
     m.useAccent('orange')
@@ -134,7 +135,7 @@ describe('A. 现代通道（vars）', () => {
   })
 
   it('强调色反映到令牌', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     m.init()
     m.useAccent('orange')
     expect(m.tokens()['color-brand']).toBe('#ea580c')
@@ -152,24 +153,24 @@ describe('B. IE10 通道（static）', () => {
   } as const
 
   it('通道判定为 static', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     expect(m.channel).toBe('static')
     m.destroy()
   })
 
   it('不写无意义的变量块', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     expect(!document.getElementById('x-tokens') || text('x-tokens') === '').toBe(true)
     m.destroy()
   })
 
   it('primitive 与 vars 通道完全一致', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     // primitive 与主题无关，两条通道产物必须逐字节相同
-    const ref = createThemeManager({ channel: 'vars', theme: 'light' })
+    const ref = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light' })
     ref.init()
     expect(text('x-primitive')).toBe(text('ds-class-primitive'))
     ref.destroy()
@@ -177,28 +178,28 @@ describe('B. IE10 通道（static）', () => {
   })
 
   it('semantic 已换成实值', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     expect(text('x-semantic')).not.toContain('var(')
     m.destroy()
   })
 
   it('semantic 拿到真实色值', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     expect(text('x-semantic')).toContain('.ds-bg-subtle{background-color:#f8fafc;}')
     m.destroy()
   })
 
   it('style() 返回实值而非 var', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     expect(m.style({ color: 'color-fg' }).color).toBe('#0f172a')
     m.destroy()
   })
 
   it('换主题后整段重写', () => {
-    const m = createThemeManager(legacyOpts)
+    const m = createThemeManager({ ...baseOpts, ...legacyOpts })
     m.init()
     m.use('dark')
     expect(text('x-semantic')).toContain('#111a2b')
@@ -231,7 +232,7 @@ describe('C. 通道判定', () => {
 
 describe('E. 批量覆盖令牌', () => {
   const make = () =>
-    createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light', withClasses: false }).init()
 
   it('overrideMap 一次改多个令牌', () => {
     const m = make()
@@ -340,14 +341,24 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
   it('init 时就跟随：系统偏好深色则进 dark', () => {
     sys = fakeSystem(true)
-    const m = createThemeManager({ channel: 'vars', followSystem: true, withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      followSystem: true,
+      withClasses: false,
+    }).init()
     expect(m.state().theme).toBe('dark')
     m.destroy()
   })
 
   it('手动切过主题之后不再自动跟随', () => {
     sys = fakeSystem(false)
-    const m = createThemeManager({ channel: 'vars', followSystem: true, withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      followSystem: true,
+      withClasses: false,
+    }).init()
     expect(m.state().theme).toBe('light')
     m.use('dark')
     sys.setMatches(true)
@@ -360,7 +371,12 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
   it('运行时打开 followSystem 会清掉手动标记并立刻切一次', () => {
     sys = fakeSystem(false)
-    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      theme: 'light',
+      withClasses: false,
+    }).init()
     expect(m.state().theme).toBe('light')
 
     sys.setMatches(true)
@@ -374,7 +390,12 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
   it('关掉 followSystem 后系统再变也不动', () => {
     sys = fakeSystem(false)
-    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      theme: 'light',
+      withClasses: false,
+    }).init()
     m.followSystem(true)
     expect(m.state().theme).toBe('light')
 
@@ -387,7 +408,12 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
   it('开着的时候系统偏好一变就跟着换', () => {
     sys = fakeSystem(false)
-    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      theme: 'light',
+      withClasses: false,
+    }).init()
     m.followSystem(true)
     sys.setMatches(true)
     expect(m.state().theme).toBe('dark')
@@ -398,16 +424,35 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
   it('destroy 会摘掉系统监听', () => {
     sys = fakeSystem(true)
-    const m = createThemeManager({ channel: 'vars', theme: 'light', withClasses: false }).init()
+    const m = createThemeManager({
+      ...baseOpts,
+      channel: 'vars',
+      theme: 'light',
+      withClasses: false,
+    }).init()
     m.followSystem(true)
     expect(sys.listenerCount()).toBe(1)
     m.destroy()
     expect(sys.listenerCount()).toBe(0)
   })
 
+  it('系统偏好深色但没注册同名主题时保持不动', () => {
+    sys = fakeSystem(true)
+    const m = createThemeManager({
+      ...baseOpts,
+      themes: { light: themes.light },
+      channel: 'vars',
+      followSystem: true,
+      withClasses: false,
+    }).init()
+    expect(m.state().theme).toBe('light')
+    m.destroy()
+  })
+
   it('没有 matchMedia 的老浏览器（IE9）打开开关也不抛错', () => {
     resetEnvCache() // 确保读到「不支持」
     const m = createThemeManager({
+      ...baseOpts,
       channel: 'vars',
       theme: 'light',
       followSystem: true,
@@ -424,7 +469,7 @@ describe('E. 跟随系统明暗（运行时开关）', () => {
 
 describe('F. 自定义前缀落地到 DOM', () => {
   it('style id 与 DOM 属性全部跟着换', () => {
-    const m = createThemeManager({ channel: 'vars', theme: 'light', prefix: 'acme' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light', prefix: 'acme' })
     m.init()
     expect(document.getElementById('acme-tokens')).toBeTruthy()
     expect(document.getElementById('acme-class-primitive')).toBeTruthy()

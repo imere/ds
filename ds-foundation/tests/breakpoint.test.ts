@@ -6,44 +6,38 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  defaultBreakpoints,
-  breakpointOrder,
-  currentBreakpoint,
-  up,
-  down,
-  between,
-  mediaOf,
-} from '@ds/core'
+import { breakpointOrder, currentBreakpoint, up, down, between, mediaOf } from '@ds/core'
+import { defaultBreakpoints } from '@ds/tokens'
+import { bp } from './fixtures'
 
 describe('断点：默认表', () => {
   it('分档边界落在各自区间内', () => {
-    expect(currentBreakpoint(0)).toBe('xs')
-    expect(currentBreakpoint(639)).toBe('xs')
-    expect(currentBreakpoint(640)).toBe('sm')
-    expect(currentBreakpoint(767)).toBe('sm')
-    expect(currentBreakpoint(768)).toBe('md')
-    expect(currentBreakpoint(1024)).toBe('lg')
-    expect(currentBreakpoint(1280)).toBe('xl')
-    expect(currentBreakpoint(1536)).toBe('xxl')
-    expect(currentBreakpoint(9999)).toBe('xxl')
+    expect(currentBreakpoint(0, bp)).toBe('xs')
+    expect(currentBreakpoint(639, bp)).toBe('xs')
+    expect(currentBreakpoint(640, bp)).toBe('sm')
+    expect(currentBreakpoint(767, bp)).toBe('sm')
+    expect(currentBreakpoint(768, bp)).toBe('md')
+    expect(currentBreakpoint(1024, bp)).toBe('lg')
+    expect(currentBreakpoint(1280, bp)).toBe('xl')
+    expect(currentBreakpoint(1536, bp)).toBe('xxl')
+    expect(currentBreakpoint(9999, bp)).toBe('xxl')
   })
 
   it('顺序按宽度升序 —— down() 依赖这个顺序往前推一像素', () => {
-    expect(breakpointOrder()).toEqual(['xs', 'sm', 'md', 'lg', 'xl', 'xxl'])
+    expect(breakpointOrder(bp)).toEqual(['xs', 'sm', 'md', 'lg', 'xl', 'xxl'])
   })
 
   it('up / down 相邻两档互不重叠', () => {
-    expect(up('md')).toBe('(min-width: 768px)')
-    expect(down('md')).toBe('(max-width: 767px)')
+    expect(up('md', bp)).toBe('(min-width: 768px)')
+    expect(down('md', bp)).toBe('(max-width: 767px)')
   })
 
   it('between 是左闭右开区间', () => {
-    expect(between('md', 'lg')).toBe('(min-width: 768px) and (max-width: 1023px)')
+    expect(between('md', 'lg', bp)).toBe('(min-width: 768px) and (max-width: 1023px)')
   })
 
   it('mediaOf 一次给出全部 @media 串', () => {
-    const media = mediaOf()
+    const media = mediaOf(bp)
     expect(media.sm).toBe('@media (min-width: 640px)')
     expect(Object.keys(media).length).toBe(Object.keys(defaultBreakpoints).length)
   })
@@ -83,12 +77,12 @@ describe('断点：空表', () => {
 
 describe('断点：非法输入', () => {
   it('未知断点名抛错，而不是拼出 NaNpx 的媒体查询', () => {
-    expect(() => up('nope')).toThrow(/未知断点/)
-    expect(() => down('nope')).toThrow(/未知断点/)
-    expect(() => between('sm', 'nope')).toThrow(/未知断点/)
+    expect(() => up('nope', bp)).toThrow(/未知断点/)
+    expect(() => down('nope', bp)).toThrow(/未知断点/)
+    expect(() => between('sm', 'nope', bp)).toThrow(/未知断点/)
   })
 
   it('错误信息里带上可用档位，方便改 typo', () => {
-    expect(() => up('mdium')).toThrow(/xs \/ sm \/ md \/ lg \/ xl \/ xxl/)
+    expect(() => up('mdium', bp)).toThrow(/xs \/ sm \/ md \/ lg \/ xl \/ xxl/)
   })
 })

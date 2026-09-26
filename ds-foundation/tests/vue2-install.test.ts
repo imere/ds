@@ -13,13 +13,14 @@ import type { VueConstructor } from 'vue'
 import { install, useDs, DS_KEY } from '@ds/vue2'
 import { createThemeManager } from '@ds/dom'
 import type { ThemeManager } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 describe('install：传入已建好的 manager', () => {
   // Vue.extend 出来的子类构造器：install 只改它自己的 options，不污染全局 Vue
   const Sub = Vue.extend({}) as VueConstructor
 
   it('复用传入的 manager，不另起一个', () => {
-    const manager: ThemeManager = createThemeManager({ channel: 'vars' })
+    const manager: ThemeManager = createThemeManager({ ...baseOpts, channel: 'vars' })
     install(Sub, { manager })
     expect(Sub.ds.manager).toBe(manager)
   })
@@ -43,9 +44,15 @@ describe('install：不带任何选项', () => {
   const Sub2 = Vue.extend({}) as VueConstructor
 
   it('自己建 manager 并 init', () => {
-    install(Sub2)
+    install(Sub2, { ...baseOpts })
     expect(Sub2.ds.state.theme).toBe('light')
     expect(document.getElementById('ds-tokens')).not.toBeNull()
     Sub2.ds.manager.destroy()
+  })
+
+  it('连 options 都不给时由底层抛错：插件层同样不自带主题', () => {
+    const Sub3 = Vue.extend({}) as VueConstructor
+    // 具体是缺 themes 还是缺尺度取决于底层先查哪一项，这里只断言「不静默装上去」
+    expect(() => install(Sub3)).toThrow(/\[ds\/dom\]/)
   })
 })

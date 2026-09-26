@@ -22,13 +22,20 @@ import {
   createRegistry,
   flattenTokens,
   luminance,
-  lightTheme,
-  darkTheme,
+  mergeTree,
 } from '@ds/core'
+import type { TokenTree } from '@ds/core'
+import { darkTheme, lightTheme } from '@ds/tokens'
+import { seed } from './fixtures'
 
-/** 跑完管道再拍平，断言一律对着扁平键写 */
-function flat(seed?: Record<string, unknown> | null, algorithm?: unknown): Record<string, string> {
-  return flattenTokens(deriveTokens(seed, algorithm as never))
+/**
+ * 跑完管道再拍平，断言一律对着扁平键写。
+ * patch 是「在完整种子上改哪几项」—— 派生链不接受残缺种子，
+ * 所以这里总是先拿官方 seed 垫底，再合并调用方要覆盖的部分。
+ */
+function flat(patch?: Record<string, unknown> | null, algorithm?: unknown): Record<string, string> {
+  const base: TokenTree = patch ? mergeTree(seed, patch as TokenTree) : seed
+  return flattenTokens(deriveTokens(base, algorithm as never))
 }
 
 function px(value: string): number {
@@ -36,13 +43,13 @@ function px(value: string): number {
 }
 
 describe('1. defaultAlgorithm：稀疏种子补全成完整 map', () => {
-  it('只给一个 brand 也能补全出全套令牌', () => {
+  it('在完整种子上覆盖 brand，其余照旧补全', () => {
     const out = flat({ color: { brand: '#ff0000' } })
     expect(out['color-brand']).toBe('#ff0000')
     expect(Object.keys(out).length).toBeGreaterThan(30)
   })
 
-  it('没给 seed 时走 DEFAULT_SEED 的默认品牌色', () => {
+  it('不给 patch 时就是官方 defaultSeed 那一套', () => {
     const out = flat(null)
     expect(out['color-brand']).toBe('#4f46e5')
     expect(out['radius-md']).toBe('4px')
@@ -157,9 +164,17 @@ describe('4. 管道组合', () => {
     expect(Object.keys(out).length).toBeGreaterThan(30)
   })
 
-  it('不传 seed 也不会抛，得到一份默认 map', () => {
-    expect(() => deriveTokens()).not.toThrow()
-    expect(Object.keys(flat()).length).toBeGreaterThan(30)
+  it('seed 缺项直接抛错，不拿库里的颜色补齐', () => {
+    expect(() => deriveTokens({} as never)).toThrow(/种子缺/)
+  })
+
+  it('主色解析不了时不抛错：派生值退回种子值，绝不写 null', () => {
+    const bad = mergeTree(seed, { color: { brand: 'not-a-color' } } as TokenTree)
+    expect(() => deriveTokens(bad)).not.toThrow()
+    const out = flattenTokens(deriveTokens(bad))
+    expect(out['color-brand']).toBe('not-a-color')
+    expect(out['color-brand-hover']).toBe('not-a-color')
+    expect(out['color-brand-subtle']).toBe('not-a-color')
   })
 })
 
@@ -168,7 +183,7 @@ describe('5. createTheme 接上 seed / algorithm', () => {
     const registry = createRegistry()
     registry.theme('brand', {
       label: '品牌',
-      seed: { color: { brand: '#ff0000' } },
+      seed: mergeTree(seed, { color: { brand: '#ff0000' } } as TokenTree),
       algorithm: [defaultAlgorithm, darkAlgorithm],
     })
     registry.use('brand')
@@ -180,7 +195,7 @@ describe('5. createTheme 接上 seed / algorithm', () => {
   it('seed + tokens 一起给时，手写的优先（对齐 antd 的 theme.token > map token）', () => {
     const registry = createRegistry()
     registry.theme('mixed', {
-      seed: { color: { brand: '#ff0000' } },
+      seed: mergeTree(seed, { color: { brand: '#ff0000' } } as TokenTree),
       tokens: { color: { brand: '#00ff00' } },
     })
     registry.use('mixed')
@@ -192,7 +207,10 @@ describe('5. createTheme 接上 seed / algorithm', () => {
   })
 
   it('只给 seed 时 mode 仍然生效（dark 的阴影基色翻成黑）', () => {
-    const dark = createTheme({ mode: 'dark', seed: { color: { brand: '#4f46e5' } } })
+    const dark = createTheme({
+      mode: 'dark',
+      seed: mergeTree(seed, { color: { brand: '#4f46e5' } } as TokenTree),
+    })
     expect(dark.mode).toBe('dark')
     expect(dark.shadowColor).toBe('0 0 0')
   })
@@ -203,37 +221,31 @@ describe('7. 解析不了的入参：宁可退回种子值，也不把令牌写�
    * 派生链上 mix / toRgba / parseColor 都可能因为色值写法不认识而返回 null。
    * 令牌值不允许是 null —— 写进去就是一个空变量，页面上表现为颜色消失。
    */
-  it('色值解析不了时退回种子值', () => {
-    const out = flat({ color: { brand: 'nope', bg: 'nope', fg: 'nope' } })
-    expect(out['color-brand']).toBe('nope')
-    expect(out['color-bg']).toBe('nope')
-    expect(out['color-bg-subtle']).toBe('nope')
-    expect(out['color-bg-overlay']).toBe('nope')
-    expect(out['color-brand-subtle']).toBe('nope')
-    expect(out['color-brand-border']).toBe('nope')
-    expect(out['color-ring']).toBe('nope')
+  it('非关键色解析不了时退回种子值 —— 关键色会被直接拒绝，见 4', () => {
+    const out = flat({ color: { success: 'nope' } })
+    expect(out['color-success']).toBe('nope')
+    expect(out['color-success-subtle']).toBe('nope')
   })
 
-  it('阴影基色解析不了时退回内置通道值', () => {
-    const out = flat({ color: { brand: 'nope' } })
+  it('阴影基色解析不了时退回前景色通道', () => {
+    const out = flat({ color: { shadow: 'nope' } })
     expect(out['shadow-sm']).toContain('rgba(15, 23, 42')
     expect(out['shadow-focus']).toContain('rgba(79, 70, 229')
   })
 
-  it('阴影种子填空串时走内置通道值（逗号语法）', () => {
+  it('阴影种子填空串时走前景色通道（逗号语法）', () => {
     const out = flat({ color: { shadow: '' } })
     expect(out['shadow-sm']).toContain('rgba(15, 23, 42')
   })
 
   it('数字也能当种子值（String 一遍再用）', () => {
-    const out = flat({ color: { bg: 0 }, radius: { md: 8 } })
-    expect(out['color-bg']).toBe('0')
-    expect(out['radius-md']).toBe('8px')
+    expect(flat({ color: { success: 0 } })['color-success']).toBe('0')
+    expect(flat({ radius: { md: 8 } })['radius-md']).toBe('8px')
   })
 
   it('带单位 / 无单位的字符串都能读成数字', () => {
     expect(flat({ radius: { md: '10px' } })['radius-md']).toBe('10px')
-    expect(flat({ radius: { md: 'big' } })['radius-md']).toBe('4px') // 读不出来就走默认
+    expect(flat({ radius: { md: 'big' } })['radius-md']).toBe('0px') // 读不出来就是 0
   })
 })
 
@@ -253,18 +265,15 @@ describe('8. 品牌色明暗决定其上的文字色', () => {
 
 describe('9. 管道的防御', () => {
   it('算法返回非对象时保留上一步的结果', () => {
-    const out = deriveTokens({ color: { brand: '#123456' } }, [
+    const out = deriveTokens(mergeTree(seed, { color: { brand: '#123456' } } as TokenTree), [
       () => 'nope' as never,
       defaultAlgorithm,
     ])
     expect(flattenTokens(out)['color-brand']).toBe('#123456')
   })
 
-  it('暗色算法下阴影基色解析不了也用内置值', () => {
-    const out = flat({ color: { brand: 'nope', bg: '#ffffff', fg: '#000000' } }, [
-      defaultAlgorithm,
-      darkAlgorithm,
-    ])
+  it('暗色算法下阴影基色解析不了也退回前景色', () => {
+    const out = flat({ color: { shadow: 'nope' } }, [defaultAlgorithm, darkAlgorithm])
     expect(out['shadow-focus']).toContain('rgba(79, 70, 229')
   })
 })

@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { createThemeManager, pickChannel } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 describe('没有 document 时', () => {
   it('通道落到 static（无 CSS 变量可言）', () => {
@@ -15,11 +16,11 @@ describe('没有 document 时', () => {
   })
 
   it('建 manager 不抛', () => {
-    expect(() => createThemeManager()).not.toThrow()
+    expect(() => createThemeManager({ ...baseOpts })).not.toThrow()
   })
 
   it('init / apply / use / toggle / override 都不抛', () => {
-    const m = createThemeManager()
+    const m = createThemeManager({ ...baseOpts })
     expect(() => {
       m.init()
       m.apply()
@@ -34,7 +35,7 @@ describe('没有 document 时', () => {
   })
 
   it('令牌照样能读、样式照样能导出', () => {
-    const m = createThemeManager()
+    const m = createThemeManager({ ...baseOpts })
     expect(m.get('color-bg')).toBe('#ffffff')
     expect(Object.keys(m.tokens()).length).toBeGreaterThan(30)
     const out = m.cssText({ theme: 'dark' })
@@ -42,7 +43,7 @@ describe('没有 document 时', () => {
   })
 
   it('vars 通道下没有可写的元素时静默跳过（局部作用域传不进来）', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     expect(() => {
       m.init()
       m.use('dark')
@@ -51,7 +52,7 @@ describe('没有 document 时', () => {
   })
 
   it('destroy 不抛', () => {
-    const m = createThemeManager()
+    const m = createThemeManager({ ...baseOpts })
     m.init()
     expect(() => m.destroy()).not.toThrow()
   })

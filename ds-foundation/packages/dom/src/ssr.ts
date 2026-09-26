@@ -39,10 +39,20 @@ export interface InitScriptOptions {
 }
 
 /**
- * 返回可直接内联到 <head> 的脚本字符串
+ * 返回可直接内联到 <head> 的防闪烁脚本。
+ * 脚本必须是同步的：等 JS chunk 下载完再决定明暗，用户就会先看到一帧白底（FOUC）。
+ * 它默认只读 options.theme，不碰存储 —— 存储介质是调用方的决定，
+ * 想读回上次的主题就把 storage.ts 的 restoreScript() 结果塞进 options.restore。
  * @param {object} [options]
  * @param {string|object} [options.prefix] 与 createThemeManager 传同一个值即可
  * @param {string} [options.restore]  可选还原片段，见 InitScriptOptions.restore
+ * @returns {string} 含 <script> 标签的 HTML 片段，原样插进 <head> 即可
+ * @example
+ *   // 只认服务端已知的主题
+ *   res.write(getInitScript({ theme: 'dark', prefix: 'acme' }))
+ *
+ *   // 想连上次的主题一起还原
+ *   res.write(getInitScript({ theme: 'light', restore: restoreScript() }))
  */
 export function getInitScript(options?: InitScriptOptions): string {
   const o = options || {}
@@ -69,7 +79,15 @@ export function getInitScript(options?: InitScriptOptions): string {
   )
 }
 
-/** 与 getInitScript 配套：把 SSR 阶段算好的 CSS 也内联进去，首屏就是最终配色 */
+/**
+ * 与 getInitScript 配套：把 SSR 阶段算好的 CSS 一起内联进去。
+ * 脚本负责把标记打到 <html> 上，CSS 负责让首屏直接是最终配色 —— 少了后者，
+ * 属性已经对了但样式还没下载完，看到的依然是一帧无样式内容。
+ * cssText 为空时只返回脚本：没有可用 CSS 就不塞空 <style>，免得污染 DOM。
+ * @param {string} cssText 服务端算好的 CSS 文本（通常是 ds.cssText().all）
+ * @param {object} [options] 与 getInitScript 同一份入参，两个函数要保持前缀一致
+ * @returns {string} 脚本 + <style> 拼成的 HTML 片段
+ */
 export function renderHead(cssText: string, options?: InitScriptOptions): string {
   const o = options || {}
   const id = o.styleId || prefixOf(o.prefix).ids.ssr

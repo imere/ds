@@ -104,10 +104,11 @@ import DsBadge from '@/components/DsBadge.vue'
 import DsAvatar from '@/components/DsAvatar.vue'
 import DsTabs from '@/components/DsTabs.vue'
 import { metrics, activities } from '@/api/mock/data'
-import { breakpointOrder, defaultBreakpoints as breakpoints } from '@ds/core'
+import { breakpointOrder } from '@ds/core'
+import { defaultBreakpoints as breakpoints } from '@ds/tokens'
 import { breakpointLabels } from '@/utils/breakpointLabels'
 
-const bpOrder = breakpointOrder()
+const bpOrder = breakpointOrder(breakpoints)
 
 export default {
   name: 'GettingStarted',

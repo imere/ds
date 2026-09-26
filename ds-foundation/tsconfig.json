@@ -13,6 +13,7 @@
     "noUnusedLocals": false,
     "paths": {
       "@ds/core": ["./packages/core/src/index.ts"],
+      "@ds/tokens": ["./packages/tokens/src/index.ts"],
       "@ds/dom": ["./packages/dom/src/index.ts"],
       "@ds/vue2": ["./packages/vue2/src/index.ts"]
     }

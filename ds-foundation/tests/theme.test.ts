@@ -8,8 +8,9 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { createRegistry, createTheme, resolveTokens, lightTheme, darkTheme } from '@ds/core'
+import { createRegistry, createTheme, resolveTokens } from '@ds/core'
 import type { ThemeDef, AccentDef } from '@ds/core'
+import { darkTheme, lightTheme } from '@ds/tokens'
 
 function def(tokens: Record<string, unknown>): ThemeDef {
   return { label: 't', mode: 'light', tokens }

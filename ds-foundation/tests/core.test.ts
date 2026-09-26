@@ -17,12 +17,11 @@ import {
   prefixOf,
   cssVarName,
   contrast,
-  lightTheme,
-  darkTheme,
-  accents,
 } from '@ds/core'
 import type { ThemeDef } from '@ds/core'
 import { splitCss, getInitScript, pickChannel, restoreScript } from '@ds/dom'
+import { accents, darkTheme, lightTheme } from '@ds/tokens'
+import { classOpts } from './fixtures'
 
 function makeRegistry() {
   const registry = createRegistry()
@@ -76,7 +75,7 @@ describe('2. var() 求值（IE10 通道的关键）', () => {
 
 describe('3. class 两层生成', () => {
   const flat = makeRegistry().resolve()
-  const sheet = buildClassSheet({ tokens: flat })
+  const sheet = buildClassSheet({ ...classOpts, tokens: flat })
 
   it('primitive 生成成功', () => {
     expect(sheet.primitive).toContain('.ds-p-4{')
@@ -99,12 +98,20 @@ describe('3. class 两层生成', () => {
   })
 
   it('静态通道已把 var() 换成实值', () => {
-    const s = buildClassSheet({ tokens: flat, resolve: resolveVars(flat, { prefix: 'ds' }) })
+    const s = buildClassSheet({
+      ...classOpts,
+      tokens: flat,
+      resolve: resolveVars(flat, { prefix: 'ds' }),
+    })
     expect(s.semantic).not.toContain('var(')
   })
 
   it('静态通道拿到真实色值', () => {
-    const s = buildClassSheet({ tokens: flat, resolve: resolveVars(flat, { prefix: 'ds' }) })
+    const s = buildClassSheet({
+      ...classOpts,
+      tokens: flat,
+      resolve: resolveVars(flat, { prefix: 'ds' }),
+    })
     expect(s.semantic).toContain('#0b1220')
   })
 })
@@ -223,7 +230,7 @@ describe('9. 自定义令牌前缀', () => {
   })
 
   const flat = makeRegistry().resolve()
-  const acmeSheet = buildClassSheet({ tokens: flat, prefix: 'acme' })
+  const acmeSheet = buildClassSheet({ ...classOpts, tokens: flat, prefix: 'acme' })
 
   it('primitive class 跟随前缀', () => {
     expect(acmeSheet.primitive).toContain('.acme-p-4{')

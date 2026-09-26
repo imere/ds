@@ -17,13 +17,14 @@ import { createThemeManager } from '@ds/dom'
 import type { ThemeManager } from '@ds/dom'
 import { normalizePrefix } from '@ds/core'
 import type { Dict } from '@ds/core'
+import { baseOpts } from './fixtures'
 
 /**
  * 必须 init 过：manager 只在 started 时才 paint / 通知订阅者，
  * 没 init 就改主题的话，state 不会同步（这是刻意的，避免挂载前就写 DOM）。
  */
 function realDs(): DsState {
-  const manager = createThemeManager({ channel: 'vars' })
+  const manager = createThemeManager({ ...baseOpts, channel: 'vars' })
   manager.init()
   return createDsState(Vue, manager)
 }
@@ -118,7 +119,7 @@ describe('createDsState：改主题后状态跟着变', () => {
 
 describe('createDsState：没有 Vue.observable 的老版本兜底', () => {
   it('借空实例承载响应式数据，状态照样同步', () => {
-    const manager = createThemeManager({ channel: 'vars' })
+    const manager = createThemeManager({ ...baseOpts, channel: 'vars' })
     manager.init()
     const ds = createDsState(fakeVue(), manager)
     expect(ds.state.theme).toBe('light')

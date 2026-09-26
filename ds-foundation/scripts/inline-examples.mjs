@@ -19,6 +19,15 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const targets = ['umd', 'vue2']
 
+/**
+ * 把 JS 源码里的 `</script` 转义成 `<\/script`。
+ *
+ * 在 JS 字符串里两者完全等价，但在 HTML 解析器眼里前者会闭合掉正在内联的 <script>，
+ * 后面的代码全变成页面文本。SSR 初始化脚本里就带着这个串，所以必须转。
+ *
+ * @param {string} code JS 源码
+ * @returns {string} 转义后的源码
+ */
 function escapeClosingTag(code) {
   return code.replace(/<\/script/gi, '<\\/script')
 }

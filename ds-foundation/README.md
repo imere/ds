@@ -2,16 +2,43 @@
 
 Design System 底层包：**token / class / theme**，最低支持 **IE10**（与 Element UI 2 同一基线）。
 
-三个包按"能不能碰 DOM / 要不要框架"切开，业务可以只用其中一层：
+四个包按「能不能碰 DOM / 要不要框架」切开，业务可以只用其中一层：
 
-| 包         | 职责                                     | 依赖                 | 产物                         |
-| ---------- | ---------------------------------------- | -------------------- | ---------------------------- |
-| `@ds/core` | 令牌、主题、class 规则、CSS 文本。纯函数 | 无                   | `index.js` + `index.umd.cjs` |
-| `@ds/dom`  | 能力检测、双通道注入、持久化、SSR        | `@ds/core`           | 同上                         |
-| `@ds/vue2` | `Vue.use()`、响应式令牌、`v-ds-theme`    | `@ds/core` `@ds/dom` | 同上                         |
+| 包           | 职责                                                   | 依赖                 | 产物                         |
+| ------------ | ------------------------------------------------------ | -------------------- | ---------------------------- |
+| `@ds/core`   | **机制**：令牌、主题、class 规则、CSS 文本。纯函数     | 无                   | `index.js` + `index.umd.cjs` |
+| `@ds/tokens` | **值**：官方那套令牌、色板、派生种子、断点、工具类尺度 | `@ds/core`           | 同上                         |
+| `@ds/dom`    | 能力检测、双通道注入、持久化、SSR                      | `@ds/core`           | 同上                         |
+| `@ds/vue2`   | `Vue.use()`、响应式令牌、`v-ds-theme`                  | `@ds/core` `@ds/dom` | 同上                         |
 
-三个包都是 `"type": "module"`，ESM 产物叫 `index.js`、UMD 产物叫 `index.umd.cjs`（原因见文末）。
+四个包都是 `"type": "module"`，ESM 产物叫 `index.js`、UMD 产物叫 `index.umd.cjs`（原因见文末）。
 每个子包自带 `README.md` 与 `skills/<包名>/SKILL.md`。
+
+> 包怎么分层、令牌怎么流动、单位怎么走、每条设计决策为什么这么定，见
+> **[docs/architecture.md](docs/architecture.md)**。本文是用法手册。
+
+### 机制与值：为什么拆成 `@ds/core` 与 `@ds/tokens`
+
+**core 只有算法没有值，tokens 只有值没有算法。**
+
+中性色用 slate 还是 gray、强调色是靛蓝还是品牌红、断点取 768 还是 750、间距走 4px 还是 8px ——
+换一套设计语言这些全都要改；而「令牌怎么合并、怎么派生、怎么输出成 CSS」一个字都不用动。
+两者混在一个包里，后果是想换个配色就得 fork 整个库。
+
+所以 `@ds/core` / `@ds/dom` **不带任何默认值**：主题、色板、断点表、尺度、语义映射全是必传参数，
+不传就编译不过（或运行时抛错），不会出现「以为在用自己的设计，实际悄悄用了库的」。
+想用自己的就照 `@ds/tokens` 的形状写一份，不引这个包也行。
+
+| 归 `@ds/tokens`（值 / 设计决策）                                           | 归 `@ds/core`（机制 / 算法）                               |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `lightTokens` `darkTokens` `lightTheme` `darkTheme`                          | `createTheme` `createRegistry` `resolveTokens` `mergeTree`  |
+| `accents` `defaultAccent`                                                    | `makeAccent`（工厂是算法，所以留在 core）`mix` `toRgba`     |
+| `defaultSeed`（派生的种子）                                                  | `deriveTokens` 与三个 `Algorithm`                          |
+| `defaultBreakpoints`                                                         | `up` `down` `between` `mediaOf`（断点表是入参）            |
+| `defaultScales` `defaultScaleRules` `defaultUtilities` `defaultSemanticMap`  | `primitiveRules` `semanticRules` `buildClassSheet`         |
+
+唯一留在 core 里的「默认值」是前缀兜底 `ds`：那不是设计令牌，而是 `normalizePrefix()` 的退路 ——
+前缀会被拼进 CSS 选择器，非法输入宁可退回 `ds` 也不能抛错（抛错整页样式就挂了）。
 
 ---
 
@@ -71,18 +98,18 @@ Tier 3 组件层   --ds-button-bg-hover       （组件内部用）
 
 这两根轴都是**覆盖**关系：后者盖前者，改 `color-brand` 不会让 `brand-hover` 跟着动。
 
-> ⚠️ **自建 `accents` 表时要显式 `defaultAccent: false`**
-> `@ds/dom` 有个兜底：不给 `accent`（或给空串）且 `accents` 表里有 `indigo` 时，
-> 会自动把它套上 —— 初衷是「别让 brand 一族空着」。但强调色盖在主题之上，
-> 于是**每套主题的 brand 都会被按成同一个靛蓝**，换主题时品牌色纹丝不动。
-> 只想让品牌色跟随主题的话：
+> **强调色没有兜底，也不需要开关。**
+> 早期版本在没给 `accent` 时会把色板里的 `indigo` 套上，初衷是「别让 brand 一族空着」。
+> 但强调色盖在主题之上，于是**每套主题的 brand 都会被按成同一个靛蓝**，换主题时品牌色纹丝不动。
+> 这个坑的现象很有迷惑性：官方 `light` 主题配 `indigo` 强调色出来的 `color-brand`
+> 恰好也是 `#4f46e5`，所以「所有主题品牌色一样」在默认组合上完全看不出来。
 >
-> ```js
-> createThemeManager({ themes, accents, theme: 'light', accent: '', defaultAccent: false })
-> ```
+> 修法不是加一个 `defaultAccent: false` 开关，而是**把兜底整个删掉** ——
+> 库不自带设计决策，自然不需要「关掉默认」的开关。不给 `accent` 就是真的不启用。
 >
-> 这个坑的现象很有迷惑性：内置 `light` 的 `color-brand` 恰好也是 `#4f46e5`，
-> 所以「所有主题品牌色一样」在默认主题上完全看不出来。
+> 顺带说清一件事：官方那两套主题**本身不含 brand 一族**，品牌色只由强调色提供。
+> 所以 `accents` 不给（或给空表）时，产出的令牌表里就是没有 `color-brand` ——
+> 这不是缺漏，而是「品牌色是要你给的设计决策」。
 
 需要「改一个种子，整套派生跟着变」时用 `derive`：
 
@@ -95,15 +122,24 @@ registry.theme('brand', {
 
 `seed` 与 `tokens` 可同时给，先派生再让手写的盖上去。详见 `@ds/core` 的「派生层」一节。
 
+> **seed 必须是完整的**，缺一项 `deriveTokens` 直接抛错，不会拿库里的颜色补齐 ——
+> 补出来的令牌看着齐整，实际是别人的设计混进了你的主题，而且看不出哪几个是补的。
+> 起一份最省事的办法是拿 `@ds/tokens` 的 `defaultSeed` 垫底再改：
+>
+> ```js
+> deriveTokens(mergeTree(defaultSeed, { color: { brand: '#0ea5e9' } }))
+> ```
+
 ### 断点
 
 ```js
-import { defaultBreakpoints, breakpointOrder, currentBreakpoint, up, down, mediaOf } from '@ds/core'
+import { breakpointOrder, currentBreakpoint, up, down, mediaOf } from '@ds/core'
+import { defaultBreakpoints } from '@ds/tokens' // 数值是设计决策，在 tokens
 
-currentBreakpoint(1024) // 'lg'
-up('md') // '(min-width: 768px)'
-down('md') // '(max-width: 767px)' —— 与 up 相邻但不重叠
-mediaOf().lg // '@media (min-width: 1024px)'
+currentBreakpoint(1024, defaultBreakpoints) // 'lg'
+up('md', defaultBreakpoints) // '(min-width: 768px)'
+down('md', defaultBreakpoints) // '(max-width: 767px)' —— 与 up 相邻但不重叠
+mediaOf(defaultBreakpoints).lg // '@media (min-width: 1024px)'
 ```
 
 断点跟间距、圆角一样属于**基础尺度**，三方要共用同一份定义：CSS 媒体查询、JS 的条件渲染、文档里的展示表。
@@ -113,13 +149,163 @@ mediaOf().lg // '@media (min-width: 1024px)'
 React 里该写成 hook，塞进核心只会让 SSR 和单测多一份副作用。
 未知断点名直接抛错，不静默拼出 `(min-width: NaNpx)`。
 
+### 长度单位：响应式与任意单位
+
+令牌产出的长度默认是 px，因为那就是**值本身**的单位 —— `@ds/tokens` 里写的是 `14px`。
+单位这件事在库里有两条通路，覆盖两种情况。
+
+注意库里**没有「认得的单位」清单**：单位是开放的，能不能换算只看查不查得到
+「1 单位 = 多少 px」这个系数（见下面几节）。所以 `rem / pt / vw / cqw / dvmax`
+以及以后再出的新单位都是同一套机制，不需要等库发版本。
+
+**派生链：单位跟着种子走。** 内部把长度折到同一个可换算的量纲上做算术
+（`sizeSm = sizeMd - 2` 的「2」是 2px），输出时才按种子自带的单位落成字符串。
+所以给一份 rem 种子就产出 rem 令牌，而且差值跟着折过去：
+
+```js
+import { deriveTokens, remifyTree } from '@ds/core'
+import { defaultSeed } from '@ds/tokens'
+
+deriveTokens(remifyTree(defaultSeed))
+// font-size-md: 0.875rem  size-sm: 0.75rem（= 14px - 2px，不是 0.875 - 2）
+// radius-md: 0.25rem      radius-full: 9999px（哨兵值不是尺度，不折）
+```
+
+> 为什么不能一边写着 px 一边期待 rem 输出：派生链里的档位差本身是 px 语义的设计决策，
+> 单位必须由**值**来声明，而不是由某个开关来声明 —— 开关一开，这些差值就不知道该折成多少了。
+> 所以入口是「把种子换成 rem 写法」（`remifyTree`），不是给 `deriveTokens` 加参数。
+> `deriveTokens` 跟单位有关的只有 `rootFontSize` 与 `factors` 两项：前者决定 2px 折成多少
+> rem（root=16 时 0.125rem，root=10 时 0.2rem），后者给 vw / cqw 这类依赖环境的单位系数。
+
+种子也可以直接写别的单位，不用先过 `remifyTree`：
+
+```js
+deriveTokens({ ...defaultSeed, font: { sizeMd: '1em' } })           // sizeSm: 0.875em
+deriveTokens({ ...defaultSeed, font: { sizeMd: '2vw' } }, null, 'light', {
+  factors: { vw: 3.75 },                                            // 视口 375 宽
+})
+```
+
+**`@ds/dom`：出口统一换算一次。** 大部分令牌其实**不过派生链** —— 官方那两套主题是手工挑的
+静态值，直接由 registry 拼进令牌表。所以在注入前统一换一次，来源不管是手写、派生还是导入的，
+口径都一致。`unit` 可以写**任意 CSS 单位**：
+
+```js
+createThemeManager({
+  ...baseOpts,
+  unit: 'rem',                    // 默认 'px'，任意单位都行：rem / pt / vw / cqw …
+  rootFontSize: 16,               // 默认 16，rem 的系数
+  factors: { vw: 3.75, cqw: 6 },  // 依赖环境的单位系数（视口 375 / 容器 600）
+  keepPx: ['shadow'],             // 默认 ['border-width', 'shadow']
+})
+```
+
+单位换不成时会怎样：**原样保留，不硬换。** 只写 `unit: 'vw'` 而不给 `factors` 的话，
+库不知道 1vw 是多少 px，于是令牌里的 `4px` 还是 `4px` —— 而不是伪造一个 `4vw`。
+这是刻意的选择：数字看着正常但尺度错了，比看一眼就知道没换要难查得多。
+
+默认保持 px 的那两项不是随手列的：
+
+| 键前缀 | 保持 px 的理由 |
+|---|---|
+| `border-width` | 1px 边框跟着根字号缩放，在高缩放下会变糊甚至消失（hairline 是设备像素级的量） |
+| `shadow` | 固定的视觉深度，不属于排版尺度；`0 8px 24px` 缩放后层次关系会失真 |
+
+时间单位（`200ms`）、无单位比值（行高 `1.5`）、色值都不受影响 —— 换算只认 `px` 出现的地方。
+
+如果令牌是自己在别的环节（构建期预生成、uni-app x）用，直接用这一层即可：
+原语就这几条，第二个参数一律是**换算上下文**（不再是散着的数字）：
+
+```js
+factorOf('rem')                          // 16 —— 1rem 等于多少 px；查不到返回 0
+canConvert('vw')                         // false —— 没给系数就是换不了
+length(14, 'pt')                         // '10.5pt' —— px 数字落成任意单位
+toPx('0.875rem')                         // 14  —— 折回 px
+toUnit('16px', 'rem')                    // '1rem' —— 两端都换得了才换，否则原值
+rescale('0 2px 8px rgba(0,0,0,.4)', 'rem')// '0 0.125rem 0.5rem rgba(0,0,0,.4)'
+rescaleTokens(flat, 'vw', { factors: { vw: 3.75 } }, ['shadow'])
+remify(flat, { rootFontSize: 16 }, keep) // rescaleTokens 的 rem 特例
+remifyTree(tree, { rootFontSize: 16 }, keep)
+```
+
+### 导入设计稿令牌（W3C DTCG / Figma）
+
+设计稿导出的令牌不会按本库的形状来。三份真实 Figma 导出（Primitive / Semantic / Component）
+长这样：颜色是对象不是色值，数值不带单位，`button.icon.*` 引用 `button.text.*`：
+
+```json
+"blue-500": { "$type": "color", "$value": { "components": [0.25, 0.588, 1], "alpha": 1 } }
+"radius":   { "$type": "number", "$value": 8, "$extensions": { "com.figma.scopes": ["CORNER_RADIUS"] } }
+"icon":     { "$type": "color", "$value": "{button.text.neutral.outlined.default}" }
+```
+
+`fromW3C` / `fromFigma` 负责把它机械地翻过来：
+
+```js
+import { fromFigma, remify } from '@ds/core' // @ds/tokens 也转出了一份
+
+const { tokens, issues, aliases } = fromFigma(figmaJson, {
+  unit: 'rem',          // 长度落地单位，默认 px（Figma 给的就是 px）
+  rootFontSize: 16,     // 默认 16（浏览器默认根字号，不是设计决策）
+  prefix: 'acme',       // 键前缀，不给就用路径本身
+  include: ['color'],   // 只收这几棵子树（点分路径前缀）
+  exclude: ['deprecated'],
+  resolveAlias: true,   // 解析 {a.b.c} 引用，默认开
+  onUnknown: 'skip',    // 认不出的类型：skip（默认）/ keep / throw
+})
+
+tokens['color-blue-500']  // '#4096ff'（alpha<1 时落成逗号语法的 rgba，IE10 认）
+tokens['button-radius']   // '0.5rem'
+issues                    // 空数组才是干净的转换：断链别名、未知类型逐条在这
+```
+
+也可以命令行跑（`node scripts/convert-tokens.mjs`，先 `pnpm run build`）：
+
+```bash
+node scripts/convert-tokens.mjs Default.tokens.json --unit=rem --include=color,space > tokens.json
+```
+
+三条边界说清楚：
+
+- **只做格式翻译，不做语义映射。** `button.bg.brand.solid.default` 翻出来还是
+  `button-bg-brand-solid-default`。它该叫 `color-brand` 还是 `color-action-primary`
+  是本库不知道、也不该猜的设计决策 —— 用 `include` 挑，或翻完自己改名。
+- **Figma 的 `$root`（组默认值）是一条真令牌**，不是元数据，`input.height.$root`
+  会翻成 `input-height-root`；别名里写 `{input.height.$root}` 也能接上。
+- **数值单位由 `com.figma.scopes` 决定**，不是靠猜：GAP / CORNER_RADIUS / FONT_SIZE /
+  WIDTH_HEIGHT / LINE_HEIGHT / EFFECT_FLOAT 按长度处理，OPACITY 落成 0-1（源里 50 和
+  0.45 两种写法都见过），FONT_STYLE 是字重不带单位。
+
+#### 单位：默认 px，怎么换成任意单位
+
+默认 px 是因为**源就是 px**（Figma 的裸数字单位是 px），换算属于「要不要改设计」的决定，
+不该由库替你做。要响应式单位就在**边界**上给一次：
+
+```js
+fromFigma(json, { unit: 'rem' })        // 导入时直接落 rem
+remify(tokens, undefined, ['border-width'])  // 或事后换算，第三个参数是「保持 px」的键前缀
+rescaleTokens(tokens, 'cqw', { factors: { cqw: 6 } })  // 想要容器单位就给系数
+```
+
+**给 vw / cqw 这类单位时必须同时给 `factors`**，否则换算不了：转换器会保持 px 输出，
+并在 `issues` 里记一条「目标单位换算不了，需要 factors」。换个单位符号冒充换算过的值，
+比老实说「换不了」糟得多。
+
+```js
+fromFigma(json, { unit: 'vw', factors: { vw: 3.75 } })  // 视口宽 375：1vw = 3.75px
+```
+
+一个例外写死在转换器里：**描边宽度（`STROKE_FLOAT`）恒为 px**。1px 边框跟着根字号缩放
+会在高缩放下变粗甚至消失，这是 hairline 的物理限制，不是偏好。
+
 ### 自定义令牌前缀
 
 默认前缀是 `ds`。换成 `acme` 只需要在入口传一次：
 
 ```js
-createThemeManager({ prefix: 'acme' })
-// 或 Vue.use(DsVue2, { prefix: 'acme' })
+// themes / accents / scales / rules / utilities / map 都来自 @ds/tokens，本层一套不自带
+createThemeManager({ themes, accents, scales, rules, utilities, map, prefix: 'acme' })
+// 或 Vue.use(DsVue2, { themes, accents, scales, rules, utilities, map, prefix: 'acme' })
 ```
 
 **一次设置，五处同时生效**：
@@ -155,9 +341,18 @@ createThemeManager({ prefix: 'acme' })
 
 ```html
 <script src=".../core/dist/index.umd.cjs"></script>
+<script src=".../tokens/dist/index.umd.cjs"></script>
 <script src=".../dom/dist/index.umd.cjs"></script>
 <script>
-  const ds = DsDom.createThemeManager({ channel: 'auto' })
+  const ds = DsDom.createThemeManager({
+    themes: { light: DsTokens.lightTheme, dark: DsTokens.darkTheme },
+    accents: DsTokens.accents,
+    scales: DsTokens.defaultScales,
+    rules: DsTokens.defaultScaleRules,
+    utilities: DsTokens.defaultUtilities,
+    map: DsTokens.defaultSemanticMap,
+    channel: 'auto',
+  })
   DsDom.bindTheme(ds) // 可选：接上持久化（不调就完全不碰 localStorage）
   ds.init()
   ds.use('dark') // 换主题
@@ -174,8 +369,24 @@ createThemeManager({ prefix: 'acme' })
 ```js
 import { createThemeManager } from '@ds/dom'
 import { buildClassSheet, resolveVars } from '@ds/core'
+import {
+  lightTheme,
+  darkTheme,
+  accents,
+  defaultScales,
+  defaultScaleRules,
+  defaultUtilities,
+  defaultSemanticMap,
+} from '@ds/tokens'
 
-const ds = createThemeManager({ themes: { light, dark }, accents })
+const ds = createThemeManager({
+  themes: { light: lightTheme, dark: darkTheme },
+  accents,
+  scales: defaultScales,
+  rules: defaultScaleRules,
+  utilities: defaultUtilities,
+  map: defaultSemanticMap,
+})
 ds.init()
 ```
 
@@ -267,13 +478,15 @@ core 里 `assign` 是手写实现，`unique` 不依赖 Set。
 ```
 ds-foundation/
 ├─ packages/
-│  ├─ core/src/    util / color / prefix / token / breakpoint / theme / class / output / preset (.ts)
+│  ├─ core/src/    util / color / prefix / token / breakpoint / theme / accent / derive / class / output
+│  ├─ tokens/src/  theme / accent / seed / breakpoint / scale —— 只有值，没有算法
 │  ├─ dom/src/     env / style / emitter / theme / ssr / storage                     (.ts)
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
 ├─ examples/       umd / esm / vue2（最小用法）+ demo-app/（完整演示项目，见下）
-├─ tests/          一个模块一个 .test.ts（vitest，584 项；门槛 100% 覆盖率）
-├─ scripts/        clean / serve / dts / inline-examples
+├─ tests/          一个模块一个 .test.ts（vitest，653 项；门槛 100% 覆盖率）
+│  └─ fixtures/figma/  真实 Figma 导出裁出来的样本，喂给 tests/convert.test.ts
+├─ scripts/        clean / serve / dts / inline-examples / convert-tokens（导入设计稿令牌）
 ├─ rollup.config.js   打包
 ├─ swc.config.js      SWC 转译配置 —— 构建和 ES5 检查共用这一份
 ├─ vitest.config.ts   @ds/* 别名到 src，测试直接跑源码
@@ -311,7 +524,7 @@ pnpm install        # 约 100s 冷启动，之后走 store 硬链接，秒级
 
 ```bash
 pnpm install
-pnpm run build      # 三个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
+pnpm run build      # 四个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
 pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
 pnpm test           # vitest，584 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
@@ -508,7 +721,7 @@ pnpm run coverage  # 带覆盖率，门槛 100%
 | `core/class`     | `class.test.ts`                                       | node  |
 | `core/theme`     | `theme.test.ts`                                       | node  |
 | `core/derive`    | `derive.test.ts`                                      | node  |
-| `core/preset`    | `preset.test.ts`                                      | node  |
+| `tokens`         | `tokens.test.ts`：官方令牌集 + 与 core 的种子契约      | node  |
 | `core/breakpoint`| `breakpoint.test.ts`                                  | node  |
 | `core` 主干      | `core.test.ts`（跨模块的端到端断言：解析 → class → CSS） | node  |
 | `dom/theme`      | `dom.test.ts`（主干）+ `manager.test.ts`（边角）+ `manager-node.test.ts`（无 DOM） | jsdom / node |
@@ -570,7 +783,7 @@ matchMedia 不存在、单个样式表撞规则上限。这些分支在本地开
 | 层       | 验什么                                                                | 要 build 吗 | 说明                                                                                                                          |
 | -------- | --------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | A 源码层 | 用 `swc.config.js` 那份**真正生效的配置**转译每个 `src/*.ts`，解析结果 | 否          | 主要防线，改一行就能验，报错精确到文件                                                                                        |
-| B 产物层 | `dist` 里 6 份真实产物                                                | 是          | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（6 skipped），不会让 `pnpm test` 变红 |
+| B 产物层 | `dist` 里 8 份真实产物                                                | 是          | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（8 skipped），不会让 `pnpm test` 变红 |
 
 关键在于**两层共用 `swc.config.js` 里那一份 `swcOptions`**。
 如果测试里另写一套配置，它验的就是"测试自己的配置"，rollup 那边写错了照样漏 —— 那就白验了。

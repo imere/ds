@@ -90,6 +90,8 @@ describe('A. 源码转译后应为合法 ES5（不依赖构建）', () => {
 const distFiles = [
   'packages/core/dist/index.js',
   'packages/core/dist/index.umd.cjs',
+  'packages/tokens/dist/index.js',
+  'packages/tokens/dist/index.umd.cjs',
   'packages/dom/dist/index.js',
   'packages/dom/dist/index.umd.cjs',
   'packages/vue2/dist/index.js',

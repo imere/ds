@@ -1,16 +1,17 @@
 /**
- * 开箱即用的预设：基础令牌 + 明暗两套主题 + 强调色工厂
+ * 明暗两套基础令牌
  * -------------------------------------------------------------
- * 颜色写法有一条硬规矩：本包最低支持 IE10，
- * IE10 认识 rgba(r, g, b, a)（逗号语法），不认识 rgb(r g b / a)（空格斜杠语法）。
- * 所以预设里所有半透明色一律用逗号写法，不要图省事改写成空格语法。
+ * 色值接近 Tailwind 的 slate 色阶，是手工挑过的 —— 不是从种子线性插值算出来的，
+ * 所以没走 @ds/core 的派生链。派生的定位是「新主题快速起稿」，
+ * 官方这套要的是确定的观感，宁可一行行写死。
+ *
+ * dark 里 font / motion 直接复用 light 的：这两组跟明暗无关，
+ * 写两份只会导致改字号时漏改一边。
  */
 
-import { createTheme } from './theme'
-import type { AccentDef } from './theme'
-import { mix, toRgba, luminance } from './color'
+import { createTheme } from '@ds/core'
 
-/** 中性色令牌（明暗两套底） */
+/** 浅色：中性底 + 语义色 + 圆角 / 字体 / 阴影 / 动效 */
 export const lightTokens = {
   color: {
     bg: '#ffffff',
@@ -57,6 +58,7 @@ export const lightTokens = {
   motion: { fast: '120ms', base: '200ms', slow: '320ms', ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
 }
 
+/** 深色：底翻暗，前景翻亮；阴影换成更重的纯黑（浅色叠加在暗底上会发灰） */
 export const darkTokens = {
   color: {
     bg: '#0b1220',
@@ -98,41 +100,5 @@ export const darkTokens = {
 export const lightTheme = createTheme({ label: '浅色', mode: 'light', tokens: lightTokens })
 export const darkTheme = createTheme({ label: '深色', mode: 'dark', tokens: darkTokens })
 
-/**
- * 强调色工厂：给一个主色，自动推出 hover / active / subtle / border / 前景色。
- * 业务接一个新品牌色只需要一行：registry.accent('brandA', makeAccent('#0ea5e9'))
- */
-export function makeAccent(hex: string, label?: string): AccentDef {
-  const subtle = toRgba(hex, 0.12)
-  const darker = mix(hex, '#000000', 0.12)
-  const darkest = mix(hex, '#000000', 0.24)
-  const onFill = luminance(hex) > 0.45 ? '#0f172a' : '#ffffff'
-  return {
-    label: label || hex,
-    swatch: hex,
-    tokens: {
-      color: {
-        brand: hex,
-        brandHover: darker,
-        brandActive: darkest,
-        brandSubtle: subtle,
-        brandBorder: toRgba(hex, 0.4),
-        onBrand: onFill,
-        ring: toRgba(hex, 0.35),
-        borderFocus: hex,
-      },
-      shadow: {
-        focus: `0 0 0 3px ${toRgba(hex, 0.25)}`,
-      },
-    },
-  }
-}
-
-export const DEFAULT_ACCENT = makeAccent('#4f46e5', '靛蓝')
-
-export const accents = {
-  indigo: DEFAULT_ACCENT,
-  blue: makeAccent('#0ea5e9', '天蓝'),
-  green: makeAccent('#16a34a', '青绿'),
-  orange: makeAccent('#ea580c', '暖橙'),
-}
+/** 注册时最常用的一组，省得每个业务都手写一遍 { light, dark } */
+export const themes = { light: lightTheme, dark: darkTheme }

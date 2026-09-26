@@ -42,12 +42,10 @@ export function getThemeManager(options = {}) {
     themes,
     accents,
     theme: saved.theme || DEFAULT_THEME,
-    // 强调色默认「跟随主题」= 空串：不给默认强调色，品牌色才是主题自带的那一组
+    // 强调色默认「跟随主题」= 空串。库不再有兜底（早前会把空串换成内置的 indigo，
+    // 而强调色整组盖住 brand 一族，结果每套主题的品牌色都被按成同一个靛蓝），
+    // 所以不给就是真的不给，不需要任何开关。
     accent: saved.accent || '',
-    // 关键：不写这一行，库会把空串兜成内置的 indigo（见 @ds/dom 的 defaultAccent），
-    // 而强调色整组覆盖 brand / brandHover / brandFg / focus ——
-    // 结果是每套主题的品牌色都被按成同一个靛蓝，派生主题换的种子色根本看不出来。
-    defaultAccent: false,
     // 库自带那两层 class（.ds-p-4 之类）这个项目用不上，组件样式全是手写 CSS
     withClasses: false,
     // 想绕开能力检测就传 'vars' / 'static'

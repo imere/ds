@@ -30,6 +30,15 @@ const packages = [
     banner: '@ds/core - token / class / theme 纯逻辑层',
   },
   {
+    // tokens 只有值，但它要用 core 的 createTheme / makeAccent 造对象，所以依赖 core
+    name: 'tokens',
+    input: 'packages/tokens/src/index.ts',
+    umd: 'DsTokens',
+    external: ['@ds/core'],
+    globals: { '@ds/core': 'DsCore' },
+    banner: '@ds/tokens - 官方设计令牌集（值）',
+  },
+  {
     name: 'dom',
     input: 'packages/dom/src/index.ts',
     umd: 'DsDom',

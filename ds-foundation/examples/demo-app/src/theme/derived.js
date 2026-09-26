@@ -25,15 +25,18 @@ import {
   mix,
   toRgba,
 } from '@ds/core'
+import { defaultSeed } from '@ds/tokens'
 import { scale, shadowPresets } from './tokens'
 
 export { defaultAlgorithm, darkAlgorithm, compactAlgorithm }
 
 /**
- * 产品尺度的默认值。不给就退回 DEFAULT_SEED 的 4px / 200ms，
- * 派生出来的圆角会比其它主题紧一圈，看起来像换了个产品。
+ * 产品自己的种子：垫在官方 defaultSeed 之上再改这两项。
+ * 必须垫 —— 派生链不接受残缺种子(@ds/core 会直接抛错)，
+ * 而自己补一份完整的既啰嗦又容易跟官方那份走偏。
+ * 不垫的话圆角会退回 4px、动效退回 200ms，派生主题看起来像换了个产品。
  */
-const BASE_SEED = { radius: { md: '8px' }, motion: { base: '220ms' } }
+const BASE_SEED = mergeTree(defaultSeed, { radius: { md: '8px' }, motion: { base: '220ms' } })
 
 /** 混色 / 转 rgba 认不出的色值会返回 null，派生结果不允许是空 —— 退回原值 */
 function blend(a, b, weight, fallback) {
