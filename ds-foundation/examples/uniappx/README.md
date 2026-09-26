@@ -17,7 +17,7 @@
 三条硬约束，决定了上面的矩阵：
 
 1. **App 端没有 `document`。** uvue 有自己的 DOM 模型（`UniElement`），但那是 `uni.getElementById` / `$refs` 拿到的元素对象，不是 `@ds/dom` 操作的 `document.documentElement`。注入 CSS 变量那条主通道从根上不成立。
-2. **uni-app x 的 VDOM 模式没有 JS 引擎。** 逻辑层是 UTS，编译成 Kotlin / Swift / ArkTS。 `@ds/core` 的 `dist/*.js`（ESM / UMD）在这台虚拟机里没地方执行。
+2. **uni-app x 的 VDOM 模式没有 JS 引擎。** 逻辑层是 UTS，编译成 Kotlin / Swift / ArkTS。 `@ds/core` 的 `build/*.js`（ESM / UMD）在这台虚拟机里没地方执行。
 3. **CSS 是 web 的子集（ucss）。** 不能用 `#id`、`[attr]`、标签选择器，**只能用 class 选择器**；文本样式不继承，必须写在 `<text>` 上；蒸汽模式下连关系选择器都不支持。我们默认走的 `:root` + `[data-theme]` 换肤写法，在 App 端两样都不成立。
 
 补充：`@ds/core` 是 private workspace 包，依赖写的是 `workspace:*`，**npm 里装不到**。uni-app x 工程一般也不在这个 workspace 里 —— 所以连"安装"这一步都不存在，更应该在构建期解决问题。
@@ -28,7 +28,7 @@
 node examples/uniappx/gen-tokens.mjs
 ```
 
-脚本在 Node 里直接 import `packages/core/dist/index.js`（不走 npm 安装），产出四个文件到 `generated/`：
+脚本在 Node 里直接 import `packages/core/build/index.js`（不走 npm 安装），产出四个文件到 `generated/`：
 
 | 产物 | 给谁用 | 说明 |
 | --- | --- | --- |
@@ -120,7 +120,7 @@ const root = uni.getElementById('root') as UniElement
 root?.style?.setProperty('--ds-color-brand', brand)
 ```
 
-要把 `@ds/core` 弄进 uni-app x 工程，三条路：把 `packages/core/dist/index.js` 拷成项目内的一个普通 ts 文件；或 `npm pack` 打包后走 `file:` 依赖（前提是先在 `packages/*/package.json` 里把 `workspace:*` 改成具体版本号）；或发到私有 registry。三条都不优雅 —— 这也反证了为什么推荐方案 A。
+要把 `@ds/core` 弄进 uni-app x 工程，三条路：把 `packages/core/build/index.js` 拷成项目内的一个普通 ts 文件；或 `npm pack` 打包后走 `file:` 依赖（前提是先在 `packages/*/package.json` 里把 `workspace:*` 改成具体版本号）；或发到私有 registry。三条都不优雅 —— 这也反证了为什么推荐方案 A。
 
 ## 其它需要注意的 UTS 限制
 

@@ -76,7 +76,7 @@ function build(pkg) {
       {
         // 包名声明了 "type": "module"，所以 .js 在这里就是 ESM，
         // 不需要再靠 .mjs 扩展名去告诉 Node 该怎么解析。
-        file: path.resolve(root, `packages/${pkg.name}/dist/index.js`),
+        file: path.resolve(root, `packages/${pkg.name}/build/index.js`),
         format: 'es',
         sourcemap: true,
         banner: `/* ${pkg.banner} (esm) */`,
@@ -86,7 +86,7 @@ function build(pkg) {
         // UMD 里的 module.exports 会直接报 "require() of ES Module"。
         // .cjs 强制按 CommonJS 解析，Node / Jest / Vue CLI 4 的 require 才通。
         // 浏览器只认 MIME 不认扩展名，<script src="...umd.cjs"> 照常工作。
-        file: path.resolve(root, `packages/${pkg.name}/dist/index.umd.cjs`),
+        file: path.resolve(root, `packages/${pkg.name}/build/index.umd.cjs`),
         format: 'umd',
         name: pkg.umd,
         globals: pkg.globals,

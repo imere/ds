@@ -67,7 +67,7 @@ graph LR
 
 `examples/demo-app`（Vue 2 + Vite）与 `examples/uniappx`（uni-app x）**不在库的工作流里**
 —— lint / typecheck / test 都不覆盖它们，它们是接线样例。它们通过别名指向
-`packages/*/dist/index.js`（四个包都是 private + `workspace:`，装不进 node_modules），
+`packages/*/build/index.js`（四个包都是 private + `workspace:`，装不进 node_modules），
 所以改完库要重新 `pnpm build`。
 
 ---
@@ -320,16 +320,32 @@ SSR 侧用 `getInitScript({ restore: restoreScript() })` 内联一段同步恢�
 ```mermaid
 flowchart LR
     SRC["packages/*/src/*.ts"] --> SWC["SWC 降级 ES5<br/>swc.config.js"]
-    SRC --> TSC["tsc 类型检查<br/>出 .d.ts"]
-    SWC --> ROLLUP["Rollup"]
-    TSC --> ROLLUP
-    ROLLUP --> ESM["dist/index.js<br/>ESM"]
-    ROLLUP --> UMD["dist/index.umd.cjs<br/>UMD（带 CJS 分支）"]
+    SRC --> TSC["tsc 只出 .d.ts<br/>tsconfig.build.json"]
+    SWC --> ROLLUP["Rollup<br/>rollup.config.js"]
+    TSC --> DTS["scripts/dts.js<br/>摊平搬运"]
+    ROLLUP --> ESM["packages/*/build/index.js<br/>ESM"]
+    ROLLUP --> UMD["packages/*/build/index.umd.cjs<br/>UMD（带 CJS 分支）"]
+    DTS --> TYP["packages/*/build/*.d.ts"]
     ESM --> T1["tests/es5.test.ts<br/>acorn ecmaVersion 5"]
+    UMD --> T1
+    TESTS["vitest run --coverage"] --> COV["build/coverage/<br/>覆盖率报告"]
 
     classDef build fill:#eef2ff,stroke:#4f46e5,color:#1e1b4b
-    class SWC,TSC,ROLLUP,ESM,UMD,T1 build
+    classDef out fill:#ecfdf5,stroke:#059669,color:#022c22
+    class SWC,TSC,ROLLUP,DTS build
+    class ESM,UMD,TYP,COV out
 ```
+
+**产物统一叫 `build`，只有两处：**
+
+| 位置 | 内容 | 谁写的 |
+| --- | --- | --- |
+| `packages/*/build/` | 每个包自己的 ESM / UMD / `.d.ts` | `rollup.config.js`、`scripts/dts.js` |
+| `build/` | 仓库级产物，目前是覆盖率报告 | `vitest.config.ts` 的 `reportsDirectory` |
+
+两者都能重建，`.gitignore` 一条 `build/` 盖住，`pnpm run clean` 照这两处清。
+分两处而不是合成一个根目录，是为了让每个包 `package.json` 的 `main` / `module` / `types`
+保持包内相对路径 —— 挪到仓库根就得写成 `../../build/...`，发包即失效。
 
 - **IE10 是兼容基线**：产物必须纯净 ES5（脚本里一律 `var` / `function`），
   半透明色须逗号语法 `rgba(r, g, b, a)`，IE9 样式表规则上限 4095（按 4000 切片）。
@@ -349,5 +365,5 @@ node scripts/check-jsdoc.mjs        # 全部函数必须有中文描述 + @param
 node scripts/convert-tokens.mjs <file> --unit=rem --root=16
 ```
 
-`verify` 的顺序有讲究：**ES5 产物层的检查必须在 build 之后**（没 build 时那 6 个用例跳过，
-属正常现象）。
+`verify` 的顺序有讲究：**ES5 产物层的检查必须在 build 之后**（那 8 个用例验的是 4 个包
+各 2 份产物，没 build 时自动跳过，属正常现象）。

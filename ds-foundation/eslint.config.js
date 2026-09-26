@@ -54,7 +54,7 @@ import compat from 'eslint-plugin-compat'
  *
  *   trailingComma 'es5' —— 只给「对象 / 数组字面量」加尾逗号，函数参数不加。
  *     前者是 ES5 语法，后者要 ES2017 才合法。虽然进 IE10 的是 SWC 产物
- *     （实测 `function t(a, b,) {}` → `function t(a, b) {}`，尾逗号到不了 dist），
+ *     （实测 `function t(a, b,) {}` → `function t(a, b) {}`，尾逗号到不了 build），
  *     但源码这一层也没必要靠这个兜底 —— 函数参数尾逗号对可读性没帮助，
  *     还会让老一点的解析器（含部分构建链里的中间工具）直接报错。取最小值。
  */
@@ -93,7 +93,7 @@ const ie10UnsafeSyntax = [
 export default tseslint.config(
   {
     ignores: [
-      '**/dist/**',
+      '**/build/**',
       '**/node_modules/**',
       // 第三方源码，不归我们管
       'examples/**/vendor/**',

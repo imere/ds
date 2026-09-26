@@ -4,10 +4,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue2'
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url))
-// 本目录是 ds-foundation/examples/demo-app，库产物在 ../../packages/*/dist。
+// 本目录是 ds-foundation/examples/demo-app，库产物在 ../../packages/*/build。
 // 走别名而不是 node_modules：三个包都是 private 且依赖写 workspace: 协议，
 // npm / pnpm 都装不进来。代价是改完库要重新在仓库根跑 `pnpm build`。
-const ds = (pkg) => r(`../../packages/${pkg}/dist/index.js`)
+const ds = (pkg) => r(`../../packages/${pkg}/build/index.js`)
 
 export default defineConfig({
   plugins: [vue()],

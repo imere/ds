@@ -40,12 +40,26 @@ export default defineConfig({
       include: ['packages/*/src/**/*.ts'],
       reporter: ['text', 'json-summary'],
       /**
+       * 覆盖率报告也是产物，跟 ESM / UMD 一样进 build/：
+       *   packages/*\/build   每个包自己的产物（rollup.config.js）
+       *   build/coverage      仓库级的产物（这里）
+       * 统一在一处，`.gitignore` 只要一条 `build/`，`pnpm run clean` 也能一次清干净。
+       */
+      reportsDirectory: 'build/coverage',
+      /**
        * 跑完不删临时目录。默认是删的，但本机的删除钩子会去调外部回收站二进制，
        * 偶发超时会让整个 coverage 命令在「已经跑完、只差清理」这一步失败。
-       * 临时目录留在 coverage/ 下即可，已在 .gitignore 里。
+       * 临时目录留在 build/coverage/ 下即可，已在 .gitignore 里。
        */
       clean: false,
       cleanOnRerun: false,
+      /**
+       * 收尾那一次也试着关。上面两个只管「跑之前」和「重跑时」，cleanAfterRun 管收尾的
+       * build/coverage/.tmp（一次 200+ 文件）—— 本机那个批量删除保护钩子会拦下它，
+       * 于是指令可能以非 0 退出。**报告在这之前已经写好了**，所以看到 .tmp 相关的
+       * SAFE_DELETE 报错时，去 build/coverage/ 读结果，不要当成回归。
+       */
+      cleanAfterRun: false,
       /**
        * 门槛钉在 100，而且是四项全钉。
        *

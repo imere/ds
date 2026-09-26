@@ -69,8 +69,11 @@ vite.config.js.timestamp-*
 # 偶尔被中断才留下
 _tmp_*
 
-# vitest 覆盖率输出（含被保留下来的临时目录，见 vitest.config.ts 的 clean: false）
-coverage/
-# 本机跑覆盖率时清理临时文件会被环境的批量删除保护拦下，所以产物常常写到
-# coverage-cur/ 这类旁路目录里 —— 同样是能重建的输出，一并忽略
-coverage-*/
+# ---- 构建产物 ----
+# 两类，统一叫 build：
+#   packages/*/build   每个包自己的 ESM / UMD / d.ts（rollup.config.js、scripts/dts.js）
+#   build/             仓库级的产物，目前是 vitest 覆盖率报告（vitest.config.ts）
+# 两者都能重建，一条规则盖住；`pnpm run clean` 也是照这两处清的。
+build/
+# 旧产物目录（改成 build 之前的遗留，盘上若还有也不该进版本库）
+dist/

@@ -3,7 +3,7 @@
 Design System 底层的 **Vue 2 绑定层**：把 `@ds/dom` 的 manager 变成 Vue 生态里顺手的东西。
 
 - 支持 Vue 2.5 ~ 2.7（`Vue.observable` 不可用时借空实例兜底）
-- 产物 `dist/index.js` + `dist/index.umd.cjs`
+- 产物 `build/index.js` + `build/index.umd.cjs`
 - 依赖 `@ds/core` `@ds/dom`；`vue` 是 peerDependency，**不打包进产物**
 
 ## 安装
@@ -26,9 +26,9 @@ UMD 直引（无构建步骤）：
 
 ```html
 <script src=".../vue.js"></script>
-<script src=".../core/dist/index.umd.cjs"></script>
-<script src=".../dom/dist/index.umd.cjs"></script>
-<script src=".../vue2/dist/index.umd.cjs"></script>
+<script src=".../core/build/index.umd.cjs"></script>
+<script src=".../dom/build/index.umd.cjs"></script>
+<script src=".../vue2/build/index.umd.cjs"></script>
 <script>
   Vue.use(DsVue2, { theme: 'light' })
 </script>

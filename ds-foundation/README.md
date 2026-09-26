@@ -340,9 +340,9 @@ createThemeManager({ themes, accents, scales, rules, utilities, map, prefix: 'ac
 ### 1. UMD 直引（IE10 可跑，双击 HTML 就行）
 
 ```html
-<script src=".../core/dist/index.umd.cjs"></script>
-<script src=".../tokens/dist/index.umd.cjs"></script>
-<script src=".../dom/dist/index.umd.cjs"></script>
+<script src=".../core/build/index.umd.cjs"></script>
+<script src=".../tokens/build/index.umd.cjs"></script>
+<script src=".../dom/build/index.umd.cjs"></script>
 <script>
   const ds = DsDom.createThemeManager({
     themes: { light: DsTokens.lightTheme, dark: DsTokens.darkTheme },
@@ -482,9 +482,11 @@ ds-foundation/
 │  ├─ tokens/src/  theme / accent / seed / breakpoint / scale —— 只有值，没有算法
 │  ├─ dom/src/     env / style / emitter / theme / ssr / storage                     (.ts)
 │  ├─ vue2/        state / directive / index                                         (.ts)
+│  ├─ */build/     产物：每个包自己的 ESM + UMD + .d.ts（能重建，不入版本库）
 │  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
+├─ build/          仓库级产物：覆盖率报告（vitest.config.ts 的 reportsDirectory）
 ├─ examples/       umd / esm / vue2（最小用法）+ demo-app/（完整演示项目，见下）
-├─ tests/          一个模块一个 .test.ts（vitest，653 项；门槛 100% 覆盖率）
+├─ tests/          一个模块一个 .test.ts（vitest，701 项；门槛 100% 覆盖率）
 │  └─ fixtures/figma/  真实 Figma 导出裁出来的样本，喂给 tests/convert.test.ts
 ├─ scripts/        clean / serve / dts / inline-examples / convert-tokens（导入设计稿令牌）
 ├─ rollup.config.js   打包
@@ -527,14 +529,14 @@ pnpm install
 pnpm run build      # 四个包各出 ESM + UMD（SWC 转 ES5，约 1.8s）
 pnpm run dts        # 逐个包 emit .d.ts
 pnpm run rebuild    # clean + build
-pnpm test           # vitest，584 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
+pnpm test           # vitest，701 项：core 自检 + DOM 双通道 + Vue 2 + 存储 + 断点 + ES5 合规
 pnpm run coverage   # 跑测试 + 覆盖率，门槛 100%（未达标直接失败）
 pnpm run typecheck  # tsc --noEmit
 pnpm run lint       # eslint .（含格式检查 —— prettier 是里面的一条规则）
 pnpm run lint:fix   # 能自动修的先修掉，格式也一起修
 pnpm run es5        # 只跑 ES5 那一项（已在 pnpm test 里，单独调方便）
 pnpm run verify     # typecheck → lint → build → coverage，串起来跑
-                    # 注意 build 在 test 前：ES5 检查里有 6 项验的是 dist 产物，
+                    # 注意 build 在 test 前：ES5 检查里有 6 项验的是 build 产物，
                     # 没构建时它们会自动跳过，构建后再跑才验得全
 pnpm run serve      # http://localhost:5199
 pnpm run examples:standalone   # 生成自包含单文件示例（见下）
@@ -660,7 +662,7 @@ ESM 那一页不生成单文件：原生 ES Module 在 `file://` 下必被 CORS 
 令牌微调、局部换肤、SSR 防闪烁、持久化、断点栅格。
 
 ```bash
-pnpm build          # 先出库产物：demo-app 靠 vite 别名指向 ../../packages/*/dist
+pnpm build          # 先出库产物：demo-app 靠 vite 别名指向 ../../packages/*/build
 cd examples/demo-app && npm install
 pnpm run example    # 等价于 npm --prefix examples/demo-app run dev
 ```
@@ -675,7 +677,7 @@ pnpm run example    # 等价于 npm --prefix examples/demo-app run dev
 - `vitest.config.ts` 的 `include` 只有 `tests/**/*.test.ts`，demo-app 的测试是 `*.spec.js`
 
 反过来，**改完库一定要重新 `pnpm build`**，demo-app 才会看到新产物 ——
-它用的是 `dist` 不是 `src`（三个包 private + `workspace:` 协议，装不进 node_modules，只能走别名）。
+它用的是 `build` 不是 `src`（三个包 private + `workspace:` 协议，装不进 node_modules，只能走别名）。
 
 ## 七、产物格式与扩展名
 
@@ -745,7 +747,7 @@ pnpm run coverage  # 带覆盖率，门槛 100%
 
 1. **环境靠文件头的 `@vitest-environment jsdom` 文档块声明**，而不是 `environmentMatchGlobs`。
    后者在新版本里已经废弃，而前者跨版本稳定。
-2. **`vitest.config.ts` 把 `@ds/*` 别名到了 `src`**，测试跑的是源码不是 `dist`，
+2. **`vitest.config.ts` 把 `@ds/*` 别名到了 `src`**，测试跑的是源码不是 `build`，
    省掉"先 build 再 test"的顺序依赖 —— 改一行代码立刻能验，CI 里也不会因为没构建而假失败。
 
 ### 覆盖率：门槛为什么钉在 100
@@ -775,7 +777,7 @@ matchMedia 不存在、单个样式表撞规则上限。这些分支在本地开
 
 ### ES5 合规为什么做进 vitest
 
-原本是独立脚本 `scripts/es5-check.mjs`，只能扫 `dist` 产物 —— 于是**必须先 build 才有东西可扫**，
+原本是独立脚本 `scripts/es5-check.mjs`，只能扫 `build` 产物 —— 于是**必须先 build 才有东西可扫**，
 而"SWC 选项写错层级被静默忽略"这类问题，恰恰应该在改代码的当下就被发现，不该等构建完。
 
 现在拆成两层，都在 `es5.test.ts` 里：
@@ -783,7 +785,7 @@ matchMedia 不存在、单个样式表撞规则上限。这些分支在本地开
 | 层       | 验什么                                                                | 要 build 吗 | 说明                                                                                                                          |
 | -------- | --------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | A 源码层 | 用 `swc.config.js` 那份**真正生效的配置**转译每个 `src/*.ts`，解析结果 | 否          | 主要防线，改一行就能验，报错精确到文件                                                                                        |
-| B 产物层 | `dist` 里 8 份真实产物                                                | 是          | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（8 skipped），不会让 `pnpm test` 变红 |
+| B 产物层 | `build` 里 8 份真实产物                                                | 是          | 打包器会自己往里塞东西（UMD wrapper、helper 内联），只验源码盖不住；没 build 时自动跳过（8 skipped），不会让 `pnpm test` 变红 |
 
 关键在于**两层共用 `swc.config.js` 里那一份 `swcOptions`**。
 如果测试里另写一套配置，它验的就是"测试自己的配置"，rollup 那边写错了照样漏 —— 那就白验了。

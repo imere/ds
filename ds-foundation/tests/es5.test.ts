@@ -21,7 +21,7 @@
  *      直接转译各包 src 下的每个 .ts，解析转译结果。
  *      不依赖 build，改一行代码就能验，报错精确到文件，这是主要防线。
  *
- *   B. 产物层（build 后才有）—— 解析 dist 里 6 份真实产物。
+ *   B. 产物层（build 后才有）—— 解析 build 里 6 份真实产物。
  *      打包器自己也会往里塞东西（UMD wrapper、helper 内联），只验源码盖不住这一层。
  *      没 build 时自动跳过，不会让 pnpm test 变红。
  *
@@ -87,27 +87,27 @@ describe('A. 源码转译后应为合法 ES5（不依赖构建）', () => {
   })
 })
 
-const distFiles = [
-  'packages/core/dist/index.js',
-  'packages/core/dist/index.umd.cjs',
-  'packages/tokens/dist/index.js',
-  'packages/tokens/dist/index.umd.cjs',
-  'packages/dom/dist/index.js',
-  'packages/dom/dist/index.umd.cjs',
-  'packages/vue2/dist/index.js',
-  'packages/vue2/dist/index.umd.cjs',
+const buildFiles = [
+  'packages/core/build/index.js',
+  'packages/core/build/index.umd.cjs',
+  'packages/tokens/build/index.js',
+  'packages/tokens/build/index.umd.cjs',
+  'packages/dom/build/index.js',
+  'packages/dom/build/index.umd.cjs',
+  'packages/vue2/build/index.js',
+  'packages/vue2/build/index.umd.cjs',
 ]
 
-function distReady(): boolean {
-  return distFiles.every((f) => {
+function buildReady(): boolean {
+  return buildFiles.every((f) => {
     return fs.existsSync(path.resolve(root, f))
   })
 }
 
-// 没构建就跳过 —— pnpm test 不该因为没有 dist 而变红。
+// 没构建就跳过 —— pnpm test 不该因为没有 build 而变红。
 // pnpm run verify 的顺序是 build 在 test 之前，那时这一层一定会真跑。
-describe.skipIf(!distReady())('B. 构建产物应为合法 ES5', () => {
-  distFiles.forEach((rel) => {
+describe.skipIf(!buildReady())('B. 构建产物应为合法 ES5', () => {
+  buildFiles.forEach((rel) => {
     it(rel, () => {
       const code = fs.readFileSync(path.resolve(root, rel), 'utf8')
       const sourceType = /\.cjs$/.test(rel) ? 'script' : 'module'
