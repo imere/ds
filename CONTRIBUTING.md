@@ -10,6 +10,11 @@ Skill（架构、单位、IE10、测试、工具链、令牌导入、四个包�
 
 ## 一、先把环境跑通
 
+需要 **Node 22+**（jsdom 30 依赖 undici 8，后者要用 Node 22 才有的
+`webidl.util.markAsUncloneable`；在 Node 20 上 jsdom 直接加载失败，
+所有 jsdom 用例一起挂，表现出来是「覆盖率暴跌」而不是「版本不对」）。
+包管理器是 pnpm 10+，`.nvmrc` 里写着 22。
+
 ```bash
 cd ds-foundation
 pnpm install          # 冷启动约 100s，之后走 store 硬链接

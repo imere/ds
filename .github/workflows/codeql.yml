@@ -20,6 +20,11 @@ jobs:
   analyze:
     name: analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    # Code scanning 要 GitHub Advanced Security。本仓库是私有库、没开 GHAS，
+    # 直接跑会报 "Code scanning is not enabled for this repository"。
+    # 所以默认跳过（与 dependency-review 同一个开关）：开了 GHAS 之后在仓库
+    # Settings → Variables 里加 ENABLE_GHAS = true 即可，不用回来改文件。
+    if: vars.ENABLE_GHAS == 'true'
     permissions:
       contents: read
       # 上传扫描结果必须要
