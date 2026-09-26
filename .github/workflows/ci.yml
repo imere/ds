@@ -31,8 +31,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 20 是还在维护的 LTS 下限，22 是开发与 CI 的默认版本。
-        node: ['20', '22']
+        # 不测 20：jsdom 30 → undici 8 要用 Node 22 才有的
+        # `webidl.util.markAsUncloneable`，在 20 上 jsdom 直接加载失败，
+        # 所有 jsdom 用例一起挂（表现出来是覆盖率暴跌，很难一眼看出是版本问题）。
+        # 22 是当前 LTS，24 是下一个 —— 加新版本时同步改这里与 package.json 的 engines。
+        node: ['22', '24']
     steps:
       - uses: actions/checkout@v4
 
