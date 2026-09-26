@@ -220,7 +220,7 @@ export function createThemeManager(options: ThemeManagerOptions): ThemeManager {
   const withClasses = o.withClasses !== false
   const channel = pickChannel(o.channel)
   // 不给 rootFontSize / keepPx 时交回 core 的默认值，不要在这里再兜一份数字
-  const unit: UnitId | undefined = o.unit
+  const { unit } = o
   const space: UnitSpace = { rootFontSize: o.rootFontSize, factors: o.factors }
 
   // 要注入 class 就得给全尺度与映射 —— 这一层同样不自带。

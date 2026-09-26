@@ -87,8 +87,9 @@ pnpm run verify     # typecheck → lint → build → coverage
 - **`pnpm install` 会被安全删除钩子拦**：pnpm 启动时要删 store 临时文件，
   环境按每轮对话计数，累计约 50 次后报 `SAFE_DELETE_BULK_CONFIRM_REQUIRED`。
   对策是**别硬试**，结束本轮让用户再发一条消息，计数重置后一次装完
-- **`coverage` 收尾清理同样会撞这个钩子**：配置里已经把 `clean` / `cleanOnRerun` /
-  `cleanAfterRun` 全关了。若命令仍非 0 退出，报告其实已经写好，
+- **`coverage` 收尾清理同样会撞这个钩子**：配置里关了 `clean` / `cleanOnRerun`，
+  但**收尾那一次关不掉** —— `cleanAfterRun` 是 provider 的方法名不是配置项，写进去会被
+  tsc 报 TS2769。若命令非 0 退出，报告其实已经写好，
   看 `build/coverage/coverage-summary.json`；要清目录用 `mv` 改名而不是 `rm -rf`
 
 ## 检查清单

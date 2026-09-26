@@ -408,7 +408,7 @@ function paintDarkShadow(src: Dict, brand: string): Dict {
  * @returns {TokenTree} 补全后的令牌树
  */
 export const defaultAlgorithm: Algorithm = (tokens, ctx) => {
-  const space = ctx.space
+  const { space } = ctx
   const color = group(tokens, 'color')
   const brand = seedStr(color, 'brand')
   const fg = seedStr(color, 'fg')
@@ -465,7 +465,7 @@ export const darkAlgorithm: Algorithm = (tokens) => {
  * @returns {TokenTree} 收紧后的令牌树
  */
 export const compactAlgorithm: Algorithm = (tokens, ctx) => {
-  const space = ctx.space
+  const { space } = ctx
   const radius = group(tokens, 'radius')
   const font = group(tokens, 'font')
   const motion = group(tokens, 'motion')
