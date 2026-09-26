@@ -23,19 +23,27 @@ updates:
           - patch
           - minor
     # major 单独走，且不限量，避免出现「永远升不上去」
-    commit-message:
-      prefix: 'chore(deps)'
-      prefix-development: 'chore(deps-dev)'
-      include: scope
     labels:
       - dependencies
     # 版本范围只加不改：本仓库刻意锁着几个版本（见下），
     # Dependabot 若自作主张改 range 会绕过那些锁。
     versioning-strategy: increase
-    # 这三项是刻意锁住的，别动：
-    #   typescript 7 是 Go 原生版，不提供 JS 编译器 API，typescript-eslint 启动即崩
-    #   （详见 ds-foundation/README.md「TS 版本锁在 6.0.3，别升 7」）
+    #
+    # commit 前缀只写 `chore`，scope 交给 `include: scope` 去补（deps / deps-dev）。
+    # 别在 prefix 里再塞一个 `(deps)`：那样拼出来是 `chore(deps-dev)(deps-dev)`，
+    # PR Title 那条检查会判成不合法标题（实测 Dependabot 开出来的 PR 全红在这一条上）。
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+      include: scope
+    #
+    # 刻意锁住的，别动：
+    #   vue 3 —— @ds/vue2 的存在意义就是支持 Vue 2，升到 3 整个包失去意义
+    #   typescript 7 —— Go 原生版不提供 JS 编译器 API，typescript-eslint 启动即崩
+    #     （详见 ds-foundation/README.md「TS 版本锁在 6.0.3，别升 7」）
     ignore:
+      - dependency-name: vue
+        versions: ['>=3']
       - dependency-name: typescript
         versions: ['>=7']
       - dependency-name: eslint

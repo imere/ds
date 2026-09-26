@@ -75,7 +75,8 @@ pnpm run coverage -- --coverage.reporter=json
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
 | es5 那 8 个用例 skipped | 没 build | 属正常；`verify` 把 build 排在测试前就是为了它 |
-| 覆盖率命令非 0 退出但报告有了 | 本机删除钩子拦了 vitest 收尾清理 | 看 `build/coverage/coverage-summary.json` 即可，别当回归；要清目录用 `mv` 不用 `rm -rf` |
+| 覆盖率命令非 0 退出但报告有了 | 本机删除钩子拦了 vitest 收尾清理（收尾那次关不掉） | 看 `build/coverage/coverage-summary.json` 即可，别当回归；要清目录用 `mv` 不用 `rm -rf` |
+| tsc 报 `cleanAfterRun` 不存在 | 它是 provider 的方法名，不是配置项 | 删掉，别加类型断言绕过 |
 | 新测试拿不到 DOM | 漏了文件头文档块 | 加 `@vitest-environment jsdom` |
 | 同文件里第二个用例被挡住 | 模块级状态 | 拆文件 |
 | 测试改了但页面没变 | 测试跑 src，示例跑 build | 改完库 `pnpm run build` |

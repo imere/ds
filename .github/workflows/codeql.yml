@@ -6,12 +6,13 @@ name: CodeQL
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   schedule:
     # 每周一 03:17 UTC。避开整点：GitHub 的定时任务在整点会排队。
     - cron: '17 3 * * 1'
 
+# 刻意不挂 pull_request：本仓库的 PR 全是 Dependabot 开的，
+# 而 Dependabot PR 拿到的 token 是只读的，写不了 security-events，
+# analyze 那一步必红。主干上跑 + 每周扫一遍已经够用。
 permissions:
   contents: read
 
@@ -21,7 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # 上传扫描结果必须要
+      # 上传扫描结果必须要
+      security-events: write
+      # 这一条不加会红：显式声明 permissions 会把没写到的全部置为 none，
+      # 而 codeql-action 要 GET 一次 workflow run 元信息，缺 actions: read 就报
+      # "Resource not accessible by integration"。
+      actions: read
     strategy:
       fail-fast: false
       matrix:

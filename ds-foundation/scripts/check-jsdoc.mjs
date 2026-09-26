@@ -104,10 +104,15 @@ function paramNames(raw) {
     // 'key: TokenKey' -> 'key'；'this: Vue' -> 略过
     const colon = seg.indexOf(':')
     if (colon !== -1 && !destructured) seg = seg.slice(0, colon)
-    seg = seg.trim().replace(/^\.\.\./, '').replace(/\?$/, '').replace(/=.*$/, '').trim()
+    seg = seg
+      .trim()
+      .replace(/^\.\.\./, '')
+      .replace(/\?$/, '')
+      .replace(/=.*$/, '')
+      .trim()
     if (!seg) continue
     if (seg === 'this') continue
-    names.push(destructured ? seg.slice(0, 12) + '…' : seg)
+    names.push(destructured ? `${seg.slice(0, 12)}…` : seg)
   }
   return names
 }
@@ -136,9 +141,10 @@ function matchHeader(line) {
 
   // function foo(a, b): Ret {   /   export function foo(...)  /   export const foo = (a) => {
   // 返回类型要能带冒号与尖括号（Promise<void>），所以这里不能用「排除冒号」的字符集
-  let hit = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([\w$]+)\s*\(([^)]*)\)\s*(?::\s*([^{;]+?))?\s*\{/.exec(
-    text
-  )
+  let hit =
+    /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([\w$]+)\s*\(([^)]*)\)\s*(?::\s*([^{;]+?))?\s*\{/.exec(
+      text
+    )
   if (hit) {
     return {
       name: hit[1],
@@ -149,9 +155,10 @@ function matchHeader(line) {
   }
 
   // const foo: Type = (a, b): Ret => {   /   const foo = function (a) {
-  hit = /^(?:export\s+)?(?:const|let|var)\s+([\w$]+)\s*(?::[^=]+)?=\s*(?:async\s+)?\(([^)]*)\)\s*(?::\s*([^{]+?))?\s*=>/.exec(
-    text
-  )
+  hit =
+    /^(?:export\s+)?(?:const|let|var)\s+([\w$]+)\s*(?::[^=]+)?=\s*(?:async\s+)?\(([^)]*)\)\s*(?::\s*([^{]+?))?\s*=>/.exec(
+      text
+    )
   if (hit) {
     return {
       name: hit[1],
@@ -162,9 +169,10 @@ function matchHeader(line) {
   }
 
   // 对象方法：foo(a, b): Ret {   —— 接口里的声明以 ; 结尾，不会命中这里
-  hit = /^(?!return\b|if\b|for\b|while\b|switch\b|catch\b|else\b|case\b)([\w$]+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)\s*(?::\s*([^{]+?))?\{\s*$/.exec(
-    text
-  )
+  hit =
+    /^(?!return\b|if\b|for\b|while\b|switch\b|catch\b|else\b|case\b)([\w$]+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)\s*(?::\s*([^{]+?))?\{\s*$/.exec(
+      text
+    )
   if (hit) {
     return {
       name: hit[1],
@@ -225,9 +233,9 @@ function checkFile(file, lines) {
     for (let p = 0; p < head.params.length; p++) {
       const name = head.params[p]
       // TS 文件里类型已经在签名上，不强求再写一遍 {type}；两种写法都算数
-      const has = new RegExp(`@param\\s+(?:\\{[^}]*\\}\\s*)?\\[?${name.replace(/[^\w$]/g, '')}`).test(
-        body
-      )
+      const has = new RegExp(
+        `@param\\s+(?:\\{[^}]*\\}\\s*)?\\[?${name.replace(/[^\w$]/g, '')}`
+      ).test(body)
       if (!has) problems.push(`${file}:${i + 1} ${head.name}() 缺 @param ${name}`)
     }
     if (head.returns !== 'void' && body.indexOf('@returns') === -1) {

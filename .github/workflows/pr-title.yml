@@ -41,6 +41,7 @@ jobs:
             scripts
             examples
             deps
+            deps-dev
             repo
           requireScope: false
           # 悬空句号、全小写开头这类细节不拦，只管结构。

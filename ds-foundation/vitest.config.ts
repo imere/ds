@@ -54,12 +54,13 @@ export default defineConfig({
       clean: false,
       cleanOnRerun: false,
       /**
-       * 收尾那一次也试着关。上面两个只管「跑之前」和「重跑时」，cleanAfterRun 管收尾的
-       * build/coverage/.tmp（一次 200+ 文件）—— 本机那个批量删除保护钩子会拦下它，
-       * 于是指令可能以非 0 退出。**报告在这之前已经写好了**，所以看到 .tmp 相关的
-       * SAFE_DELETE 报错时，去 build/coverage/ 读结果，不要当成回归。
+       * 收尾那一次**关不掉** —— `cleanAfterRun` 是 provider 内部的方法名，不是配置项，
+       * 写进去只会被忽略（vitest 5 的 CoverageOptions 里没有它，tsc 会报 TS2769）。
+       * 所以本机那个批量删除保护钩子仍可能拦下收尾时删 build/coverage/.tmp 这一步，
+       * 让命令非 0 退出。但**报告在那之前已经写好了**：
+       * 看到 SAFE_DELETE 报错就去读 build/coverage/coverage-summary.json，不要当成回归。
+       * 要清目录用 `mv` 改名，别 `rm -rf`。
        */
-      cleanAfterRun: false,
       /**
        * 门槛钉在 100，而且是四项全钉。
        *
