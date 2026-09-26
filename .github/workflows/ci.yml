@@ -37,16 +37,16 @@ jobs:
         # 22 是当前 LTS，24 是下一个 —— 加新版本时同步改这里与 package.json 的 engines。
         node: ['22', '24']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 版本写死而不是让 action 去读 packageManager：本仓库的根目录没有 package.json，
       # action 找不到就读不到 ds-foundation/package.json 里那份声明。
       # 值必须与 ds-foundation/package.json 的 packageManager 字段一致。
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.14.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
@@ -79,7 +79,7 @@ jobs:
 
       - name: 上传覆盖率报告
         if: matrix.node == '22'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: ds-foundation/build/coverage/
@@ -92,11 +92,11 @@ jobs:
     name: demo-app
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.14.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -128,11 +128,11 @@ jobs:
     name: uniappx 令牌生成
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.14.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
