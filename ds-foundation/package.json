@@ -5,6 +5,10 @@
   "type": "module",
   "description": "Design System 底层包：token / class / theme，最低支持 IE10",
   "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=20.19",
+    "pnpm": ">=10"
+  },
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "clean": "node scripts/clean.mjs",

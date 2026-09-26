@@ -1,0 +1,49 @@
+# PR 标题走 Conventional Commits。
+# 不是为了好看：本仓库的提交历史按 scope 分块（core / dom / tokens / build / docs …），
+# 标题不统一的话以后按类型回溯改动就只能靠翻 diff。
+name: PR Title
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            test
+            build
+            ci
+            docs
+            chore
+            revert
+          # scope 允许不带；带了的话必须是下面这些之一，避免随手编一个 scope。
+          scopes: |
+            core
+            tokens
+            dom
+            vue2
+            unit
+            convert
+            tests
+            scripts
+            examples
+            deps
+            repo
+          requireScope: false
+          # 悬空句号、全小写开头这类细节不拦，只管结构。
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            标题正文请小写开头（例：fix(core): 修掉派生链没读种子 shadow 的问题）

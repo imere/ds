@@ -1,0 +1,15 @@
+# 换行符统一成 LF 存进版本库。
+# 这个仓库在 Windows 上开发、在 Linux CI 上跑，不钉死的话 CRLF 会混进源码，
+# 而 tests/es5.test.ts 用 acorn 解析产物 —— 行尾差异虽然不致命，但会让 diff 全是噪音。
+* text=auto eol=lf
+
+# 明确声明二进制，别让 Git 尝试做文本转换或 diff
+*.png binary
+*.jpg binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+
+# lock 文件不参与合并冲突展示，但它必须能合并 —— 保持文本属性
+pnpm-lock.yaml text eol=lf
+package-lock.json text eol=lf

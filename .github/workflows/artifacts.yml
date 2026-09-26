@@ -1,0 +1,52 @@
+# 四个包都是 private，不发布到 npm，所以没有 release 流程。
+# 需要产物（比如把 UMD 拷进一个老工程、或给 uni-app x 用）时手工触发，
+# 从 Action 的 Artifacts 里下载，省得本地 clone + build。
+name: Build Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 要构建的 ref（分支 / tag / sha）
+        required: false
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+
+      - name: 安装依赖
+        working-directory: ds-foundation
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建（含 .d.ts）
+        working-directory: ds-foundation
+        run: pnpm run build && pnpm run dts
+
+      - name: 顺带跑一遍测试，别把坏产物传上去
+        working-directory: ds-foundation
+        run: pnpm run test
+
+      - name: 打包上传
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-build-${{ github.event.inputs.ref }}
+          path: ds-foundation/packages/*/build/
+          if-no-files-found: error
+          retention-days: 30

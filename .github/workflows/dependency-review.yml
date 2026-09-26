@@ -1,0 +1,24 @@
+# PR 里的依赖变更评审：新增依赖若带已知漏洞，或许可证不在允许清单里，直接失败。
+# 与 Dependabot 的分工：它管「已经在库里的依赖旧了」，这个管「新引进来的依赖脏」。
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          # 严重（critical）/ 高危（high）阻断，中低危只评论不拦。
+          fail-on-severity: high
+          # 本库所有依赖都是 devDependency（四个包都是 private，不发布），
+          # 但示例工程会被分发，所以许可证还是要卡：排除 copyleft 强传染的几类。
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: on-failure
