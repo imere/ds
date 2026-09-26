@@ -51,163 +51,34 @@ export interface SemanticDef {
 export interface PrimitiveOptions {
   prefix?: string | Prefix
   classPrefix?: string
-  scales?: ScaleTable
-  rules?: ScaleRuleDef[]
-  utilities?: UtilityDef[]
+  /** 以下三项必传：本包不自带尺度与命名约定，官方那一套在 @ds/tokens */
+  scales: ScaleTable
+  rules: ScaleRuleDef[]
+  utilities: UtilityDef[]
 }
 
 export interface SemanticOptions {
   prefix?: string | Prefix
   classPrefix?: string
   varPrefix?: string
-  map?: Dict<SemanticDef>
-}
-
-/** 默认 scale：primitive class 的取值域（主题无关，所以可以放死值） */
-export const DEFAULT_SCALES: ScaleTable = {
-  space: {
-    0: '0px',
-    1: '4px',
-    2: '8px',
-    3: '12px',
-    4: '16px',
-    5: '20px',
-    6: '24px',
-    7: '28px',
-    8: '32px',
-    10: '40px',
-    12: '48px',
-    16: '64px',
-  },
-  radius: { none: '0px', sm: '2px', md: '4px', lg: '8px', xl: '12px', full: '9999px' },
-  fontSize: {
-    xs: '12px',
-    sm: '13px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-    '3xl': '24px',
-  },
-  lineHeight: { tight: '1.25', snug: '1.375', normal: '1.5', relaxed: '1.625' },
-  borderWidth: { 0: '0px', 1: '1px', 2: '2px', 4: '4px' },
-  zIndex: { 0: '0', 10: '10', 20: '20', 30: '30', 40: '40', 50: '50', max: '2147483647' },
-  size: {
-    auto: 'auto',
-    full: '100%',
-    half: '50%',
-    screen: '100vw',
-    0: '0px',
-    4: '16px',
-    8: '32px',
-    12: '48px',
-    16: '64px',
-  },
+  /** 必传：语义类到令牌分组的映射属于设计决策，官方那一套在 @ds/tokens */
+  map: Dict<SemanticDef>
 }
 
 /**
- * scale 派生的 primitive 规则声明
- * prop 可以是数组，一条 class 同时写多个属性（如 px -> padding-left/right）
+ * 合并自定义 scale（浅合并到分组粒度）。
+ *
+ * 只并到分组这一层：档位才是使用方真正要改的东西（spacing.5 想改成 22px），
+ * 整组替换会逼使用方把没改的档位照抄一遍，改起来烦、也更容易抄错。
+ * base 也复制一份再返回，避免调用方拿着同一张表反复叠加越滚越大。
+ *
+ * @param {ScaleTable} base 基础 scale 表
+ * @param {ScaleTable|null} [custom] 自定义覆盖，按分组浅合并进 base
+ * @returns {ScaleTable} 合并后的新表，不改动入参
  */
-export const DEFAULT_SCALE_RULES: ScaleRuleDef[] = [
-  { prefix: 'p', prop: 'padding', scale: 'space' },
-  { prefix: 'px', prop: ['padding-left', 'padding-right'], scale: 'space' },
-  { prefix: 'py', prop: ['padding-top', 'padding-bottom'], scale: 'space' },
-  { prefix: 'pt', prop: 'padding-top', scale: 'space' },
-  { prefix: 'pr', prop: 'padding-right', scale: 'space' },
-  { prefix: 'pb', prop: 'padding-bottom', scale: 'space' },
-  { prefix: 'pl', prop: 'padding-left', scale: 'space' },
-
-  { prefix: 'm', prop: 'margin', scale: 'space' },
-  { prefix: 'mx', prop: ['margin-left', 'margin-right'], scale: 'space' },
-  { prefix: 'my', prop: ['margin-top', 'margin-bottom'], scale: 'space' },
-  { prefix: 'mt', prop: 'margin-top', scale: 'space' },
-  { prefix: 'mr', prop: 'margin-right', scale: 'space' },
-  { prefix: 'mb', prop: 'margin-bottom', scale: 'space' },
-  { prefix: 'ml', prop: 'margin-left', scale: 'space' },
-
-  { prefix: 'gap', prop: 'gap', scale: 'space' },
-  { prefix: 'rounded', prop: 'border-radius', scale: 'radius' },
-  { prefix: 'text', prop: 'font-size', scale: 'fontSize' },
-  { prefix: 'leading', prop: 'line-height', scale: 'lineHeight' },
-  { prefix: 'border', prop: 'border-width', scale: 'borderWidth' },
-  { prefix: 'z', prop: 'z-index', scale: 'zIndex' },
-  { prefix: 'w', prop: 'width', scale: 'size' },
-  { prefix: 'h', prop: 'height', scale: 'size' },
-]
-
-/**
- * 静态工具 class。
- * decls 的值是数组时按顺序全部输出 —— 这是 IE10 前缀降级的关键：
- *   display: ['-ms-flexbox', 'flex']  会输出两条，IE10 吃前者，现代浏览器吃后者。
- */
-export const DEFAULT_UTILITIES: UtilityDef[] = [
-  { name: 'flex', decls: { display: ['-ms-flexbox', 'flex'] } },
-  { name: 'inline-flex', decls: { display: ['-ms-inline-flexbox', 'inline-flex'] } },
-  { name: 'block', decls: { display: 'block' } },
-  { name: 'inline-block', decls: { display: 'inline-block' } },
-  { name: 'inline', decls: { display: 'inline' } },
-  { name: 'hidden', decls: { display: 'none' } },
-
-  { name: 'flex-row', decls: { '-ms-flex-direction': 'row', 'flex-direction': 'row' } },
-  { name: 'flex-col', decls: { '-ms-flex-direction': 'column', 'flex-direction': 'column' } },
-  { name: 'flex-wrap', decls: { '-ms-flex-wrap': 'wrap', 'flex-wrap': 'wrap' } },
-  { name: 'flex-1', decls: { '-ms-flex': '1 1 0%', flex: '1 1 0%' } },
-  { name: 'flex-none', decls: { '-ms-flex': 'none', flex: 'none' } },
-
-  { name: 'items-start', decls: { '-ms-flex-align': 'start', 'align-items': 'flex-start' } },
-  { name: 'items-center', decls: { '-ms-flex-align': 'center', 'align-items': 'center' } },
-  { name: 'items-end', decls: { '-ms-flex-align': 'end', 'align-items': 'flex-end' } },
-  { name: 'justify-start', decls: { '-ms-flex-pack': 'start', 'justify-content': 'flex-start' } },
-  { name: 'justify-center', decls: { '-ms-flex-pack': 'center', 'justify-content': 'center' } },
-  { name: 'justify-end', decls: { '-ms-flex-pack': 'end', 'justify-content': 'flex-end' } },
-  {
-    name: 'justify-between',
-    decls: { '-ms-flex-pack': 'justify', 'justify-content': 'space-between' },
-  },
-
-  { name: 'text-left', decls: { 'text-align': 'left' } },
-  { name: 'text-center', decls: { 'text-align': 'center' } },
-  { name: 'text-right', decls: { 'text-align': 'right' } },
-  { name: 'font-normal', decls: { 'font-weight': '400' } },
-  { name: 'font-medium', decls: { 'font-weight': '500' } },
-  { name: 'font-semibold', decls: { 'font-weight': '600' } },
-  { name: 'font-bold', decls: { 'font-weight': '700' } },
-  { name: 'italic', decls: { 'font-style': 'italic' } },
-  { name: 'underline', decls: { 'text-decoration': 'underline' } },
-  {
-    name: 'truncate',
-    decls: { overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' },
-  },
-
-  { name: 'relative', decls: { position: 'relative' } },
-  { name: 'absolute', decls: { position: 'absolute' } },
-  { name: 'fixed', decls: { position: 'fixed' } },
-  { name: 'overflow-hidden', decls: { overflow: 'hidden' } },
-  { name: 'overflow-auto', decls: { overflow: 'auto' } },
-  { name: 'cursor-pointer', decls: { cursor: 'pointer' } },
-  { name: 'cursor-disabled', decls: { cursor: 'not-allowed' } },
-  { name: 'border-solid', decls: { 'border-style': 'solid' } },
-]
-
-/**
- * semantic 映射：类名前缀 -> 令牌分组
- *   bg     -> color-bg-*      .ds-bg-brand  { background-color: var(--ds-color-bg-brand) }
- *   text   -> color-fg-*      .ds-text-muted{ color:            var(--ds-color-fg-muted) }
- * wrap 用于需要拼装的属性，如 ring 的 box-shadow
- */
-export const DEFAULT_SEMANTIC_MAP: Dict<SemanticDef> = {
-  bg: { prop: 'background-color', group: 'color-bg' },
-  text: { prop: 'color', group: 'color-fg' },
-  border: { prop: 'border-color', group: 'color-border' },
-  ring: { prop: 'box-shadow', group: 'color-ring', wrap: '0 0 0 2px %s' },
-  shadow: { prop: 'box-shadow', group: 'shadow' },
-}
-
-/** 合并自定义 scale（浅合并到分组粒度） */
-export function defineScales(custom?: ScaleTable | null): ScaleTable {
+export function defineScales(base: ScaleTable, custom?: ScaleTable | null): ScaleTable {
   const out: ScaleTable = {}
-  each(DEFAULT_SCALES, (v, k) => {
+  each(base, (v, k) => {
     out[String(k)] = v
   })
   each(custom || {}, (v, k) => {
@@ -216,19 +87,37 @@ export function defineScales(custom?: ScaleTable | null): ScaleTable {
   return out
 }
 
+/**
+ * 把「一个属性或多个属性」统一成数组。
+ *
+ * 用 Object.prototype.toString 而不是 Array.isArray：本包还要跑在 IE10，
+ * 跨 realm 的数组（iframe 传来的）在老引擎上 instanceof 会误判，toString 标签不会。
+ * 归一成数组后，调用方一律 for 循环展开，不必到处写 typeof 分支。
+ *
+ * @param {string|string[]} v 单个属性名或属性名数组
+ * @returns {string[]} 属性名数组
+ */
 function toArray(v: string | string[]): string[] {
   return Object.prototype.toString.call(v) === '[object Array]' ? (v as string[]) : [v as string]
 }
 
 /**
- * 生成 primitive 规则（主题无关）
+ * 生成 primitive 规则（主题无关）。
+ *
+ * 值直接写死成 scale 里的实值，不经过 var()：这一层与主题无关，
+ * 写死才能做到「一辈子只生成一份」，N 个主题共用，省下 N-1 份重复体积。
+ *
+ * scale 缺失时静默跳过而不是抛错：rules 是声明式的，
+ * 使用方可能拿一份通用规则配一张裁剪过的 scale，缺几档不该让整次构建失败。
+ *
+ * @param {PrimitiveOptions} opts 前缀、scale 表、派生规则与静态工具类
+ * @returns {CssRule[]} 规则数组，顺序为「scale 派生在前、静态工具类在后」
  */
-export function primitiveRules(opts?: PrimitiveOptions): CssRule[] {
-  opts ||= {}
+export function primitiveRules(opts: PrimitiveOptions): CssRule[] {
   const prefix = opts.classPrefix || prefixOf(opts.prefix).cls
-  const scales = opts.scales || DEFAULT_SCALES
-  const defs = opts.rules || DEFAULT_SCALE_RULES
-  const utils = opts.utilities || DEFAULT_UTILITIES
+  const { scales } = opts
+  const defs = opts.rules
+  const utils = opts.utilities
   const rules: CssRule[] = []
 
   each(defs, (def: ScaleRuleDef) => {
@@ -256,13 +145,23 @@ export function primitiveRules(opts?: PrimitiveOptions): CssRule[] {
 }
 
 /**
- * 生成 semantic 规则（主题相关，值写成 var(--ds-*)）
+ * 生成 semantic 规则（主题相关，值写成 var(--ds-*)）。
+ *
+ * 值必须是 var() 引用而非实值：这一层每个主题各一份，
+ * 写死就得为每个主题重发整段 CSS；引用变量则换主题只改 :root 里的值，零重排。
+ *
+ * 走「遍历 map × 遍历令牌」而不是反查：映射项通常只有十几个、令牌几百个，
+ * 双向扫描的常数很小，换来的是不必维护一张反向索引表。
+ * wrap 用 %s 占位（如 '0 0 0 2px %s'）是为了让阴影、描边这类复合值也能复用同一套映射。
+ *
+ * @param {Dict<string>} flat 扁平令牌表，用来决定每个映射项能派生出哪些 class
+ * @param {SemanticOptions} opts 前缀、变量前缀与语义映射表
+ * @returns {CssRule[]} 规则数组，值为 var() 引用
  */
-export function semanticRules(flat: Dict<string>, opts?: SemanticOptions): CssRule[] {
-  opts ||= {}
+export function semanticRules(flat: Dict<string>, opts: SemanticOptions): CssRule[] {
   const p = prefixOf(opts.prefix)
   const prefix = opts.classPrefix || p.cls
-  const map = opts.map || DEFAULT_SEMANTIC_MAP
+  const { map } = opts
   const varPrefix = opts.varPrefix || p.var
   const rules: CssRule[] = []
 
@@ -299,10 +198,11 @@ export interface ClassSheet {
 
 export interface BuildClassSheetOptions {
   tokens?: Dict<string>
-  scales?: ScaleTable
-  rules?: ScaleRuleDef[]
-  utilities?: UtilityDef[]
-  map?: Dict<SemanticDef>
+  /** 以下四项必传，理由同 PrimitiveOptions / SemanticOptions */
+  scales: ScaleTable
+  rules: ScaleRuleDef[]
+  utilities: UtilityDef[]
+  map: Dict<SemanticDef>
   /** 统一前缀：CSS 变量 / class / DOM 属性一起换 */
   prefix?: string | Prefix
   /** 只覆盖 class 前缀（优先于 prefix） */
@@ -316,10 +216,19 @@ export interface BuildClassSheetOptions {
 }
 
 /**
- * 一次性产出两层 class 的 CSS 文本
+ * 一次性产出两层 class 的 CSS 文本。
+ *
+ * 同时返回文本与规则数组：文本直接塞 <style>，规则留给
+ * PostCSS 插件 / SSR 内联等场景复用，避免它们再生成一遍（生成不贵，但分歧贵）。
+ * 没给 tokens 时 semantic 段返回空串而不是报错 —— 只想要 primitive 一层是合法用法。
+ *
+ * @param {BuildClassSheetOptions} opts 令牌表、scale、映射表与各类前缀开关
+ * @returns {ClassSheet} 两层的 CSS 文本与对应规则数组
+ *
+ * @example
+ * const sheet = buildClassSheet({ scales, rules, utilities, map, tokens: flat })
  */
-export function buildClassSheet(o?: BuildClassSheetOptions): ClassSheet {
-  const opts = o || {}
+export function buildClassSheet(opts: BuildClassSheetOptions): ClassSheet {
   const p = prefixOf(opts.prefix)
   const cssOpts = {
     important: opts.important,

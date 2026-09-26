@@ -21,6 +21,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@ds/core': r('./packages/core/src/index.ts'),
+      '@ds/tokens': r('./packages/tokens/src/index.ts'),
       '@ds/dom': r('./packages/dom/src/index.ts'),
       '@ds/vue2': r('./packages/vue2/src/index.ts'),
     },

@@ -71,3 +71,6 @@ _tmp_*
 
 # vitest 覆盖率输出（含被保留下来的临时目录，见 vitest.config.ts 的 clean: false）
 coverage/
+# 本机跑覆盖率时清理临时文件会被环境的批量删除保护拦下，所以产物常常写到
+# coverage-cur/ 这类旁路目录里 —— 同样是能重建的输出，一并忽略
+coverage-*/

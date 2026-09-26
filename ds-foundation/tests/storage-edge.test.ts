@@ -19,6 +19,7 @@ import {
   createThemeManager,
 } from '@ds/dom'
 import type { KeyValueStore, ThemeManager } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -220,19 +221,19 @@ describe('readTheme / bindTheme 的默认值', () => {
   })
 
   it('bindTheme 不给任何参数也能接（key 跟 manager 前缀，介质默认）', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const off = bindTheme(m)
     expect(typeof off).toBe('function')
     off()
     m.destroy()
   })
 
-  it('主题名为空时不写主题键（没注册过任何主题的情况）', () => {
+  it('没指定初始主题时落到第一个注册的，存储里写的就是它', () => {
     const s = memoryStorage()
-    // preset: false 且不给 themes —— 没有任何主题，state().theme 是空串
-    const m = createThemeManager({ preset: false, channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     bindTheme(m, { store: s })
-    expect(s.get('ds-theme')).toBeNull()
+    expect(m.state().theme).toBe('light')
+    expect(s.get('ds-theme')).toBe('light')
   })
 })
 
@@ -270,5 +271,25 @@ describe('bindTheme：订阅回调没带 payload 时', () => {
     })
     // 只有 bindTheme 自身那次同步会写；无 payload 的回调被挡掉了
     expect(writes).toEqual(['ds-theme'])
+  })
+
+  it('状态里没有主题名时不写 theme 键，只把 accent 清掉', () => {
+    const writes: string[] = []
+    const removes: string[] = []
+    const fakeManager = {
+      subscribe: () => () => {},
+      state: () => ({ theme: '', accent: '' }),
+    }
+    const s = autoStorage({
+      primary: {
+        get: () => null,
+        set: (k: string) => writes.push(k),
+        remove: (k: string) => removes.push(k),
+      },
+      secondary: memoryStorage(),
+    })
+    bindTheme(fakeManager as unknown as ThemeManager, { store: s, prefix: 'ds' })
+    expect(writes).toEqual([])
+    expect(removes).toEqual(['ds-accent'])
   })
 })

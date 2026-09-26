@@ -17,10 +17,15 @@ import { createThemeManager } from './theme'
 import type { ThemeManagerOptions, ThemeManager } from './theme'
 
 /**
- * 一行启动：createBootstrap({ themes, accents }).init()
+ * 一行启动：bootstrap({ themes, accents }).init()
  * 适合 UMD 直引场景，省去手动建注册中心。
+ *
+ * themes 是必传的 —— 这一层不自带主题，官方那两套在 @ds/tokens。
+ * @param {object} options 与 createThemeManager 完全相同的入参
+ * @returns {ThemeManager} 已 init() 过的 manager：
+ *   返回的这一刻样式已经写在页面上了
  */
-export function bootstrap(options?: ThemeManagerOptions): ThemeManager {
+export function bootstrap(options: ThemeManagerOptions): ThemeManager {
   return createThemeManager(options).init()
 }
 

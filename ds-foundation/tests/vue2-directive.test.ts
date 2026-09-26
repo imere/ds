@@ -15,6 +15,7 @@ import type { DirectiveBinding } from 'vue'
 import type { DsState } from '@ds/vue2'
 import { createThemeManager } from '@ds/dom'
 import type { ThemeManager } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 function dsOf(manager: ThemeManager): DsState {
   // 指令只读 ds.manager，其余字段用不到
@@ -33,7 +34,7 @@ beforeEach(() => {
 
 describe('vars 通道：局部换肤', () => {
   it('字符串形态 = 只换主题', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(node, { value: 'dark' } as DirectiveBinding<never>, {} as never, {} as never)
@@ -43,7 +44,7 @@ describe('vars 通道：局部换肤', () => {
   })
 
   it('对象形态 = 主题 + 强调色', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(
@@ -58,7 +59,7 @@ describe('vars 通道：局部换肤', () => {
   })
 
   it('强调色传空串时按「没有强调色」解析', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(
@@ -73,7 +74,7 @@ describe('vars 通道：局部换肤', () => {
   })
 
   it('值为空时把标记属性摘掉', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(node, { value: 'dark' } as DirectiveBinding<never>, {} as never, {} as never)
@@ -84,7 +85,7 @@ describe('vars 通道：局部换肤', () => {
   })
 
   it('同一个值不重复写（靠签名比对）', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(node, { value: 'dark' } as DirectiveBinding<never>, {} as never, {} as never)
@@ -96,8 +97,8 @@ describe('vars 通道：局部换肤', () => {
   it('换主题后清掉上一份里多出来的变量', () => {
     // 两份主题的令牌集合不同：b 比 a 少一个键
     const m = createThemeManager({
+      ...baseOpts,
       channel: 'vars',
-      preset: false,
       themes: {
         a: { mode: 'light', tokens: { color: { bg: '#fff', extra: '1px' } } },
         b: { mode: 'light', tokens: { color: { bg: '#000' } } },
@@ -114,13 +115,13 @@ describe('vars 通道：局部换肤', () => {
   })
 
   it('unbind 一个从没绑过的元素也不抛', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     expect(() => dir.unbind?.(el(), {} as never, {} as never, {} as never)).not.toThrow()
   })
 
   it('unbind 清掉内联变量并复位签名', () => {
-    const m = createThemeManager({ channel: 'vars' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(node, { value: 'dark' } as DirectiveBinding<never>, {} as never, {} as never)
@@ -135,7 +136,7 @@ describe('vars 通道：局部换肤', () => {
 
 describe('static 通道（IE10）：退化为整站切换', () => {
   it('只告警一次，并真的切了整站主题', () => {
-    const m = createThemeManager({ channel: 'static' })
+    const m = createThemeManager({ ...baseOpts, channel: 'static' })
     const dir = makeDirective(dsOf(m))
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const a = el()
@@ -152,7 +153,7 @@ describe('static 通道（IE10）：退化为整站切换', () => {
   })
 
   it('没指定主题时不切整站主题（只按强调色走）', () => {
-    const m = createThemeManager({ channel: 'static' })
+    const m = createThemeManager({ ...baseOpts, channel: 'static' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(
@@ -166,7 +167,7 @@ describe('static 通道（IE10）：退化为整站切换', () => {
   })
 
   it('强调色也一并切（accent 为空串时清掉）', () => {
-    const m = createThemeManager({ channel: 'static' })
+    const m = createThemeManager({ ...baseOpts, channel: 'static' })
     const dir = makeDirective(dsOf(m))
     const node = el()
     dir.bind?.(

@@ -14,7 +14,7 @@
  *   app-uvue 的 CSS 是 web 子集，样式不继承、选择器只认 class。
  *   所以主题值必须在别的地方落地 —— 构建期把令牌算好、落成文件，是最稳的一条。
  *
- *   这条路还有一个附带好处：@ds/core 是 private workspace 包（依赖写的是 `workspace:*`），
+ *   这条路还有一个附带好处：@ds/* 是 private workspace 包（依赖写的是 `workspace:*`），
  *   npm 装不进来。构建期脚本直接从文件路径 import 产物，绕开了整条依赖链。
  *
  * 用法（在本仓库根目录或任意位置）：
@@ -28,19 +28,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const corePath = resolve(here, '../../packages/core/dist/index.js')
+const tokensPath = resolve(here, '../../packages/tokens/dist/index.js')
 
 // node:https 之外，Windows 下动态 import 绝对路径必须转成 file:// URL
 const core = await import(pathToFileURL(corePath).href)
-const {
-  lightTheme,
-  darkTheme,
-  flattenTokens,
-  resolveVars,
-  toCssVars,
-  toScopedCss,
-  cssVarName,
-  version,
-} = core
+// 主题里的具体色值已经不在 core 里了 —— 机制在 @ds/core，值在 @ds/tokens
+const tokens = await import(pathToFileURL(tokensPath).href)
+const { lightTheme, darkTheme } = tokens
+const { flattenTokens, resolveVars, toCssVars, toScopedCss, cssVarName, version } = core
 
 const outDir = resolve(here, 'generated')
 mkdirSync(outDir, { recursive: true })

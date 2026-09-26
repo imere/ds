@@ -28,6 +28,7 @@
   "devDependencies": {
     "@ds/core": "workspace:*",
     "@ds/dom": "workspace:*",
+    "@ds/tokens": "workspace:*",
     "@ds/vue2": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",

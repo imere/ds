@@ -13,6 +13,7 @@ import { makeDirective } from '@ds/vue2'
 import type { DirectiveBinding } from 'vue'
 import type { DsState } from '@ds/vue2'
 import { createThemeManager } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -21,7 +22,7 @@ afterEach(() => {
 describe('static 通道且宿主没有 console', () => {
   it('不抛异常，也不因为找 console 而中断退化', () => {
     vi.stubGlobal('console', undefined)
-    const m = createThemeManager({ channel: 'static' })
+    const m = createThemeManager({ ...baseOpts, channel: 'static' })
     const dir = makeDirective({ manager: m } as unknown as DsState)
     const node = document.createElement('div')
 

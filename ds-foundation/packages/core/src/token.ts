@@ -89,7 +89,17 @@ export type TokenKey = keyof TokenMap | (string & {})
 
 /**
  * 声明一组令牌。本身不做转换，只做校验并原样返回，
- * 目的是让「定义」这件事在代码里显式可读。
+ * 目的是让「定义」这件事在代码里显式可读 —— 令牌在哪一层被覆盖，
+ * 站在调用处就能看出来，而不是散落在若干层 assign 里靠猜。
+ *
+ * 之所以要抛错而不是静默接受：非普通对象（数组、class 实例、null）
+ * 在后续拍平时会得到一堆无意义的键，早失败比晚调试便宜。
+ *
+ * @param {T} tokens 嵌套书写的令牌树
+ * @returns {T} 原样返回入参，泛型保留字面量类型，便于后续按键取值
+ *
+ * @example
+ * const brand = defineTokens({ color: { brand: '#4f46e5' } })
  */
 export function defineTokens<T extends TokenTree>(tokens: T): T {
   if (!isPlainObject(tokens)) {
@@ -99,7 +109,18 @@ export function defineTokens<T extends TokenTree>(tokens: T): T {
 }
 
 /**
- * 嵌套对象拍平：{ color: { bgSubtle: '#fff' } } -> { 'color-bg-subtle': '#fff' }
+ * 嵌套对象拍平：{ color: { bgSubtle: '#fff' } } -> { 'color-bg-subtle': '#fff' }。
+ *
+ * 拍平是刻意的：CSS 自定义属性没有层级概念，扁平键才能直接拼成 --ds-color-bg-subtle；
+ * 同时「按前缀取子集」「按主题整表替换」都退化成普通字典操作，不必再递归。
+ *
+ * prefix 与 out 暴露出来只为递归服务：每层沿用同一个 result，
+ * 既省掉逐层建对象再合并的分配开销，也避免同名键被后来的空对象覆盖。
+ *
+ * @param {TokenTree} obj 待拍平的嵌套令牌树
+ * @param {string} [prefix] 递归累积的键前缀，外部直接调用时一般不传
+ * @param {FlatTokens} [out] 复用的结果容器，传入时键值对直接写进这个对象
+ * @returns {FlatTokens} 扁平后的令牌表
  */
 export function flattenTokens(obj: TokenTree, prefix?: string, out?: FlatTokens): FlatTokens {
   const result = out || {}
@@ -117,7 +138,17 @@ export function flattenTokens(obj: TokenTree, prefix?: string, out?: FlatTokens)
   return result
 }
 
-/** 把扁平键还原成嵌套对象：'color-bg' -> { color: { bg } } */
+/**
+ * 把扁平键还原成嵌套对象：'color-bg' -> { color: { bg } }。
+ *
+ * 存在的理由是「给人看」—— 扁平表适合拼 CSS，但按分组浏览、出文档、
+ * 导出 JSON 预览时嵌套更接近书写习惯。注意它是有损的：
+ * 短横线一律当层级切分，'font-family' 会被拆成 font.family，
+ * 所以别拿它做「拍平 -> 还原」的往返，往返请用 mergeTree 直接并树。
+ *
+ * @param {FlatTokens} flat 扁平令牌表
+ * @returns {TokenTree} 还原出的嵌套令牌树
+ */
 export function unflattenTokens(flat: FlatTokens): TokenTree {
   const out: TokenTree = {}
   for (const key in flat) {
@@ -136,6 +167,13 @@ export function unflattenTokens(flat: FlatTokens): TokenTree {
 /**
  * 合并多组令牌，后者覆盖前者。
  * 用于「主题 <- 强调色 <- 手动覆盖」的叠加顺序。
+ *
+ * 入参一律先拍平再合并：调用方可能递嵌套树，也可能递拍平表，混着传也能拿到
+ * 正确的覆盖顺序，不必要求调用方先自己拍平一次 —— 少一个「忘了拍平」的坑。
+ * null / undefined 直接跳过，让「条件性地加一层覆盖」写成三元表达式也不炸。
+ *
+ * @param {Array<TokenTree|FlatTokens|null|undefined>} sources 按优先级由低到高的令牌源
+ * @returns {FlatTokens} 合并后的扁平令牌表
  */
 export function mergeTokens(
   ...sources: Array<TokenTree | FlatTokens | null | undefined>
@@ -156,6 +194,13 @@ export function mergeTokens(
  * 会同时存在，unflatten 时前者要写 color.brand = '#fff'（字符串），
  * 后者要写 color.brand = { hover }（对象）—— 一个键不可能两种形态，
  * 谁后写谁覆盖，另一个键就凭空消失了。所以树对树必须直接深合并。
+ *
+ * 只有两端都是普通对象才往下钻：base 里是字符串、patch 里是对象时直接替换，
+ * 因为「半个对象」没有意义，硬凑只会得到谁也读不懂的中间态。
+ *
+ * @param {TokenTree|null} [base] 基础树，缺省视为空树
+ * @param {TokenTree|null} [patch] 覆盖树，缺省视为空树
+ * @returns {TokenTree} 全新的合并结果，不改动任何入参
  */
 export function mergeTree(base?: TokenTree | null, patch?: TokenTree | null): TokenTree {
   const out: TokenTree = {}
@@ -177,7 +222,19 @@ export function mergeTree(base?: TokenTree | null, patch?: TokenTree | null): To
   return out
 }
 
-/** 只取某个前缀下的令牌，例如 pickTokens(flat, 'color') */
+/**
+ * 只取某个前缀下的令牌，例如 pickTokens(flat, 'color')。
+ *
+ * 返回的键已经剥掉前缀（'color-bg' -> 'bg'），因为取子集通常是为了交给某个
+ * 「只认短名」的下游（比如一个只画颜色色卡的调试面板），留着前缀反而要再剥一次。
+ *
+ * @param {FlatTokens} flat 扁平令牌表
+ * @param {string} group 分组前缀，不带尾部短横线
+ * @returns {FlatTokens} 该分组下的令牌，键已去掉前缀
+ *
+ * @example
+ * pickTokens({ 'color-bg': '#fff', 'radius-md': '6px' }, 'color') // { bg: '#fff' }
+ */
 export function pickTokens(flat: FlatTokens, group: string): FlatTokens {
   const out: FlatTokens = {}
   const head = `${group}-`

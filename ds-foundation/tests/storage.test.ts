@@ -24,9 +24,10 @@ import {
   restoreScript,
 } from '@ds/dom'
 import type { KeyValueStore } from '@ds/dom'
+import { baseOpts } from './fixtures'
 
 function freshManager(theme?: string) {
-  return createThemeManager({ channel: 'vars', theme: theme || 'light' })
+  return createThemeManager({ ...baseOpts, channel: 'vars', theme: theme || 'light' })
 }
 
 describe('A. 核心默认不碰存储', () => {
@@ -212,7 +213,7 @@ describe('D. readTheme / bindTheme 组合器', () => {
 
   it('强调色为空时会把旧值删掉，不会留下脏数据', () => {
     const store = memoryStorage()
-    const m = createThemeManager({ channel: 'vars', theme: 'light', accent: 'indigo' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light', accent: 'indigo' })
     bindTheme(m, { store })
     m.init()
     expect(store.get('ds-accent')).toBe('indigo')
@@ -249,7 +250,7 @@ describe('D. readTheme / bindTheme 组合器', () => {
 
   it('前缀会把默认 key 也换掉', () => {
     const store = memoryStorage()
-    const m = createThemeManager({ channel: 'vars', theme: 'light', prefix: 'acme' })
+    const m = createThemeManager({ ...baseOpts, channel: 'vars', theme: 'light', prefix: 'acme' })
     bindTheme(m, { store })
     m.init()
     expect(store.get('acme-theme')).toBe('light')

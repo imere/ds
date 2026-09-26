@@ -19,6 +19,7 @@ export default defineConfig({
       // npm 的 file: 依赖解析不了那个协议，所以不走 node_modules，走别名。
       // 代价：改完库要重新 pnpm build，这里才会生效。
       '@ds/core': ds('core'),
+      '@ds/tokens': ds('tokens'),
       '@ds/dom': ds('dom'),
       '@ds/vue2': ds('vue2'),
     },
