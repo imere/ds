@@ -42,3 +42,17 @@
 - PR 上的 Dependency Review 会拦住带高危漏洞的新依赖。
 - 全部依赖都是 devDependency，不进运行时产物 —— 所以依赖漏洞的影响面是**开发机与 CI**，
   不是最终用户。这不影响我们修的优先级排序：CI 上能执行的任何东西都算攻击面。
+
+### 已接受的依赖风险（有告警，但不修）
+
+这几条会在 Dependabot 里长期挂着，**不是漏修**：
+
+| 告警 | 包 | 为什么不修 |
+| --- | --- | --- |
+| GHSA-5j4c-8p2g-v4jx（low，ReDoS） | `vue` 2.7.x | 影响范围是 Vue 2 **全线**（修复只在 `3.0.0-alpha.0` 之后），而 `@ds/vue2` 的存在意义就是支持 Vue 2。本仓库里 vue 只是 devDependency（跑测试用），触发 ReDoS 需要攻击者可控的模板字符串，测试里不存在 |
+| GHSA-g3ch-rx76-35fx（medium，XSS） | `vue-template-compiler` 2.7.x | 同上，只影响 Vue 2 全线，没有更高版本可升。它由 `@vue/test-utils@1` 引入（Vue 2 的测试工具没有 v2 以上），只在测试期用 |
+
+判断依据是「**能不能升**」而不是「严不严重」：有补丁的就升，没补丁且只影响开发期的就记下来。
+升级路径也走完了 —— `examples/demo-app` 的 vite 5 / vitest 2 已不在维护线，
+已升到 vite 7.3.5+ / vitest 4.1.11，并用 `overrides` 把 `js-beautify → glob`
+钉到 10.5.0（10.4.x 有命令注入漏洞）。
