@@ -1,7 +1,7 @@
 /**
  * 用法二：ESM（现代浏览器 / Vite / webpack / rollup）
  * -------------------------------------------------------------
- * 这里刻意用相对路径引 dist，所以不需要任何打包器，起个静态服务就能跑。
+ * 这里刻意用相对路径引 build，所以不需要任何打包器，起个静态服务就能跑。
  * 真实工程里直接写裸包名即可：
  *   import { createThemeManager } from '@ds/dom'
  *   import { buildClassSheet, resolveVars } from '@ds/core'
@@ -14,8 +14,8 @@ import {
   lightTheme,
   darkTheme,
   accents,
-} from '../../packages/core/dist/index.js'
-import { createThemeManager, readTheme, bindTheme } from '../../packages/dom/dist/index.js'
+} from '../../packages/core/build/index.js'
+import { createThemeManager, readTheme, bindTheme } from '../../packages/dom/build/index.js'
 
 // 持久化是可选的：不调 bindTheme 就完全不碰 localStorage / cookie。
 // 想记住用户的选择，就显式接上去：先读回来当初始值，再订阅变化写回去。

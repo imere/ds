@@ -27,8 +27,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const corePath = resolve(here, '../../packages/core/dist/index.js')
-const tokensPath = resolve(here, '../../packages/tokens/dist/index.js')
+const corePath = resolve(here, '../../packages/core/build/index.js')
+const tokensPath = resolve(here, '../../packages/tokens/build/index.js')
 
 // node:https 之外，Windows 下动态 import 绝对路径必须转成 file:// URL
 const core = await import(pathToFileURL(corePath).href)

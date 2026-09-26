@@ -293,7 +293,7 @@ export function toPx(value: unknown, space?: UnitSpace): number {
  * @param {UnitSpace} space 换算上下文
  * @returns {string} 带单位的 CSS 长度字符串
  */
-export function length(n: number, unit: UnitId, space?: UnitSpace): string {
+export function length(n: number, unit?: UnitId, space?: UnitSpace): string {
   const u = String(unit || 'px')
   const px = n > 0 ? n : 0
   const f = factorOf(u, space)

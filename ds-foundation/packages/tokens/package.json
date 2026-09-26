@@ -4,21 +4,21 @@
   "private": true,
   "type": "module",
   "description": "官方设计令牌集：明暗主题、强调色板、派生种子、断点与工具类尺度。机制在 @ds/core，值在这里",
-  "types": "dist/index.d.ts",
-  "main": "dist/index.umd.cjs",
-  "module": "dist/index.js",
-  "browser": "dist/index.js",
-  "unpkg": "dist/index.umd.cjs",
+  "types": "build/index.d.ts",
+  "main": "build/index.umd.cjs",
+  "module": "build/index.js",
+  "browser": "build/index.js",
+  "unpkg": "build/index.umd.cjs",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.umd.cjs",
-      "default": "./dist/index.umd.cjs"
+      "import": "./build/index.js",
+      "require": "./build/index.umd.cjs",
+      "default": "./build/index.umd.cjs"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "dist",
+    "build",
     "src"
   ],
   "sideEffects": false,

@@ -4,7 +4,7 @@ Design System 底层的**纯逻辑层**：令牌、主题、class 规则、CSS �
 
 - **不碰 DOM**，不依赖任何框架 —— 浏览器、Node、Web Worker 都能跑
 - **全 ES5**，源码层面就避开 `Object.assign` / `Array.includes` / `Set` / `Map` / `Promise`
-- 产物 `dist/index.js`（ESM）+ `dist/index.umd.cjs`（UMD，自带 CommonJS 分支）
+- 产物 `build/index.js`（ESM）+ `build/index.umd.cjs`（UMD，自带 CommonJS 分支）
 
 包是 `"type": "module"`，所以 UMD 那份必须叫 `.cjs`：Node 见到 `.js` 会按 ESM 解析，UMD 里的 `module.exports` 会直接报 `require() of ES Module`。
 

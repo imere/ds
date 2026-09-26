@@ -4,7 +4,7 @@ Design System 底层的**双通道适配层**：把令牌真正落到页面上�
 
 这是整套里**唯一判断浏览器的地方** —— `@ds/core` 与业务代码都对通道无感。
 
-- 产物 `dist/index.js` + `dist/index.umd.cjs`
+- 产物 `build/index.js` + `build/index.umd.cjs`
 - 全 ES5，最低 IE10
 - 包是 `"type": "module"`，UMD 那份叫 `.cjs`（`.js` 会被 Node 当 ESM 解析）
 
@@ -32,8 +32,8 @@ ds.use('dark')
 UMD 直引：
 
 ```html
-<script src=".../core/dist/index.umd.cjs"></script>
-<script src=".../dom/dist/index.umd.cjs"></script>
+<script src=".../core/build/index.umd.cjs"></script>
+<script src=".../dom/build/index.umd.cjs"></script>
 <script>
   var ds = DsDom.bootstrap({ theme: 'light' })
 </script>
