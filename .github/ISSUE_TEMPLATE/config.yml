@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 用法问题先看架构文档
+    url: https://github.com/imere/ds/blob/main/ds-foundation/docs/architecture.md
+    about: 包怎么分层、令牌怎么流动、每条设计决策为什么这么定，都写在这里。用法手册是 ds-foundation/README.md。
+  - name: 安全问题
+    url: https://github.com/imere/ds/security/advisories/new
+    about: 别开公开 issue，走私有安全公告（SECURITY.md 里写了流程）。

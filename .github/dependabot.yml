@@ -1,0 +1,65 @@
+# 依赖更新。两条规则：一条管 npm，一条管 GitHub Actions。
+# 本仓库四个包都是 private（不发布），所以版本更新的意义不是「升版本」，
+# 而是「早点发现新版本会不会把 IE10 产物搞坏」—— 这正是 CI 存在的理由。
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /ds-foundation
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    # 全部依赖都归到一组：本仓库装了 30 来个 devDependency，
+    # 一个包一个 PR 的话每周要处理十几个，没人真会逐个看。
+    groups:
+      dev-dependencies:
+        patterns:
+          - '*'
+        # 只有 patch / minor 进组；major 单独开 PR，它可能真的改行为。
+        update-types:
+          - patch
+          - minor
+    # major 单独走，且不限量，避免出现「永远升不上去」
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+      include: scope
+    labels:
+      - dependencies
+    # 版本范围只加不改：本仓库刻意锁着几个版本（见下），
+    # Dependabot 若自作主张改 range 会绕过那些锁。
+    versioning-strategy: increase
+    # 这三项是刻意锁住的，别动：
+    #   typescript 7 是 Go 原生版，不提供 JS 编译器 API，typescript-eslint 启动即崩
+    #   （详见 ds-foundation/README.md「TS 版本锁在 6.0.3，别升 7」）
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=7']
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: vitest
+        update-types: ['version-update:semver-major']
+    reviewers:
+      - imere
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: 'ci'
+      include: scope
+    labels:
+      - dependencies
+      - ci

@@ -1,0 +1,65 @@
+# 按改动路径自动打标签（配合 .github/workflows/labeler.yml）。
+# 粒度按「包」而不是按「文件类型」—— 这个仓库的问题从来都是「哪一层错了」，
+# 不是「这是 .ts 还是 .md」。
+core:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/core/**
+
+tokens:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/tokens/**
+
+dom:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/dom/**
+
+vue2:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/vue2/**
+
+unit:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/core/src/unit.ts
+
+convert:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/packages/core/src/convert.ts
+
+ie10:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ds-foundation/swc.config.js
+          - ds-foundation/eslint.config.js
+          - ds-foundation/tests/es5.test.ts
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/tests/**
+
+examples:
+  - changed-files:
+      - any-glob-to-any-file: ds-foundation/examples/**
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ds-foundation/docs/**
+          - ds-foundation/README.md
+          - ds-foundation/packages/*/README.md
+          - '**/*.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - ds-foundation/rollup.config.js
+          - ds-foundation/vitest.config.ts
+          - ds-foundation/tsconfig*.json
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ds-foundation/package.json
+          - ds-foundation/packages/*/package.json
+          - ds-foundation/pnpm-lock.yaml
+          - ds-foundation/pnpm-workspace.yaml

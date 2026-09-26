@@ -1,0 +1,12 @@
+# CodeQL 扫描范围（被 .github/workflows/codeql.yml 引用）。
+#
+# 只扫库本体：examples/ 下的东西是接线样例，不是要发布的代码，
+# 扫它们只会让告警列表里混进示例工程的写法问题。
+name: ds-foundation CodeQL config
+
+paths:
+  - ds-foundation/packages
+  - ds-foundation/scripts
+
+# 默认查询档（security）而不是 security-and-quality：
+# 后者会刷一大堆风格建议，对这个仓库噪音大过收益。

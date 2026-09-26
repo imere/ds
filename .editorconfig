@@ -1,0 +1,21 @@
+# 编辑器层的最小共识。格式化本身由 Prettier 管（选项写在 eslint.config.js 的
+# prettierOptions 里），这里只管 Prettier 不管的东西：换行符、结尾空行、缩进风格。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown 里行尾两个空格是换行，不能裁
+[*.md]
+trim_trailing_whitespace = false
+
+# ssr.ts 里那段防闪烁脚本是字符串，缩进不影响产物，但保持可读
+[*.{yml,yaml}]
+indent_size = 2
+
+# Windows 上 Makefile 一类对 tab 敏感的文件这里没有，规则留空即可

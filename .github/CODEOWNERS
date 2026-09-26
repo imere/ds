@@ -1,0 +1,12 @@
+# 谁必须看。目前只有一个 owner，写全路径而不是一行 `*`，
+# 是为了以后按包拆人时直接改这里，不用重写规则。
+#
+# 顺序有意义：GitHub 用**最后**一条匹配的规则，所以具体的写在笼统的后面。
+
+/.github/                @imere
+/ds-foundation/packages/ @imere
+/ds-foundation/tests/    @imere
+/ds-foundation/scripts/  @imere
+/ds-foundation/docs/     @imere
+
+*                        @imere

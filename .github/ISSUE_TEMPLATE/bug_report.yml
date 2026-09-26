@@ -1,0 +1,89 @@
+name: Bug
+description: 库的行为不对（不是「我想要个新功能」）
+title: 'fix: '
+labels: [bug, needs-repro]
+body:
+  - type: markdown
+    value: |
+      报 bug 前请先确认你跑的是**最新产物**：
+      本仓库的示例工程靠别名指向 `packages/*/build`，改完库没重跑 `pnpm run build`
+      会出现「代码改了但页面没变」，那不是 bug。
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 提交 sha 或分支；四个包是 private workspace 包，没有 npm 版本号
+      placeholder: 3f36075 / main
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: 出在哪个包
+      options:
+        - '@ds/core'
+        - '@ds/tokens'
+        - '@ds/dom'
+        - '@ds/vue2'
+        - 示例工程（demo-app / uniappx）
+        - 工程化（构建 / 测试 / CI）
+        - 不确定
+    validations:
+      required: true
+
+  - type: dropdown
+    id: channel
+    attributes:
+      label: CSS 通道
+      description: 只在对 @ds/dom 报障时才需要；`pickChannel()` 的返回值写进控制台
+      options:
+        - 不确定 / 与通道无关
+        - vars（现代浏览器，写 CSS 变量）
+        - static（IE10，写死实值）
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 最小复现
+      description: |
+        能给一段代码就别给一段描述。最理想的是「改哪一行 + 期望值 + 实际值」。
+      placeholder: |
+        ```js
+        const ds = createThemeManager({ ... })
+        ds.use('dark')
+        ds.get('color-brand')  // 期望 '#6366f1'，实际 '#4f46e5'
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expect
+    attributes:
+      label: 期望行为与实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境
+      description: 浏览器与版本 / Node 版本 / 是否 SSR。IE10 相关的问题必须写清是真机还是模拟
+      placeholder: |
+        - 浏览器：Chrome 141 / IE10 虚拟机
+        - Node：22.22.2
+        - SSR：否
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: 已经排除的
+      options:
+        - label: 重新 `pnpm run build` 后仍然复现
+        - label: `pnpm run verify` 在本地是绿的（说明不是我叫错了 API，而是库的行为确实不对）
+        - label: 令牌表里真的有这个 key（`ds.tokens()` 里看得到，不是前缀拼错）

@@ -12,7 +12,11 @@ Design System 底层包：**token / class / theme**，最低支持 **IE10**（�
 | `@ds/vue2`   | `Vue.use()`、响应式令牌、`v-ds-theme`                  | `@ds/core` `@ds/dom` | 同上                         |
 
 四个包都是 `"type": "module"`，ESM 产物叫 `index.js`、UMD 产物叫 `index.umd.cjs`（原因见文末）。
-每个子包自带 `README.md` 与 `skills/<包名>/SKILL.md`。
+每个子包自带 `README.md`。
+
+> 给 Agent 看的操作指南不在这里，在仓库根的 **[`.agents/skills/`](../.agents/skills/)** ——
+> 按主题拆成了 11 份（总览 / 四个包各一份 / 单位 / IE10 / 测试 / 工具链 / 令牌导入 / uni-app x），
+> 本文件与 `docs/architecture.md` 是它们的出处。
 
 > 包怎么分层、令牌怎么流动、单位怎么走、每条设计决策为什么这么定，见
 > **[docs/architecture.md](docs/architecture.md)**。本文是用法手册。
@@ -483,7 +487,7 @@ ds-foundation/
 │  ├─ dom/src/     env / style / emitter / theme / ssr / storage                     (.ts)
 │  ├─ vue2/        state / directive / index                                         (.ts)
 │  ├─ */build/     产物：每个包自己的 ESM + UMD + .d.ts（能重建，不入版本库）
-│  └─ */skills/    每个包一个 SKILL.md，讲自己这层的用法与踩坑
+│  └─ */README.md  每个包一份用法说明
 ├─ build/          仓库级产物：覆盖率报告（vitest.config.ts 的 reportsDirectory）
 ├─ examples/       umd / esm / vue2（最小用法）+ demo-app/（完整演示项目，见下）
 ├─ tests/          一个模块一个 .test.ts（vitest，701 项；门槛 100% 覆盖率）

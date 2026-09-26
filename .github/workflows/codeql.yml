@@ -1,0 +1,41 @@
+# 代码扫描。JS/TS 场景 CodeQL 能抓的多是「污点从哪流到哪」这类问题，
+# 对本库（纯函数 + 字符串拼 CSS）命中率不高，但它是免费的常驻哨兵，
+# 而且开了之后 GitHub 的安全概览页才有数据。
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 03:17 UTC。避开整点：GitHub 的定时任务在整点会排队。
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # 上传扫描结果必须要
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          language: ${{ matrix.language }}
+          # 库本体只占仓库的一半，另一半是示例工程；只扫 packages 与 scripts。
+          # queries 用默认档：security-and-quality 会刷一堆风格建议，噪音大过收益。
+          config-file: .github/codeql-config.yml
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

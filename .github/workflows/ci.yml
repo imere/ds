@@ -1,0 +1,151 @@
+# 核心门禁：类型 → 格式/兼容 → 构建 → 测试与覆盖率。
+#
+# 顺序不能改：tests/es5.test.ts 的 B 层（产物层）验的是 packages/*/build 里的真实产物，
+# 没 build 时那 8 个用例会自动跳过 —— 先跑测试等于只验了一半。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 最小权限原则：这个 workflow 只读代码、只传 artifact。
+permissions:
+  contents: read
+
+# 同一分支上连续推送时，掐掉还在排队的那一次，只留最新的跑。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ds-foundation
+
+jobs:
+  verify:
+    name: verify (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 是还在维护的 LTS 下限，22 是开发与 CI 的默认版本。
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      # 版本写死而不是让 action 去读 packageManager：本仓库的根目录没有 package.json，
+      # action 找不到就读不到 ds-foundation/package.json 里那份声明。
+      # 值必须与 ds-foundation/package.json 的 packageManager 字段一致。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+
+      # --frozen-lockfile：CI 里 lock 与 package.json 不一致就直接失败，
+      # 而不是悄悄更新 lock 后把「我这边能跑」的假象带进主干。
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 类型检查（源码 + 测试两个 project）
+        run: pnpm run typecheck
+
+      - name: ESLint（含 Prettier 格式与 IE10 API 兼容）
+        run: pnpm run lint
+
+      # 全函数 JSDoc 门禁：描述 + @param + @returns 缺一即失败。
+      - name: JSDoc 完整性
+        run: node scripts/check-jsdoc.mjs
+
+      - name: 构建（SWC 降 ES5 + Rollup 出 ESM/UMD）
+        run: pnpm run build
+
+      - name: 声明文件
+        run: pnpm run dts
+
+      # 跑的是 coverage 而不是 test：门槛钉在 100%，等于每次都验。
+      - name: 测试与覆盖率（门槛 100%）
+        run: pnpm run coverage
+
+      - name: 上传覆盖率报告
+        if: matrix.node == '22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ds-foundation/build/coverage/
+          if-no-files-found: error
+          retention-days: 7
+
+  # 示例工程不进库自身的 lint / typecheck / test，所以单独跑。
+  # 它靠 vite 别名指向 packages/*/build，必须先出库产物。
+  demo-app:
+    name: demo-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+
+      - name: 安装库依赖
+        working-directory: ds-foundation
+        run: pnpm install --frozen-lockfile
+
+      - name: 出库产物
+        working-directory: ds-foundation
+        run: pnpm run build
+
+      # demo-app 是独立的 npm 工程（有自己的 package-lock.json），别用 pnpm 装。
+      - name: 安装示例依赖
+        working-directory: ds-foundation/examples/demo-app
+        run: npm ci
+
+      - name: 示例测试
+        working-directory: ds-foundation/examples/demo-app
+        run: npm test
+
+      - name: 示例构建
+        working-directory: ds-foundation/examples/demo-app
+        run: npm run build
+
+  # 构建期生成的令牌文件是提交进版本库的，所以能验「生成结果是否可复现」。
+  uniappx:
+    name: uniappx 令牌生成
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+
+      - name: 安装依赖
+        working-directory: ds-foundation
+        run: pnpm install --frozen-lockfile
+
+      - name: 出库产物（脚本直接 import build/index.js）
+        working-directory: ds-foundation
+        run: pnpm run build
+
+      - name: 重新生成并比对
+        working-directory: ds-foundation
+        run: |
+          node examples/uniappx/gen-tokens.mjs
+          git diff --exit-code -- examples/uniappx/generated
+      # 上面这条失败只有两种可能：改了令牌/种子却没重跑脚本，或脚本本身不稳定。
