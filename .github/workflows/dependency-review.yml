@@ -19,8 +19,8 @@ jobs:
     # ENABLE_GHAS = true 就自动启用，不用回来改文件。
     if: vars.ENABLE_GHAS == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
         with:
           # 严重（critical）/ 高危（high）阻断，中低危只评论不拦。
           fail-on-severity: high
