@@ -35,7 +35,7 @@
     "@ds/tokens": "workspace:*",
     "@ds/vue2": "workspace:*",
     "@eslint/js": "^10.0.1",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-swc": "^0.4.1",
     "@swc/core": "^1.16.2",
     "@swc/helpers": "^0.5.23",
