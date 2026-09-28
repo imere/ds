@@ -3,7 +3,7 @@
 给 AI Agent / 新人用的操作指南。每一份都是「触发条件 + 工作流 + 决策表 + 硬规则 + 坑表 +
 检查清单」，不是说明文 —— 目标是照着做完一件事，不是读完懂一个设计。
 
-出处是 `ds-foundation/README.md`、`ds-foundation/docs/architecture.md` 与各 `examples/` 下的
+出处是 `README.md`、`docs/architecture.md` 与各 `examples/` 下的
 接入文档。**改了那些文档，对应的 Skill 也要跟着改。**
 
 ## 索引

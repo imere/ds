@@ -6,7 +6,7 @@ agent_created: true
 
 # ds-foundation
 
-Design System 底层包，兼容基线 **IE10**。代码都在 `ds-foundation/` 下，命令都在这个目录跑。
+Design System 底层包，兼容基线 **IE10**。代码都在仓库根（仓库名 ds，workspace 名 ds-foundation），命令也在根跑。
 
 ## 何时使用
 

@@ -121,13 +121,12 @@ core 里不许出现具体色值、具体断点数字、具体尺度表。唯一
 ```
 .github/            CI / Dependabot / issue 与 PR 模板 / labeler
 .agents/skills/     给 Agent 看的操作指南（本文件的结构化版本）
-ds-foundation/
-├─ packages/core/     算法：token / theme / derive / class / output / unit / convert
-├─ packages/tokens/   值：theme / accent / seed / breakpoint / scale
-├─ packages/dom/      运行时：注入 / 双通道 / SSR / 存储
-├─ packages/vue2/     框架绑定：插件 / 响应式状态 / 指令
-├─ docs/              架构文档（含设计决策记录）
-├─ examples/          umd / esm / vue2 最小示例 + demo-app + uniappx
-├─ tests/             一个模块一个 .test.ts
-└─ scripts/           clean / serve / dts / inline-examples / convert-tokens / check-jsdoc
+packages/core/      算法：token / theme / derive / class / output / unit / convert
+packages/tokens/    值：theme / accent / seed / breakpoint / scale
+packages/dom/       运行时：注入 / 双通道 / SSR / 存储
+packages/vue2/      框架绑定：插件 / 响应式状态 / 指令
+docs/               架构文档（含设计决策记录）
+examples/           umd / esm / vue2 最小示例 + demo-app + uniappx
+tests/              一个模块一个 .test.ts
+scripts/            clean / serve / dts / inline-examples / convert-tokens / check-jsdoc
 ```

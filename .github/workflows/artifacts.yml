@@ -29,24 +29,21 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
-          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: 安装依赖
-        working-directory: ds-foundation
         run: pnpm install --frozen-lockfile
 
       - name: 构建（含 .d.ts）
-        working-directory: ds-foundation
         run: pnpm run build && pnpm run dts
 
       - name: 顺带跑一遍测试，别把坏产物传上去
-        working-directory: ds-foundation
         run: pnpm run test
 
       - name: 打包上传
         uses: actions/upload-artifact@v4
         with:
           name: ds-build-${{ github.event.inputs.ref }}
-          path: ds-foundation/packages/*/build/
+          path: packages/*/build/
           if-no-files-found: error
           retention-days: 30

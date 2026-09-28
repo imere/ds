@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue2'
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url))
-// 本目录是 ds-foundation/examples/demo-app，库产物在 ../../packages/*/build。
+// 本目录是 examples/demo-app，库产物在 ../../packages/*/build。
 // 走别名而不是 node_modules：三个包都是 private 且依赖写 workspace: 协议，
 // npm / pnpm 都装不进来。代价是改完库要重新在仓库根跑 `pnpm build`。
 const ds = (pkg) => r(`../../packages/${pkg}/build/index.js`)
@@ -14,7 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': r('./src'),
-      // ds-foundation 是同仓库的另一个项目，用 pnpm workspace + rollup 自行构建，
+      // 库本体在同仓库的 packages/ 下，用 pnpm workspace + rollup 自行构建，
       // 产物（ESM）直接指过来。三个包各自 private 且依赖里写的是 workspace: 协议，
       // npm 的 file: 依赖解析不了那个协议，所以不走 node_modules，走别名。
       // 代价：改完库要重新 pnpm build，这里才会生效。

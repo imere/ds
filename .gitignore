@@ -16,7 +16,7 @@ build/
 # ---- 生成的单文件示例 ----
 # 由 scripts/inline-examples.mjs 产出，一条命令重建：
 #   pnpm run examples:standalone
-# 规则要写 **/ 开头：这两个文件在 ds-foundation/examples/ 下，
+# 规则要写 **/ 开头：这两个文件在 examples/ 下，
 # 不带前缀的话 git 只会拿去匹配仓库根的 examples/，等于没生效
 **/examples/*/standalone.html
 

@@ -3,10 +3,10 @@
 #
 # 顺序有意义：GitHub 用**最后**一条匹配的规则，所以具体的写在笼统的后面。
 
-/.github/                @imere
-/ds-foundation/packages/ @imere
-/ds-foundation/tests/    @imere
-/ds-foundation/scripts/  @imere
-/ds-foundation/docs/     @imere
+/.github/   @imere
+/packages/  @imere
+/tests/     @imere
+/scripts/   @imere
+/docs/      @imere
 
 *                        @imere

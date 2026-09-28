@@ -6,7 +6,7 @@ agent_created: true
 
 # 构建与仓库运维
 
-所有命令在 `ds-foundation/` 下跑。
+所有命令在仓库根跑。
 
 ## 何时使用
 
