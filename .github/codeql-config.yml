@@ -5,8 +5,8 @@
 name: ds-foundation CodeQL config
 
 paths:
-  - ds-foundation/packages
-  - ds-foundation/scripts
+  - packages
+  - scripts
 
 # 默认查询档（security）而不是 security-and-quality：
 # 后者会刷一大堆风格建议，对这个仓库噪音大过收益。

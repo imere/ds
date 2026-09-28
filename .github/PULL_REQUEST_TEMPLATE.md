@@ -23,7 +23,6 @@ CI 里有一条 PR Title 检查会拦。
 本地跑一遍就够了，`pnpm run verify` 是 CI 跑的同一串：
 
 ```bash
-cd ds-foundation
 pnpm run verify   # typecheck → lint → build → coverage（门槛 100%）
 ```
 

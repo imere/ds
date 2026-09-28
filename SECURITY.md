@@ -2,7 +2,7 @@
 
 ## 适用范围
 
-本仓库（`ds-foundation`）是一组 **private workspace 包**，不发布到 npm，不出现在任何公开
+本仓库是一组 **private workspace 包**（workspace 名 `ds-foundation`），不发布到 npm，不出现在任何公开
 制品里。它的运行时面很窄：四个包都不发网络请求、不读文件系统、不执行用户输入。
 
 真正值得关注的只有两处，因为它们是**把字符串拼进 HTML / CSS** 的地方：

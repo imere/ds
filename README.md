@@ -480,7 +480,7 @@ core 里 `assign` 是手写实现，`unique` 不依赖 Set。
 ## 六、目录与脚本
 
 ```
-ds-foundation/
+<仓库根>/
 ├─ packages/
 │  ├─ core/src/    util / color / prefix / token / breakpoint / theme / accent / derive / class / output
 │  ├─ tokens/src/  theme / accent / seed / breakpoint / scale —— 只有值，没有算法

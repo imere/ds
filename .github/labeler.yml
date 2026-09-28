@@ -3,63 +3,63 @@
 # 不是「这是 .ts 还是 .md」。
 core:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/core/**
+      - any-glob-to-any-file: packages/core/**
 
 tokens:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/tokens/**
+      - any-glob-to-any-file: packages/tokens/**
 
 dom:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/dom/**
+      - any-glob-to-any-file: packages/dom/**
 
 vue2:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/vue2/**
+      - any-glob-to-any-file: packages/vue2/**
 
 unit:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/core/src/unit.ts
+      - any-glob-to-any-file: packages/core/src/unit.ts
 
 convert:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/packages/core/src/convert.ts
+      - any-glob-to-any-file: packages/core/src/convert.ts
 
 ie10:
   - changed-files:
       - any-glob-to-any-file:
-          - ds-foundation/swc.config.js
-          - ds-foundation/eslint.config.js
-          - ds-foundation/tests/es5.test.ts
+          - swc.config.js
+          - eslint.config.js
+          - tests/es5.test.ts
 
 tests:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/tests/**
+      - any-glob-to-any-file: tests/**
 
 examples:
   - changed-files:
-      - any-glob-to-any-file: ds-foundation/examples/**
+      - any-glob-to-any-file: examples/**
 
 documentation:
   - changed-files:
       - any-glob-to-any-file:
-          - ds-foundation/docs/**
-          - ds-foundation/README.md
-          - ds-foundation/packages/*/README.md
+          - docs/**
+          - README.md
+          - packages/*/README.md
           - '**/*.md'
 
 ci:
   - changed-files:
       - any-glob-to-any-file:
           - .github/**
-          - ds-foundation/rollup.config.js
-          - ds-foundation/vitest.config.ts
-          - ds-foundation/tsconfig*.json
+          - rollup.config.js
+          - vitest.config.ts
+          - tsconfig*.json
 
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
-          - ds-foundation/package.json
-          - ds-foundation/packages/*/package.json
-          - ds-foundation/pnpm-lock.yaml
-          - ds-foundation/pnpm-workspace.yaml
+          - package.json
+          - packages/*/package.json
+          - pnpm-lock.yaml
+          - pnpm-workspace.yaml

@@ -5,7 +5,7 @@ version: 2
 
 updates:
   - package-ecosystem: npm
-    directory: /ds-foundation
+    directory: /
     schedule:
       interval: weekly
       day: monday
@@ -40,7 +40,7 @@ updates:
     # 刻意锁住的，别动：
     #   vue 3 —— @ds/vue2 的存在意义就是支持 Vue 2，升到 3 整个包失去意义
     #   typescript 7 —— Go 原生版不提供 JS 编译器 API，typescript-eslint 启动即崩
-    #     （详见 ds-foundation/README.md「TS 版本锁在 6.0.3，别升 7」）
+    #     （详见 README.md「TS 版本锁在 6.0.3，别升 7」）
     ignore:
       - dependency-name: vue
         versions: ['>=3']

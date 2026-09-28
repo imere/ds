@@ -20,10 +20,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: ds-foundation
-
 jobs:
   verify:
     name: verify (node ${{ matrix.node }})
@@ -39,9 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 版本写死而不是让 action 去读 packageManager：本仓库的根目录没有 package.json，
-      # action 找不到就读不到 ds-foundation/package.json 里那份声明。
-      # 值必须与 ds-foundation/package.json 的 packageManager 字段一致。
+      # 版本写死：包管理器版本不该跟着 runner 镜像漂移。
+      # 值必须与仓库根 package.json 的 packageManager 字段一致。
       - uses: pnpm/action-setup@v4
         with:
           version: 10.14.0
@@ -50,7 +45,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
-          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       # --frozen-lockfile：CI 里 lock 与 package.json 不一致就直接失败，
       # 而不是悄悄更新 lock 后把「我这边能跑」的假象带进主干。
@@ -82,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: ds-foundation/build/coverage/
+          path: build/coverage/
           if-no-files-found: error
           retention-days: 7
 
@@ -100,27 +95,25 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
-          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: 安装库依赖
-        working-directory: ds-foundation
         run: pnpm install --frozen-lockfile
 
       - name: 出库产物
-        working-directory: ds-foundation
         run: pnpm run build
 
       # demo-app 是独立的 npm 工程（有自己的 package-lock.json），别用 pnpm 装。
       - name: 安装示例依赖
-        working-directory: ds-foundation/examples/demo-app
+        working-directory: examples/demo-app
         run: npm ci
 
       - name: 示例测试
-        working-directory: ds-foundation/examples/demo-app
+        working-directory: examples/demo-app
         run: npm test
 
       - name: 示例构建
-        working-directory: ds-foundation/examples/demo-app
+        working-directory: examples/demo-app
         run: npm run build
 
   # 构建期生成的令牌文件是提交进版本库的，所以能验「生成结果是否可复现」。
@@ -136,18 +129,15 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
-          cache-dependency-path: ds-foundation/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: 安装依赖
-        working-directory: ds-foundation
         run: pnpm install --frozen-lockfile
 
       - name: 出库产物（脚本直接 import build/index.js）
-        working-directory: ds-foundation
         run: pnpm run build
 
       - name: 重新生成并比对
-        working-directory: ds-foundation
         run: |
           node examples/uniappx/gen-tokens.mjs
           git diff --exit-code -- examples/uniappx/generated
