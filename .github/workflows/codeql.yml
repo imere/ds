@@ -38,15 +38,15 @@ jobs:
       matrix:
         language: ['javascript-typescript']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           language: ${{ matrix.language }}
           # 库本体只占仓库的一半，另一半是示例工程；只扫 packages 与 scripts。
           # queries 用默认档：security-and-quality 会刷一堆风格建议，噪音大过收益。
           config-file: .github/codeql-config.yml
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'
