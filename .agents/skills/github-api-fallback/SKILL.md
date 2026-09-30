@@ -37,8 +37,10 @@ curl -s -m 8 -o /dev/null -w "direct_api=%{http_code}\n"   https://api.github.co
    author/committer 的 name / email / ts / tz、`git log -1 --format=%B` 的 message、
    `git diff --name-only HEAD^ HEAD` 的变更文件（每个取 mode 与 blob sha，`git cat-file blob | base64 -w0`）
 2. **POST /git/blobs**：先 `GET /git/blobs/<sha>` 试探，不存在再传 base64
-3. **POST /git/trees**：`base_tree` 用远端 main 的 tree，`tree` 数组只放差集条目；删除的条目写 `sha: null`
-   —— 出来的 tree sha 应当**等于**本地 tree sha
+3. **POST /git/trees**：`base_tree` 用远端 main 的 tree，`tree` 数组只放差集条目
+   —— 出来的 tree sha 应当**等于**本地 tree sha。
+   删除条目写 `sha: null` **并且照样要带 `mode`**（`'100644'`），否则
+   `422 Must supply a valid tree.mode`
 4. **POST /git/commits**：tree / parents / author / committer / message；committer 用本地那份元数据
 5. **对齐 sha**（见下节）
 6. **PATCH /git/refs/heads/main** 带 `force: true`（兄弟 commit 非快进，不带 force 报 422）
