@@ -63,12 +63,19 @@ pnpm run verify     # typecheck → lint → build → coverage
    分工是 tsc 只做类型检查与出 `.d.ts`，**语法降级交给 SWC**（esbuild 最低只到 es2015）
 4. **isolatedModules 下纯类型导入必须写 `import type`** —— 混在值导入里 SWC 不会帮你删，
    rollup 会去找一个不存在的导出然后报错
-5. **没有 `prettier.config.js`** —— 选项写在 `eslint.config.js` 的 `prettierOptions`。
-   代价是 CLI 读不到，所以格式化也走 ESLint（`lint` 查、`lint:fix` 修）
-6. **源码用最新语法，不迁就 IE10**（`no-var` / `prefer-const` 全开），降级是 SWC 的事
-7. **改完库必须重新 `pnpm run build`** —— demo-app 靠别名指向 `build/`，
+5. **根上没有 `prettier.config.js`，也没有 `.prettierignore`** —— 选项写在
+   `eslint.config.js` 的 `prettierOptions`，忽略名单写在同一个文件的 `ignores`。
+   代价是 prettier CLI 用不了（读不到这些选项），所以格式化也走 ESLint
+   （`lint` 查、`lint:fix` 修）。**别再加这两份文件**：没人会去读它们，
+   而真正生效的那两份在 eslint.config.js 里，只会改一处漏一处
+6. `.editorconfig` **不是**第二份格式化配置：它管编辑器「敲回车那一刻」的行为
+   （新文件缩进 / 编码 / 行尾），那时 ESLint 不存在。它的 `indent_size` /
+   `max_line_length` / `end_of_line` 必须与 `prettierOptions` 的 `tabWidth` /
+   `printWidth` / `endOfLine` 一致，改一边要同步改另一边
+7. **源码用最新语法，不迁就 IE10**（`no-var` / `prefer-const` 全开），降级是 SWC 的事
+8. **改完库必须重新 `pnpm run build`** —— demo-app 靠别名指向 `build/`，
    uniappx 生成脚本直接 import `packages/core/build/index.js`
-8. **新增函数必须有 JSDoc**（描述 + 逐个 `@param` + 非 void 的 `@returns`），
+9. **新增函数必须有 JSDoc**（描述 + 逐个 `@param` + 非 void 的 `@returns`），
    `node scripts/check-jsdoc.mjs` 是门禁
 
 ## 常见问题
