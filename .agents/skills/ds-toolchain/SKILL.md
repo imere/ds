@@ -63,15 +63,16 @@ pnpm run verify     # typecheck → lint → build → coverage
    分工是 tsc 只做类型检查与出 `.d.ts`，**语法降级交给 SWC**（esbuild 最低只到 es2015）
 4. **isolatedModules 下纯类型导入必须写 `import type`** —— 混在值导入里 SWC 不会帮你删，
    rollup 会去找一个不存在的导出然后报错
-5. **根上没有 `prettier.config.js`，也没有 `.prettierignore`** —— 选项写在
-   `eslint.config.js` 的 `prettierOptions`，忽略名单写在同一个文件的 `ignores`。
-   代价是 prettier CLI 用不了（读不到这些选项），所以格式化也走 ESLint
-   （`lint` 查、`lint:fix` 修）。**别再加这两份文件**：没人会去读它们，
-   而真正生效的那两份在 eslint.config.js 里，只会改一处漏一处
-6. `.editorconfig` **不是**第二份格式化配置：它管编辑器「敲回车那一刻」的行为
-   （新文件缩进 / 编码 / 行尾），那时 ESLint 不存在。它的 `indent_size` /
-   `max_line_length` / `end_of_line` 必须与 `prettierOptions` 的 `tabWidth` /
-   `printWidth` / `endOfLine` 一致，改一边要同步改另一边
+5. **格式化只有一个执行者：ESLint 的 `prettier/prettier` 规则。** 所以仓库根没有
+   `prettier.config.js`、没有 `.prettierignore`、**没有 `.editorconfig`** ——
+   选项在 `eslint.config.js` 的 `prettierOptions`，忽略名单在同一个文件的 `ignores`。
+   代价是 prettier CLI 用不了（读不到这些选项），格式化统一走 `pnpm run lint:fix`。
+   **别再加这三份文件**：没人会读它们，而真正生效的那份在 eslint.config.js 里
+6. 编辑器那侧由 `.vscode/` 里那两份共享配置接管：`extensions.json` 推荐 ESLint 扩展
+   （并把 Prettier 扩展列进 unwanted —— 它读不到选项，会用 Prettier 默认值重排，
+   然后被 ESLint 判红）；`settings.json` 把 `source.fixAll.eslint` 挂到保存时，
+   且**只留 ESLint 管不到的事**（ESLint 只处理 js/ts，md / yml / json / html 的
+   行尾、尾空格、结尾空行只能靠编辑器）。非 VS Code 用户手动对齐这三项即可
 7. **源码用最新语法，不迁就 IE10**（`no-var` / `prefer-const` 全开），降级是 SWC 的事
 8. **改完库必须重新 `pnpm run build`** —— demo-app 靠别名指向 `build/`，
    uniappx 生成脚本直接 import `packages/core/build/index.js`

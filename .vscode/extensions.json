@@ -1,0 +1,10 @@
+{
+  // 格式化在仓库里只有一个执行者：ESLint 里的 prettier/prettier 规则
+  // （选项写在 eslint.config.js 的 prettierOptions）。
+  // 所以这里推荐的是 ESLint 扩展，而不是 Prettier 扩展。
+  "recommendations": ["dbaeumer.vscode-eslint"],
+  // 装了 Prettier 扩展又开着 format on save，就等于有了两套格式化：
+  // 它读不到 eslint.config.js 里的选项，会用 Prettier 默认值（双引号 + 分号）重排，
+  // 然后被 ESLint 判红 —— 两边互相打架。
+  "unwantedRecommendations": ["esbenp.prettier-vscode"]
+}

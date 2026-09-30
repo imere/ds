@@ -1,0 +1,31 @@
+{
+  // ============================================================
+  // 这一份不是「格式化的第二来源」—— 格式化由 ESLint 的 prettier/prettier
+  // 规则执行，你现在保存文件就是它在改（下面的 fixAll.eslint）。
+  // 这里只放两样 ESLint 做不到的事：① 让 ESLint 在保存时真的跑起来；
+  // ② 管 ESLint 压根不处理的文件（见下）。
+  // ============================================================
+
+  // 保存时交给 ESLint 修（含 prettier/prettier 这条规则，所以格式也一起修了）
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  // 别的 formatter 一律关掉，避免和 ESLint 抢同一份文本
+  "editor.formatOnSave": false,
+
+  // ---- ESLint 覆盖不到的部分 ----
+  // ESLint 只处理 js / ts / mjs / cjs。仓库里的 md / yml / json / html / css
+  // 谁来保证「LF 行尾、无行尾空格、结尾留一个空行、缩进 2 格」？
+  // 没有别的机制了 —— 这几项就是编辑器的活。
+  // （js/ts 的同类问题照样由 ESLint 兜底，这里只是让没被 lint 的文件也不散架）
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+
+  // Markdown 例外：行尾两个空格是「换行」语义，裁了就变成段落连排
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  }
+}

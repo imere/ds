@@ -47,10 +47,16 @@ pnpm-debug.log*
 Thumbs.db
 desktop.ini
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
+# VS Code：个人配置不入库，但两份「协作约定」要进 —— 它们替–EditorConfig 承担
+# 了 Repo 级别的编辑器口径（详见 CONTRIBUTING 的「编辑器接线」），
+# 写 `.vscode/*` 而不是 `.vscode/` 是为了让下面两条例外能生效
+# （父目录被排除的，子文件就没法再 re-include）
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
 # ---- 工具目录 ----
 # WorkBuddy 的项目记忆写在这里，是本地工作数据不是源码，不进版本库

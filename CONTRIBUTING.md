@@ -41,6 +41,25 @@ pnpm run verify       # typecheck → lint → build → coverage
 包管理器是 **pnpm**，别用 npm（`examples/demo-app` 是独立的 npm 工程，那里才用 npm）。
 原因写在本仓库 README 的「包管理器是 pnpm」一节。
 
+### 编辑器接线
+
+格式化在仓库里只有一个执行者：**ESLint 里的 `prettier/prettier` 规则**
+（选项写在 `eslint.config.js` 的 `prettierOptions`）。仓库因此**没有**
+`prettier.config.js`、`.prettierignore`、`.editorconfig` —— 每一项例外都能在
+ESLint 那一侧找到对应的机制，留第二份只会改一处漏一处。
+
+| 场景 | 谁负责 |
+| --- | --- |
+| js / ts 的缩进、引号、行宽、分号 | ESLint（`pnpm run lint:fix`，编辑器里保存即跑） |
+| md / yml / json / html 的行尾、尾空格、结尾空行 | ESLint 不处理这些文件 —— 交 `.vscode/settings.json` |
+
+用 VS Code 的话装 ESLint 扩展即可，仓库里的 `.vscode/extensions.json` 会推荐它，
+并把 **Prettier 扩展列进 unwanted** —— 但它读不到 `eslint.config.js` 里的选项，
+开着它保存等于用 Prettier 默认值重排一遍，回头被 ESLint 判红，两边互殴。
+
+用别的编辑器（HBuilderX / WebStorm）：在这三项上手动对齐即可 —— 2 空格缩进、
+LF 行尾、保存时去尾空格并在结尾留一个空行。之后一样跑 `pnpm run lint` 把关。
+
 ---
 
 ## 二、四条硬规则
