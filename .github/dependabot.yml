@@ -44,6 +44,11 @@ updates:
     ignore:
       - dependency-name: vue
         versions: ['>=3']
+      # 与 vue 同一个理由：2.7.x 是最后一条线，advisory 的修复版本是
+      # `3.0.0-alpha.0`。不锁的话 Dependabot 会为那条告警开一个
+      # security update PR 建议升 3.x，跟 Vue 2 示例直接冲突。
+      - dependency-name: vue-template-compiler
+        versions: ['>=3']
       - dependency-name: typescript
         versions: ['>=7']
       - dependency-name: eslint
