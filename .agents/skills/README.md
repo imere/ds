@@ -21,6 +21,7 @@
 | [ds-toolchain](ds-toolchain/SKILL.md) | 构建与仓库运维：verify 顺序、产物在哪、工具链版本红线 |
 | [ds-token-import](ds-token-import/SKILL.md) | 从 Figma / W3C DTCG 导入设计稿令牌 |
 | [ds-uniappx](ds-uniappx/SKILL.md) | 接到 uni-app x（uvue）：构建期生成、暗黑模式、ucss 限制 |
+| [github-api-fallback](github-api-fallback/SKILL.md) | `github.com` 推不动时走 Git Data API 推送、用 contents 权限关 PR / 清告警、清查清单 |
 
 ## 三条总纲
 

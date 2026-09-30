@@ -44,6 +44,16 @@ import compat from 'eslint-plugin-compat'
  *   pnpm run lint     检查（含格式）
  *   pnpm run lint:fix 修（含格式）
  *
+ * 同一个理由，也没有 `.prettierignore`：该忽略的东西全在本文件下面的 `ignores` 里
+ * （构建产物、依赖、第三方源码、脚本生成的自包含示例、lock 文件、demo-app），
+ * 那是唯一生效的一份忽略名单 —— 留一份给一个根本不会被调用的 prettier CLI 看，
+ * 只会改一处漏一处。
+ *
+ * `.editorconfig` 同理不是第二份配置：它管的是编辑器「你敲回车那一刻」的行为
+ * （新文件的缩进、编码、行尾），ESLint 那时候还不存在。那里的 indent_size /
+ * max_line_length / end_of_line 必须与这里的 tabWidth / printWidth / endOfLine
+ * 保持一致，改一边就要同步改另一边。
+ *
  * 这些值是在「迁就既有代码」和「用最新默认」之间取的结果：
  *
  *   semi / singleQuote —— 迁就。仓库现有代码全是单引号 + 无分号，
