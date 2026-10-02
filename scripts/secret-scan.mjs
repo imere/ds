@@ -179,8 +179,7 @@ const RULES = [
     id: 'assigned-credential',
     desc: '赋给 key 形状名字的凭据字面量',
     re: new RegExp(
-      SECRETISH_NAME +
-        `["' ]{0,2}\\s*[:=]\\s*(?:"([^"\\s]{6,})"|'([^'\\s]{6,})'|([A-Za-z0-9+/=_-]{10,}))`,
+      `${SECRETISH_NAME}["' ]{0,2}\\s*[:=]\\s*(?:"([^"\\s]{6,})"|'([^'\\s]{6,})'|([A-Za-z0-9+/=_-]{10,}))`,
       'gi'
     ),
     pickFirstDefined: true,
@@ -307,10 +306,13 @@ function scanText(text, loc) {
       // 每行新建正则：`g` 标志的 lastIndex 不能跨行带过去
       const re = new RegExp(rule.re.source, rule.re.flags)
       for (const match of line.matchAll(re)) {
+        // 整串命中写成解构而不是 match[0]：无分号风格下 `[value] = match`
+        // 这种语句开头的赋值会被上一行吞掉。
+        const [whole] = match
         let value
         if (rule.pickFirstDefined) value = match.slice(1).find((g) => g !== undefined)
         else if (rule.captureGroup) value = match[rule.captureGroup]
-        else value = match[0]
+        else value = whole
         if (!value) continue
         if (PLACEHOLDER.test(value)) continue
         hits.push({ ...at, rule, value })
@@ -373,12 +375,14 @@ function collectTree() {
   walk(ROOT)
   const targets = []
   for (const f of out) {
-    let size
+    let stat
     try {
-      size = statSync(f.abs).size
+      stat = statSync(f.abs)
     } catch {
       continue
     }
+    // 同样是为了避开无分号的 ASI 陷阱：对象解构放在声明里，不放赋值语句开头。
+    const { size } = stat
     if (size > MAX_FILE_BYTES) continue
     const buf = readFileSync(f.abs)
     if (buf.includes(0)) continue // 二进制
