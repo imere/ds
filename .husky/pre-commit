@@ -1,0 +1,24 @@
+pnpm exec lint-staged
+
+# --- 密钥闸门 ---------------------------------------------------------------
+#
+# 装了 gitleaks 就用它（150+ 条规则，见 .gitleaks.toml），否则退回零依赖的 Node
+# 扫描器 —— 没装 gitleaks 的机器也不至于裸奔。
+#
+# 扫的是 DIFF 而不是工作树：`git commit` 记录的是索引，而索引与工作树可以不一致。
+#
+# 客户端钩子永远能被 `--no-verify` 跳过：pre-push 是第二次机会，CI 是兜底。三者
+# 都撤不回一次已经发生的泄漏 —— 所以这一条如果报的是真凭据，第一件事是吊销 / 轮换。
+#
+# 兜底扫描器从 stdin 读 diff 而不是自己调 git：某些 Windows 环境里 node 起不了
+# git 子进程（spawnSync 报 EBUSY），而跑钩子的 shell 调 git 完全正常。
+if command -v gitleaks >/dev/null 2>&1; then
+  # gitleaks 8.30 起子命令换成了 git / dir / stdin，`protect` 已不在列表里。
+  # --staged --pre-commit 就是「扫索引里那段 diff」。
+  gitleaks git --staged --pre-commit --redact --config .gitleaks.toml
+else
+  echo "gitleaks 不在 PATH 上 —— 退回 scripts/secret-scan.mjs（规则少一截）。" >&2
+  echo "想要完整覆盖请装：https://github.com/gitleaks/gitleaks#installing" >&2
+  staged=$(git diff --cached --diff-filter=ACMR -U0 --no-color) || exit 1
+  printf '%s\n' "$staged" | node scripts/secret-scan.mjs --patch
+fi

@@ -21,9 +21,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 密钥闸门。这是三道闸门里唯一跳不过的一层 —— pre-commit / pre-push 都能被
+  # `--no-verify` 绕过。但它也是「事后」的：跑到这里时提交已经存在，所以真扫出
+  # 凭据要做的第一件事是吊销 / 轮换，而不是删提交。
+  secret-scan:
+    name: secret scan（全量历史）
+    runs-on: ubuntu-latest
+    env:
+      # 钉死版本：跟着 latest 走的话，「干净」的标准会被上游一次发布悄悄改掉。
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      # fetch-depth: 0 是硬要求。默认只取一层，埋在旧提交里的密钥根本看不见 ——
+      # 而「扫不出来」和「没有」在输出里长得一模一样。
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # 直接下载钉好版本的二进制，不用 gitleaks-action：后者对组织账号要
+      # license key（免费但要填表），而且直接下载能保证 CI 与本地钩子用的是同一个东西。
+      - name: 安装 gitleaks
+        run: |
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      # --diff-merges=first-parent 不是装饰：gitleaks 只枚举非合并提交，解冲突时
+      # 写进去的那一行不带这个参数就永远扫不到。
+      - name: gitleaks（默认规则 + 私有信息规则）
+        run: gitleaks git --redact --config .gitleaks.toml --log-opts="HEAD --diff-merges=first-parent"
+
+      # 零依赖兜底扫描器也留在链路里，免得它自己悄悄烂掉：它红了而 gitleaks 绿了，
+      # 那是我们自己那个扫描器的 bug，不是泄漏。
+      - name: 兜底扫描器（工作树模式）
+        run: node scripts/secret-scan.mjs
+
   verify:
     name: verify (node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    env:
+      # 跳过 husky 的 prepare：git 钩子是本地的事，CI 里装它没意义。
+      HUSKY: 0
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +124,8 @@ jobs:
   demo-app:
     name: demo-app
     runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -120,6 +160,8 @@ jobs:
   uniappx:
     name: uniappx 令牌生成
     runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

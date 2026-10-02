@@ -2,6 +2,14 @@
 # 规则在 .github/labeler.yml，两边改一个都要改另一个。
 name: Labeler
 
+# pull_request_target 是刻意的，也是这个 workflow 唯一需要盯住的地方：
+# 它跑在 base 分支的上下文里、拿到的是可写的 GITHUB_TOKEN，而 PR 内容来自不可信的
+# 外部贡献者。能这么用是因为它**不 checkout PR 代码、不执行 PR 里的任何东西** ——
+# labeler 只读改动文件清单去配标签。
+#
+# 红线（公开仓库，改这里前先想清楚）：**不要加 actions/checkout，不要把 PR 的
+# 标题/正文/文件名拼进 shell**。一旦 checkout 了 PR 代码再跑脚本，等于把可写 token
+# 交给了外部提交者。
 on:
   pull_request_target:
     types: [opened, synchronize]

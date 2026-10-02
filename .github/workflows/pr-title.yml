@@ -3,6 +3,9 @@
 # 标题不统一的话以后按类型回溯改动就只能靠翻 diff。
 name: PR Title
 
+# 同 labeler.yml：用 pull_request_target 是为了让 fork 出来的 PR 也有权限写状态，
+# 代价是它跑在 base 上下文、拿到可写 token。前提是它**不 checkout、不执行 PR 里的
+# 任何代码**（只把标题交给 action 做正则校验）—— 加 checkout 就等于开门。
 on:
   pull_request_target:
     types: [opened, edited, reopened, synchronize]

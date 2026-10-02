@@ -125,9 +125,34 @@ core 里不许出现具体色值、具体断点数字、具体尺度表。唯一
 - PR 标题同样受检查（`.github/workflows/pr-title.yml`）。
 - PR 模板里的自检清单请逐条过，尤其是「有没有把设计决策写进 core」和「有没有新增运行时 API」。
 
+## 五、提交前的三道密钥闸门
+
+本仓库是公开的，一次误提交就是永久泄漏，所以这件事由钩子管，不靠自觉：
+
+| 时刻 | 干什么 | 能跳过吗 |
+| --- | --- | --- |
+| `git commit` | 扫索引里那段 diff（记的是 index，不是工作树） | `--no-verify` |
+| `git push` | 扫正要发出去的所有提交 | `--no-verify` |
+| CI | 扫全量历史（`fetch-depth: 0`） | 不能 |
+
+扫的是两类东西：
+
+1. **凭据** —— 规则在 `.gitleaks.toml`：扩展默认规则集，再补上连接串里的
+   `user:password@host` 与 GitHub PAT 这类**实测出来**的盲区（用一颗假 token 试过，
+   纯默认规则不认 `github_pat_` 前缀）；
+2. **私有环境信息** —— 本机绝对路径、本机代理地址、Windows 机器名。它们不是密钥，
+   但仓库一公开就是实打实的信息泄漏。写文档 / 注释引用位置时一律用仓库相对路径。
+
+没装 gitleaks 也不影响：钩子会自动退回零依赖的 `scripts/secret-scan.mjs`
+（也能单独跑 `pnpm run secret:scan`）。
+
+真误报就在那一行末尾加 `secret-scan:ignore`，两个扫描器认同一个标记。
+**扫出真凭据先吊销 / 轮换，再谈删提交** —— 删提交只是让仓库里看不见，
+撤不回已经被 clone 走的东西。
+
 ---
 
-## 五、改完库记得重新构建
+## 六、改完库记得重新构建
 
 `examples/demo-app` 靠 vite 别名指向 `packages/*/build/index.js`
 （四个包是 private + `workspace:`，装不进 node_modules），所以**改完库不 build 就看不到变化**。
@@ -135,11 +160,12 @@ core 里不许出现具体色值、具体断点数字、具体尺度表。唯一
 
 ---
 
-## 六、目录地图
+## 七、目录地图
 
 ```
 .github/            CI / Dependabot / issue 与 PR 模板 / labeler
 .agents/skills/     给 Agent 看的操作指南（本文件的结构化版本）
+.husky/             提交前的钩子：密钥闸门 + lint-staged
 packages/core/      算法：token / theme / derive / class / output / unit / convert
 packages/tokens/    值：theme / accent / seed / breakpoint / scale
 packages/dom/       运行时：注入 / 双通道 / SSR / 存储
@@ -147,5 +173,7 @@ packages/vue2/      框架绑定：插件 / 响应式状态 / 指令
 docs/               架构文档（含设计决策记录）
 examples/           umd / esm / vue2 最小示例 + demo-app + uniappx
 tests/              一个模块一个 .test.ts
-scripts/            clean / serve / dts / inline-examples / convert-tokens / check-jsdoc
+scripts/            clean / serve / dts / inline-examples / convert-tokens / check-jsdoc /
+                    secret-scan（没装 gitleaks 时的兜底密钥扫描器）
 ```
+`.gitleaks.toml` 是 gitleaks 的规则（扩展默认集，另加连接串、PAT、本机路径与代理地址）。

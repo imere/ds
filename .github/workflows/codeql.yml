@@ -10,9 +10,9 @@ on:
     # 每周一 03:17 UTC。避开整点：GitHub 的定时任务在整点会排队。
     - cron: '17 3 * * 1'
 
-# 刻意不挂 pull_request：本仓库的 PR 全是 Dependabot 开的，
-# 而 Dependabot PR 拿到的 token 是只读的，写不了 security-events，
-# analyze 那一步必红。主干上跑 + 每周扫一遍已经够用。
+# 刻意不挂 pull_request：PR 里带过来的 token 是只读的（Dependabot 与 fork 出来的
+# 外部 PR 都是），写不了 security-events，analyze 那一步必红。
+# 主干上跑 + 每周扫一遍已经够用。
 permissions:
   contents: read
 
@@ -20,11 +20,10 @@ jobs:
   analyze:
     name: analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    # Code scanning 要 GitHub Advanced Security。本仓库是私有库、没开 GHAS，
-    # 直接跑会报 "Code scanning is not enabled for this repository"。
-    # 所以默认跳过（与 dependency-review 同一个开关）：开了 GHAS 之后在仓库
-    # Settings → Variables 里加 ENABLE_GHAS = true 即可，不用回来改文件。
-    if: vars.ENABLE_GHAS == 'true'
+    # Code scanning 要 GitHub Advanced Security。本仓库是公开的，GHAS 对公开仓库
+    # 免费，所以默认跑；fork 出去的副本通常没开，那种环境里在 Settings → Variables
+    # 加 ENABLE_GHAS = false 就跳过，不用回来改文件。
+    if: vars.ENABLE_GHAS != 'false'
     permissions:
       contents: read
       # 上传扫描结果必须要

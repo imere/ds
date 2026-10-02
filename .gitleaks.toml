@@ -1,0 +1,131 @@
+# gitleaks configuration for ds.
+#
+# 扩展官方默认规则集（150+ 条供应商规则）而不是替换它，再补两类它覆盖不到的东西：
+#   1. 连接串里 user:password@host 这种凭据是 URI 的一个组成部分，没有任何供应商
+#      规则会认它 —— 而它恰恰是真凭据进 git 最常见的形态之一；
+#   2. 「不是凭据但同样不该公开」的私有环境信息：本机绝对路径、本机代理地址、
+#      Windows 机器名。这些不在任何密钥扫描器的职责里，但仓库一旦公开它们就是
+#      实打实的信息泄漏，所以放在同一个闸门里一起拦。
+#
+# 文档：https://github.com/gitleaks/gitleaks#configuration
+#
+# 真误报怎么消（二选一）：
+#   - 在出问题的那一行末尾加 `#gitleaks:allow`；
+#   - 把该条 finding 的 fingerprint 写进 .gitleaksignore（`gitleaks detect
+#     --report-format json` 会打印 fingerprint）。
+#
+# 注意：本文件自己会被扫描（规则定义天然长得像凭据），所以最后那份 allowlist
+# 把它自己排除了 —— 这是「消除根因之后的例外」，不是「先加例外再说」。
+
+title = 'ds'
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# 默认规则集覆盖不到的凭据形态
+# ---------------------------------------------------------------------------
+#
+# GitHub PAT 是**实测出来的盲区**：用一颗 `github_pat_` 前缀的假 token 试过，
+# 纯默认规则（`gitleaks git --staged`，不传 --config）报 no leaks，加上下面这两条
+# 立刻 exit 1。本仓库的凭据面就是 GitHub PAT，所以这两条不能指望默认集。
+
+[[rules]]
+id = 'github-fine-grained-pat'
+description = 'GitHub fine-grained PAT'
+regex = '''github_pat_[A-Za-z0-9_]{22,}'''
+keywords = ['github_pat_']
+
+[[rules]]
+id = 'github-classic-token'
+description = 'GitHub classic token (ghp/gho/ghu/ghs/ghr)'
+regex = '''\bgh[pousr]_[A-Za-z0-9]{36,255}\b'''
+keywords = ['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_']
+
+# 连接串里的 user:password@host。secretGroup 指向捕获到的密码部分。
+#
+# 注释里故意不写完整示例：这个文件自身会被扫，一个像样的示例会被下面这条规则
+# 自己命中。
+[[rules]]
+id = 'uri-credential'
+description = 'username:password embedded in a connection URI'
+regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?|mssql|ftp|https?)://[^\s:/@]{1,64}:([^\s:@/]{3,})@'''
+secretGroup = 1
+keywords = [
+  'postgres://',
+  'postgresql://',
+  'mysql://',
+  'mariadb://',
+  'mongodb://',
+  'mongodb+srv://',
+  'redis://',
+  'rediss://',
+  'amqp://',
+  'amqps://',
+  'mssql://',
+]
+
+[[rules]]
+id = 'jdbc-credential'
+description = 'password in a JDBC URL'
+regex = '''(?i)jdbc:[a-z0-9]+:[^\s]*?password=([^\s;&"]{3,})'''
+secretGroup = 1
+keywords = ['jdbc:']
+
+# ---------------------------------------------------------------------------
+# 私有环境信息（不是凭据，但公开即泄漏）
+# ---------------------------------------------------------------------------
+
+# 本机绝对路径。仓库里出现 C:/Users/xxx 之类，说明有人把机器上的路径贴进来了。
+# 引用位置一律写仓库相对路径。
+[[rules]]
+id = 'local-absolute-path'
+description = 'local absolute path carrying a user home directory'
+regex = '''(?i)\b[a-z]:[\\/](?:users|home|temp)[\\/][^\\/\s'"]+'''
+keywords = ['users/', 'home/', 'temp/']
+
+# 本机代理 / 本地服务地址。
+#
+# 5199 是 `pnpm run serve` 的示例端口，README 与 examples 里都有，属于公开文档的
+# 一部分 —— 在下面的 allowlist 里放行，而不是在正则里排除：gitleaks 用的是 Go 的
+# RE2，不支持 `(?!...)` 这种前瞻，写进去会在加载配置时直接崩。
+[[rules]]
+id = 'local-proxy-endpoint'
+description = 'local proxy or loopback service address (private environment detail)'
+regex = '''(?i)(?:https?://)?(?:127\.0\.0\.1|localhost|0\.0\.0\.0):\d{2,5}\b'''
+keywords = ['127.0.0.1:', 'localhost:', '0.0.0.0:']
+
+# Windows 机器名（DESKTOP-XXXXXXX）。
+[[rules]]
+id = 'windows-machine-name'
+description = 'Windows machine name'
+regex = '''\bDESKTOP-[A-Z0-9]{4,15}\b'''
+keywords = ['DESKTOP-']
+
+# ---------------------------------------------------------------------------
+# Allowlist
+# ---------------------------------------------------------------------------
+# 写成第二份 allowlist 而不是顶层 [allowlist]：单份顶层的会顶掉 gitleaks 自带的
+# 占位符过滤，误报反而变多。这样写是在默认那份之上追加。
+
+[[allowlists]]
+description = 'repo-specific false positives'
+paths = [
+  '''(?:^|/)pnpm-lock\.yaml$''',
+  '''(?:^|/)package-lock\.json$''',
+  '''(?:^|/)yarn\.lock$''',
+  # 规则定义与扫描器自身：它们长得像凭据是职责所在，不是泄漏。
+  '''(?:^|/)\.?gitleaks\.toml$''',
+  '''(?:^|/)scripts/secret-scan\.mjs$''',
+  '''(?:^|/)scripts/secret-scan\.js$''',
+  # 第三方源码（examples 下 vendored 一份以便离线打开示例）
+  '''(?:^|/)examples/[^/]+/vendor/''',
+  # 本地工具状态（同时也在 .gitignore 里）
+  '''(?:^|/)\.workbuddy/''',
+]
+regexes = [
+  # 与 scripts/secret-scan.mjs 用的是同一个标记，一处注释同时消掉两个扫描器。
+  '''secret-scan:ignore''',
+  # `pnpm run serve` 的示例端口，写在 README 与 examples 里的公开文档内容。
+  '''(?:127\.0\.0\.1|localhost):5199\b''',
+]

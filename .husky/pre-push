@@ -1,0 +1,29 @@
+# --- 密钥闸门：对象离开本机之前的最后一道 -----------------------------------
+#
+# 扫的是 `git push` 正要发出去的那些提交（所有远端还没有的）。pre-commit 漏掉的、
+# 或者当时用 `--no-verify` 硬提交进来的，靠这一层拦。
+#
+# 本仓库是公开的，所以 GitHub 服务端的 push protection 是免费的 —— 在
+# Settings → Code security and analysis 里打开它（secret scanning + push
+# protection）。服务端那道比本钩子强：它没法被 `--no-verify` 跳过，而且会在审计
+# 日志里留痕。一旦凭据真到了远端，轮换是强制项，事后删提交救不回来。
+if ! git remote | grep -q .; then
+  echo "pre-push: 没配 remote，没有要推的东西 —— 跳过密钥扫描。"
+  exit 0
+fi
+
+# `HEAD` 必须显式写：`git log --not --remotes` 没有正向 rev，选出的是空集，于是
+# 对着一个真泄漏报「干净」—— 一个永远说通过的闸门比没有闸门更糟（已用一颗假
+# token 验过：两个扫描器都必须非零退出）。
+#
+# `--diff-merges=first-parent` 不是装饰。gitleaks 只枚举非合并提交（实测：一个含
+# 1 个合并的 4 提交区间只扫了 3 个），所以「解冲突时写进去的东西」它根本看不见：
+# 不带这个参数时报「no leaks found」，带上就 exit 1。
+DR="HEAD --not --remotes --diff-merges=first-parent"
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --log-opts="$DR" --redact --config .gitleaks.toml
+else
+  echo "gitleaks 不在 PATH 上 —— 退回 scripts/secret-scan.mjs（规则少一截）。" >&2
+  outgoing=$(git log -p $DR -U0 --no-color) || exit 1
+  printf '%s\n' "$outgoing" | node scripts/secret-scan.mjs --patch
+fi

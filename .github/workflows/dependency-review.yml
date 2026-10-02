@@ -12,12 +12,10 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Dependency Review 需要 GitHub Advanced Security（且依赖图要开）。
-    # 本仓库是私有库、没开 GHAS，直接跑会报
-    # "Dependency review is not supported on this repository"。
-    # 所以默认跳过：哪天开了 GHAS，在仓库 Settings → Variables 里加一个
-    # ENABLE_GHAS = true 就自动启用，不用回来改文件。
-    if: vars.ENABLE_GHAS == 'true'
+    # Dependency Review 需要 GitHub Advanced Security（且依赖图要开）。公开仓库的
+    # GHAS 免费，所以默认跑；fork 出去没开 GHAS 的副本要关掉就设
+    # ENABLE_GHAS = false，不用回来改文件。
+    if: vars.ENABLE_GHAS != 'false'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v5
