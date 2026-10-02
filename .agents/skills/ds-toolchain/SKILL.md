@@ -78,6 +78,12 @@ pnpm run verify     # typecheck → lint → build → coverage
    uniappx 生成脚本直接 import `packages/core/build/index.js`
 9. **新增函数必须有 JSDoc**（描述 + 逐个 `@param` + 非 void 的 `@returns`），
    `node scripts/check-jsdoc.mjs` 是门禁
+10. **本仓库是公开的**：任何写进文件的内容都会被公开。禁止出现在代码 / 注释 /
+    文档 / 提交信息里的：本机绝对路径、代理地址与端口、任何 token / PAT 及其前缀、
+    Windows 机器名。引用位置一律用仓库相对路径。这不只是纪律 —— 提交前有两道
+    钩子会拦（`gitleaks` + `scripts/secret-scan.mjs`），CI 扫全量历史
+11. 真误报在那一行末尾加 `secret-scan:ignore`（两个扫描器认同一个标记）；
+    **扫出真凭据先吊销 / 轮换再谈删提交** —— 已推送的东西删不掉
 
 ## 常见问题
 
