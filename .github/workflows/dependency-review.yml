@@ -12,10 +12,10 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Dependency Review 需要 GitHub Advanced Security（且依赖图要开）。公开仓库的
-    # GHAS 免费，所以默认跑；fork 出去没开 GHAS 的副本要关掉就设
-    # ENABLE_GHAS = false，不用回来改文件。
-    if: vars.ENABLE_GHAS != 'false'
+    # 同 codeql.yml：需要 GitHub Advanced Security（且依赖图要开），公开仓库免费但
+    # 要手动启用，没启用时这个 action 会直接失败。默认跳过以保持 CI 绿灯可信，
+    # 启用后加变量 ENABLE_GHAS = true 即自动打开。
+    if: vars.ENABLE_GHAS == 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v5

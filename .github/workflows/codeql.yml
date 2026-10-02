@@ -20,10 +20,14 @@ jobs:
   analyze:
     name: analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    # Code scanning 要 GitHub Advanced Security。本仓库是公开的，GHAS 对公开仓库
-    # 免费，所以默认跑；fork 出去的副本通常没开，那种环境里在 Settings → Variables
-    # 加 ENABLE_GHAS = false 就跳过，不用回来改文件。
-    if: vars.ENABLE_GHAS != 'false'
+    # Code scanning 要 GitHub Advanced Security。公开仓库的 GHAS 是免费的，但
+    # **不是公开就自动开** —— 要在 Settings → Code security and analysis 里手动启用，
+    # 没启用时 analyze 会直接失败（实测：开了就跑，没开就红在一个看不懂的错上）。
+    #
+    # 所以这里默认跳过，而不是默认跑：一个长期红的 workflow 会让人对红色脱敏，
+    # 真失败混在里面就看不出来了。启用之后在 Settings → Variables 加
+    # ENABLE_GHAS = true，不用回来改文件。
+    if: vars.ENABLE_GHAS == 'true'
     permissions:
       contents: read
       # 上传扫描结果必须要
