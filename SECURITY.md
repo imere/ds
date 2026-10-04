@@ -70,18 +70,24 @@
 - 全部依赖都是 devDependency，不进运行时产物 —— 所以依赖漏洞的影响面是**开发机与 CI**，
   不是最终用户。这不影响我们修的优先级排序：CI 上能执行的任何东西都算攻击面。
 
-### 已接受的依赖风险（有告警，但不修）
+### 已结案的 Vue 2 告警（2026-10-05）
 
-这几条会在 Dependabot 里长期挂着，**不是漏修**：
+Vue 2 已 EOL，这两条的影响范围都是 `>=2.0.0, <3.0.0`，**补丁只存在于 Vue 3**，
+而升级等于重写 `@ds/vue2` 与 `examples/demo-app` —— 那是产品决策，不是安全修复动作。
+所以处理方式不是升，而是把攻击面证成不可达，然后结案留据：
 
-| 告警 | 包 | 为什么不修 |
-| --- | --- | --- |
-| GHSA-5j4c-8p2g-v4jx（low，ReDoS） | `vue` 2.7.x | 影响范围是 Vue 2 **全线**（修复只在 `3.0.0-alpha.0` 之后），而 `@ds/vue2` 的存在意义就是支持 Vue 2。本仓库里 vue 只是 devDependency（跑测试用），触发 ReDoS 需要攻击者可控的模板字符串，测试里不存在 |
-| GHSA-g3ch-rx76-35fx（medium，XSS） | `vue-template-compiler` 2.7.x | 同上，只影响 Vue 2 全线，没有更高版本可升。它由 `@vue/test-utils@1` 引入（Vue 2 的测试工具没有 v2 以上），只在测试期用 |
+| 告警 | 包 | 结论 | 依据 |
+| --- | --- | --- | --- |
+| GHSA-5j4c-8p2g-v4jx（low，ReDoS in `parseHTML`） | `vue` 2.7.16 | 代码不在可达路径（`not_used`） | `parseHTML` 只存在于带编译器的完整版 `vue/dist/vue.js`。npm 包 `vue` 的 `main` / `module` 分别是 `dist/vue.runtime.common.js` 与 `dist/vue.runtime.esm.js`，**都是 runtime-only**；demo-app 用 `@vitejs/plugin-vue2` 在构建期把 `.vue` 编译成 render 函数，运行时不加载编译器，模板字符串也不是外部输入 |
+| GHSA-g3ch-rx76-35fx（medium，XSS via 原型污染） | `vue-template-compiler` 2.7.16 | 风险接受（`tolerable_risk`） | 它由 `@vue/test-utils@1` 引入（Vue 2 的测试工具没有 v2 以上），只在测试期跑，输入是本仓库自己的 `.vue`；触发还要先存在一处能污染 `Object.prototype.staticClass` / `staticStyle` 的位置 |
 
-判断依据是「**能不能升**」而不是「严不严重」：有补丁的就升，没补丁且只影响开发期的就记下来。
-这三条会在 Dependabot 列表里一直显示 open —— 想让它不再提醒，在 Security → Dependabot alerts
-里手动 dismiss（reason 选 tolerable risk）即可，理由同上。
+**残余面一处，说清楚**：`examples/vue2/standalone.html` 把完整版 Vue 内联进了页面，
+里面确实有 `parseHTML`。它是零依赖单文件演示，模板写死在 HTML 里，没有外部输入能喂给编译器，
+所以不构成可达路径 —— 但它是全仓库唯一携带编译器的一份，将来要动它请先回来读这一节。
+
+判断依据是「**能不能升**」而不是「严不严重」：有补丁的就升；没补丁的先问「这段代码跑不跑得到」，
+跑不到就证成不可达并结案，跑得到就换实现路径。结案不等于掩盖 —— 依据同时写在告警的
+dismiss reason 里和这里。
 升级路径也走完了 —— `examples/demo-app` 的 vite 5 / vitest 2 已不在维护线，
 已升到 vite 7.3.5+ / vitest 4.1.11，并用 `overrides` 把 `js-beautify → glob`
 钉到 10.5.0（10.4.x 有命令注入漏洞）。
