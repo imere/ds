@@ -1,6 +1,6 @@
 ---
 name: ds-token-import
-description: 把 W3C DTCG / Figma 导出的令牌 JSON 转成 ds-foundation 的扁平令牌表——fromW3C / fromFigma 的选项、CLI 用法、别名 {a.b.c} 解析、$root 是组默认值不是元数据、com.figma.scopes 决定单位语义、STROKE_FLOAT 恒为 px、给 vw/cqw 必须传 factors、issues 为空才算干净。当用户问"怎么导入 figma tokens""转换出来的键名太长了""别名没接上""为什么 vw 没换算""unit 怎么选"时使用。
+description: 把 W3C DTCG / Figma 导出的令牌 JSON 转成 ds-foundation 的扁平令牌表——fromW3C / fromFigma 的选项、CLI 用法、别名 {a.b.c} 解析、$root 是组默认值不是元数据、com.figma.scopes 决定单位语义、STROKE_FLOAT 恒为 px、给 vw/cqw 必须传 factors、issues 为空才算干净。当用户问"怎么导入 figma tokens""转换出来的键名太长了""别名没接上""为什么 vw 没换算""unit 怎么选""结果里一堆 xxx-raw-value 是怎么来的"时使用。
 agent_created: true
 ---
 
@@ -11,6 +11,23 @@ agent_created: true
 - 手上有一份 Figma / Tokens Studio 导出的 `*.tokens.json`
 - 想把 W3C DTCG 格式的令牌接进本库
 - 转换结果的键名、单位、别名不对，要排查
+- 结果里出现一堆 `xxx-raw-value` / `xxx-css-value` 这种带后缀的键（形状喂错入口，见下）
+
+## 先判形状：树，还是扁平映射
+
+两个入口都只认**树形的 DTCG**：一层组一层令牌嵌套，令牌的值写在 `$value` / `value` 里。
+
+另一种常见交付是**扁平映射**：顶层键本身就是 `color/bg/container` 这种路径，值是
+一段带若干描述字段的记录。它**不是** DTCG，喂给 `fromW3C` / `fromFigma` 会出这种事：
+
+- 记录里除 `value` 外还有别的对象型子键，正好撞上「除 value 外还有对象型子键 → 是组」
+  那条判据 → 每条令牌被当成组继续往下摊平
+- 于是产出 `'xxx-raw-value'`、`'xxx-css-value'` 这种把字段名拼进路径的键
+- **而 `issues` 是空的** —— 它没有「错」可报，全程合法，只是结果全是垃圾
+
+所以：看到一堆带字段名后缀的键，就是进口用错了，不要去修键值。**本库目前不认这种形状**
+（要不要为它加一个入口，取决于它是不是真有多个独立来源 —— 只有一份私有样本驱动的需求
+不该进公共 API）。真要消费，先在调用方把它折成 DTCG 树，再走 `fromW3C`。
 
 ## 心智模型
 
