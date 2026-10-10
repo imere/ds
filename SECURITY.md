@@ -85,6 +85,21 @@ Vue 2 已 EOL，这两条的影响范围都是 `>=2.0.0, <3.0.0`，**补丁只�
 里面确实有 `parseHTML`。它是零依赖单文件演示，模板写死在 HTML 里，没有外部输入能喂给编译器，
 所以不构成可达路径 —— 但它是全仓库唯一携带编译器的一份，将来要动它请先回来读这一节。
 
+### 已修：source-map-js 1.2.1 → 1.2.2（2026-10-11）
+
+GHSA-68fv-2mgg-jv7q（high）：indexed source-map 的 section offsets 能让事件循环卡死，
+修在 1.2.2。两个目录两种下场，值得记住：
+
+- `examples/demo-app`（npm）：Dependabot 自己开 PR，合并即可。
+- 根仓库（pnpm）：**Dependabot 提不动**，任务直接报
+  `security_update_not_possible` —— `latest-resolvable-version: 1.2.1` /
+  `lowest-non-vulnerable-version: 1.2.2`。它的 latest-resolvable 停在 lockfile
+  已经解析好的版本上，不会为了吃补丁去重新解析传递依赖。
+  解法是在根 `package.json` 用 `pnpm.overrides` 钉住（`glob`、`brace-expansion` 同理）。
+
+**所以：根目录传递依赖的漏洞不会自己来 PR。** 告警列表里有 high 却没有对应 PR 时，
+先看仓库的 Dependabot 更新日志，别当成「Dependabot 漏了」。
+
 判断依据是「**能不能升**」而不是「严不严重」：有补丁的就升；没补丁的先问「这段代码跑不跑得到」，
 跑不到就证成不可达并结案，跑得到就换实现路径。结案不等于掩盖 —— 依据同时写在告警的
 dismiss reason 里和这里。
