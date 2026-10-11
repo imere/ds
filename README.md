@@ -14,8 +14,13 @@ Design System 底层包：**token / class / theme**，最低支持 **IE10**（�
 四个包都是 `"type": "module"`，ESM 产物叫 `index.js`、UMD 产物叫 `index.umd.cjs`（原因见文末）。
 每个子包自带 `README.md`。
 
-> 给 Agent 看的操作指南不在这里，在仓库根的 **[`.agents/skills/`](../.agents/skills/)** ——
-> 按主题拆成了 11 份（总览 / 四个包各一份 / 单位 / IE10 / 测试 / 工具链 / 令牌导入 / uni-app x），
+> 给 Agent 看的操作指南不在这里，按「给谁用」分成两处：
+>
+> - **用这个库的项目** → 仓库根的 **[`skills/`](skills/)**：四个包怎么用、单位换算、令牌导入、
+>   uni-app x 接入，共 7 份，可以整份复制到自己项目里。
+> - **维护这个仓库** → **[`.agents/skills/`](.agents/skills/)**：分层决策、构建与工具链、
+>   测试门禁、IE10 检查、仓库运维，共 5 份。
+>
 > 本文件与 `docs/architecture.md` 是它们的出处。
 
 > 包怎么分层、令牌怎么流动、单位怎么走、每条设计决策为什么这么定，见

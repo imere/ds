@@ -1,10 +1,13 @@
 # 贡献指南
 
 本仓库是 `ds-foundation` —— 一套以 **IE10 为兼容基线**的 Design System 底层包。
-所有代码都在 `ds-foundation/` 下，本文提到的命令都在这个目录里跑。
+仓库根就是项目本体（`ds-foundation` 只剩 workspace 名），本文提到的命令都在仓库根跑。
 
-给 Agent 看的同一份经验在 [`.agents/skills/`](.agents/skills/) 下，按主题拆成了若干
-Skill（架构、单位、IE10、测试、工具链、令牌导入、四个包各一份）。**两边改一个就要改另一个。**
+给 Agent 看的同一份经验拆成了两套 Skill，**两边改一个就要改另一个**：
+
+- **[`skills/`](skills/)** —— 用这个库的项目看的：四个包怎么用、单位换算、令牌导入、uni-app x。
+- **[`.agents/skills/`](.agents/skills/)** —— 维护这个仓库的人看的：包怎么分层、构建与工具链、
+  测试门禁、IE10 检查、仓库运维。
 
 ---
 
@@ -16,7 +19,6 @@ Skill（架构、单位、IE10、测试、工具链、令牌导入、四个包�
 包管理器是 pnpm 10+，`.nvmrc` 里写着 22。
 
 ```bash
-cd ds-foundation
 pnpm install          # 冷启动约 100s，之后走 store 硬链接
 pnpm run verify       # typecheck → lint → build → coverage
 ```
@@ -163,8 +165,9 @@ core 里不许出现具体色值、具体断点数字、具体尺度表。唯一
 ## 七、目录地图
 
 ```
+skills/             用这个库的项目看的 Agent 指南（四个包 / 单位 / 令牌导入 / uni-app x）
 .github/            CI / Dependabot / issue 与 PR 模板 / labeler
-.agents/skills/     给 Agent 看的操作指南（本文件的结构化版本）
+.agents/skills/     维护本仓库用的 Agent 指南（分层 / 工具链 / 测试 / IE10 / 运维）
 .husky/             提交前的钩子：密钥闸门 + lint-staged
 packages/core/      算法：token / theme / derive / class / output / unit / convert
 packages/tokens/    值：theme / accent / seed / breakpoint / scale
