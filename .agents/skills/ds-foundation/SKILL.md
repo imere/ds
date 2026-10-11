@@ -1,21 +1,44 @@
 ---
 name: ds-foundation
-description: ds-foundation 总览与分层决策——新东西该放哪个包（core 只有算法没有值 / tokens 只有值没有算法）、令牌从拾取到落地的五步、覆盖优先级、持久化与 SSR 为什么在边界、怎么路由到其它 ds-* Skill。当用户问"这个功能该加在哪""能不能给个默认值""换主题时哪些值会动""为什么拿不到 color-brand""这个仓库怎么上手"时使用。
-agent_created: true
+description: 决定一个新能力 / 一个默认值该落在哪个包，以及路由到其它 ds-* Skill。当用户问"这个功能该加在哪""能不能给个默认值""换主题时哪些值会动""为什么拿不到 color-brand""这个仓库怎么上手"时使用。
+metadata:
+  pattern: inversion
 ---
 
-# ds-foundation
+# 新东西放哪一层
 
-Design System 底层包，兼容基线 **IE10**。代码都在仓库根（仓库名 ds，workspace 名 ds-foundation），命令也在根跑。
+Design System 底层包，兼容基线 **IE10**。代码都在仓库根（仓库名 ds，workspace 名 ds-foundation），
+命令也在根跑。
 
-## 何时使用
+**DO NOT 直接开写。先把 Phase 1 / Phase 2 的问题问完，再进 Phase 3。**
+一次问一个，等回答再问下一个 —— 跳过一个阶段，落点大概率选错。
 
-- 要判断一个新能力 / 一个默认值该落在哪个包
-- 要改令牌、主题、强调色、尺度，不确定改哪一层
-- 排查「令牌算出来了但页面上没变」
-- 需要路由：`@ds/core` 用法 → `ds-core`；单位 → `ds-units`；IE10 → `ds-ie10`；
-  导入设计稿 → `ds-token-import`；构建 → `ds-toolchain`；测试 → `ds-testing`；
-  DOM 注入 → `ds-dom`；Vue 2 → `ds-vue2`；值包 → `ds-tokens`；uni-app x → `ds-uniappx`
+## Phase 1 — 它是什么
+
+一个一个问，拿到答案再问下一个：
+
+- **Q1：换一套设计语言时它要不要改？**
+  要改的是**值**，不用改的是**机制**
+- **Q2：它要碰 DOM / 存储 / 媒体查询吗？**
+  要 → 只能是浏览器层；不要 → 纯逻辑层
+- **Q3：它是给 Vue 2 用的吗？**
+  是 → 框架适配层
+
+## Phase 2 — 它会不会替用户做决定
+
+- **Q4：实现它需要一个默认值兜底吗？**
+  需要 → **停下来**。多半不该加，见硬规则 1
+- **Q5：它是靠一份私有样本才成立的吗？**
+  是 → 见硬规则 7，可能是「不该进公共 API」
+
+## Phase 3 — 落点
+
+| 判定 | 落点 |
+| --- | --- |
+| 是**值**（色值 / 断点数字 / 尺度表 / 语义映射 / 种子） | `@ds/tokens`，或调用方自己那份 |
+| 是**机制**（怎么合并、怎么派生、怎么换算、怎么输出 CSS） | `@ds/core` |
+| 要碰 DOM / 存储 / 媒体查询 | `@ds/dom` |
+| 要接 Vue 2 | `@ds/vue2` |
 
 ## 心智模型
 
@@ -29,14 +52,6 @@ rescaleTokens(flat, unit, space, keep)      出口换算，只有一处
 vars 通道 :root{--ds-*}   |   static 通道 <style> 写死实值（IE10）
 ```
 
-## 工作流：新东西放哪一层
-
-1. **问一句「换一套设计语言时它要不要改」** —— 要改的是值，不用改的是机制
-2. 是**值**（色值 / 断点数字 / 尺度表 / 语义映射 / 种子）→ `@ds/tokens`，或调用方自己那份
-3. 是**机制**（怎么合并、怎么派生、怎么换算、怎么输出 CSS）→ `@ds/core`
-4. 要碰 DOM / 存储 / 媒体查询 → `@ds/dom`；要接 Vue 2 → `@ds/vue2`
-5. **想加默认值兜底时先停下来** —— 见硬规则 1，多半不该加
-
 ## 覆盖优先级
 
 ```
@@ -44,6 +59,22 @@ theme.tokens  →  accent.tokens  →  overrides         （后者盖前者）
 ```
 
 第二条是**覆盖不是派生**：改 `color-brand` 不会让 `color-brand-hover` 跟着动。
+
+## 路由到其它 Skill
+
+| 要做什么 | 去哪 |
+| --- | --- |
+| `@ds/core` 用法 | `ds-core` |
+| 运行时注入 / SSR / 持久化 | `ds-dom` |
+| 值包 / 换成自己的设计语言 | `ds-tokens` |
+| 单位换算 | `ds-units` |
+| 导入设计稿令牌 | `ds-token-import` |
+| Vue 2 接入 | `ds-vue2` |
+| uni-app x 接入 | `ds-uniappx` |
+| 构建与门禁 | `ds-toolchain` |
+| 写测试 / 补覆盖率 | `ds-testing` |
+| IE10 合规 | `ds-ie10` |
+| push 不通 / PR 与告警 | `github-api-fallback` |
 
 ## 硬规则
 
@@ -67,7 +98,7 @@ theme.tokens  →  accent.tokens  →  overrides         （后者盖前者）
    把「现有入口为什么认不出它」记进 Skill 就够了 —— 那段失败模式才是通用知识。
    同理：**API 名不许带来源方的产品名 / 工具名**，它既是泄漏，也等于把外部命名焊进自己的抽象层
 
-## 常见坑
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
@@ -80,8 +111,9 @@ theme.tokens  →  accent.tokens  →  overrides         （后者盖前者）
 
 ## 检查清单
 
-- [ ] 新增的值类东西是否落在 `@ds/tokens` 或调用方，而不是 core
-- [ ] 有没有顺手加默认值兜底（有 → 删掉）
-- [ ] 令牌改动是否走了深合并
-- [ ] 需要持久化时是否显式走 `readTheme` + `bindTheme`
-- [ ] 改完库是否重新 `pnpm run build`
+- [ ] Phase 1 / Phase 2 的问题都问过并拿到答案
+- [ ] 新增的值类东西落在 `@ds/tokens` 或调用方，而不是 core
+- [ ] 没有顺手加默认值兜底（有 → 删掉）
+- [ ] 令牌改动走了深合并
+- [ ] 需要持久化时显式走 `readTheme` + `bindTheme`
+- [ ] 改完库重新 `pnpm run build`

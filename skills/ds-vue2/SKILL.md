@@ -1,15 +1,24 @@
 ---
 name: ds-vue2
-description: 在 Vue 2 项目里接入 @ds/vue2——Vue.use 安装与选项透传、$ds 响应式句柄（use/toggle/t/style/override）、v-ds-theme 局部换肤的能力边界、provide/inject 的 key 直接当注入名、自定义令牌前缀如何一路透传、Vue 2 响应式的两个坑（加新 key 不触发更新、2.6 才有 Vue.observable）。当用户提到"@ds/vue2""Vue.use(DsVue2)""$ds""v-ds-theme""dsContext""Vue 2 主题切换""Vue 2 里换令牌前缀"时使用。
-agent_created: true
+description: 在 Vue 2 项目里接入 @ds/vue2——Vue.use 安装与选项透传、$ds 响应式句柄（use/toggle/t/style/override）、v-ds-theme 局部换肤的能力边界、provide/inject 的 key 直接当注入名、前缀如何一路透传、Vue 2 响应式的两个坑（加新 key 不触发更新、2.6 才有 Vue.observable）。当用户提到"@ds/vue2""Vue.use(DsVue2)""$ds""v-ds-theme""dsContext""Vue 2 主题切换""Vue 2 里换令牌前缀"时使用。
+metadata:
+  pattern: tool-wrapper
 ---
 
-# @ds/vue2 使用指南
+# @ds/vue2 约定
 
 把 `@ds/dom` 的 manager 包成 Vue 2 生态里顺手的三样东西：`$ds` 响应式句柄、`v-ds-theme` 指令、
 provide/inject 上下文。
 
-## 心智模型
+## 触发条件
+
+- 要在 Vue 2 工程里装主题插件 / 用 `$ds`
+- 要做局部换肤，或跨层组件读主题状态
+- 要换令牌前缀，或在 Vue 2 里接持久化
+
+## 约定
+
+### 选项整体透传
 
 ```
 Vue.use(DsVue2, options)
@@ -20,31 +29,18 @@ Vue.use(DsVue2, options)
             └─ 根实例 provide { dsContext }
 ```
 
-**所有 `createThemeManager` 的选项都能直接传给 `Vue.use` 的第二个参数**，包括 `prefix`
-与六个必传参数（`themes` / `accents` / `scales` / `rules` / `utilities` / `map`）。
-
-## 工作流
-
-1. **装插件** —— `Vue.use(DsVue2, { themes, accents, scales, rules, utilities, map, theme, prefix })`
-   插件不会碰 localStorage / cookie。要记住用户的选择得显式接：
-   `var saved = readTheme({ prefix })` → `Vue.use(...)` → `bindTheme(Vue.ds.manager)`
-2. **组件里用 `$ds`** —— `t()` 读令牌、`style()` 生成行内样式、`state` 拿响应式数据
-3. **跨层组件用 inject** —— `inject: ['dsContext']`，不用写 `from`
-4. **局部换肤用指令** —— `v-ds-theme`，并确认不在 static 通道
-5. **要改前缀** —— 一处传 `prefix`，指令会自动跟随
-
-## 三样东西
+`createThemeManager` 的选项（含 `prefix` 与六个必传参数）**都能直接传给 `Vue.use` 的第二个参数**。
 
 ### `$ds` 响应式句柄
 
 ```js
-this.$ds.use('dark') // 切主题
-this.$ds.useAccent('green') // 切强调色
-this.$ds.toggle() // 明暗互切
-this.$ds.t('color-brand') // 读令牌值
-this.$ds.ref('color-brand') // 'var(--ds-color-brand)'
+this.$ds.use('dark')            // 切主题
+this.$ds.useAccent('green')     // 切强调色
+this.$ds.toggle()               // 明暗互切
+this.$ds.t('color-brand')       // 读令牌值
+this.$ds.ref('color-brand')     // 'var(--ds-color-brand)'
 this.$ds.override('radius', { md: '20px' })
-this.$ds.state.theme // 响应式
+this.$ds.state.theme            // 响应式
 ```
 
 ```html
@@ -69,23 +65,39 @@ UI 直接要用的还有：`overrideMap()`（批量覆盖，只重绘一次，�
 ### provide / inject
 
 ```js
-inject: ['dsContext'] // key 就是注入名，不需要 from
+inject: ['dsContext']   // key 就是注入名，不需要 from
 ```
 
 provide 只在根实例做一次，避免每个组件往 provide 链里塞一份。
 
-## 自定义令牌前缀
+### 前缀
 
 ```js
 Vue.use(DsVue2, { prefix: 'acme' })
 
-this.$ds.prefix.var // '--acme-'
+this.$ds.prefix.var          // '--acme-'
 this.$ds.varName('color-brand') // '--acme-color-brand'
-this.$ds.className('bg-brand') // 'acme-bg-brand'
+this.$ds.className('bg-brand')  // 'acme-bg-brand'
 ```
 
-指令从 manager 上取前缀，不会错位。但**指令名固定是 `v-ds-theme`** ——
-它属于包名，不是令牌命名空间。
+指令从 manager 上取前缀，不会错位。但**指令名固定是 `v-ds-theme`** —— 它属于包名，
+不是令牌命名空间。
+
+## 应用方式
+
+### 写代码时
+
+1. **装插件** —— `Vue.use(DsVue2, { themes, accents, scales, rules, utilities, map, theme, prefix })`
+   插件不会碰 localStorage / cookie。要记住用户的选择得显式接：
+   `var saved = readTheme({ prefix })` → `Vue.use(...)` → `bindTheme(Vue.ds.manager)`
+2. **组件里用 `$ds`** —— `t()` 读令牌、`style()` 生成行内样式、`state` 拿响应式数据
+3. **跨层组件用 inject** —— `inject: ['dsContext']`
+4. **局部换肤用指令** —— `v-ds-theme`，并确认不在 static 通道
+5. **要改前缀** —— 一处传 `prefix`，指令自动跟随
+
+### 改 / 查代码时
+
+按硬规则逐条核对，违规要引用规则编号说明为什么，并给具体改法。
 
 ## 硬规则
 
@@ -97,7 +109,7 @@ this.$ds.className('bg-brand') // 'acme-bg-brand'
 5. **插件不 import vue** —— Vue 由 install 参数注入，UMD 下依赖全局 Vue，不把框架打进产物
 6. **static 通道下别指望局部换肤** —— 只能整站切，且要有告警
 
-## 常见坑
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
@@ -108,12 +120,11 @@ this.$ds.className('bg-brand') // 'acme-bg-brand'
 | 换前缀后指令写的还是 `--ds-*` | 指令硬编码了前缀 | 指令应从 `manager.prefix` 取 |
 | 告警测不出来 | Vue 2 的 warn 走 `console.error` | 冒烟测试要同时 spy `warn` 和 `error` |
 | 品牌色没有 | 没传 `accents` | 官方主题不含 brand 一族 |
-| `require()` 报 "of ES Module" | 包是 `type: module` | UMD 产物叫 `index.umd.cjs` |
 
 ## 检查清单
 
-- [ ] `Vue.use` 的选项是否原样透传给 manager（含 `prefix` 与六个必传参数）
-- [ ] 指令是否从 `manager.prefix` 取前缀而非硬编码
-- [ ] 是否验证过 Vue 2.5 兜底路径
-- [ ] 冒烟测试是否同时监听 `console.warn` 和 `console.error`
-- [ ] 组件销毁时是否 `off()` 掉订阅
+- [ ] `Vue.use` 的选项原样透传给 manager（含 `prefix` 与六个必传参数）
+- [ ] 指令从 `manager.prefix` 取前缀而非硬编码
+- [ ] 验证过 Vue 2.5 兜底路径
+- [ ] 冒烟测试同时监听 `console.warn` 和 `console.error`
+- [ ] 组件销毁时 `off()` 掉订阅

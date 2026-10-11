@@ -1,21 +1,24 @@
 ---
 name: ds-uniappx
-description: 把 ds-foundation 的令牌接到 uni-app x（uvue）——三个包各端可用性矩阵、为什么推荐构建期生成、gen-tokens.mjs 的四个产物分别给谁、manifest 各平台都要开 darkmode + themeLocation、运行时用 uni.setAppTheme 与 uni.setStorageSync、ucss 只能用 class 选择器且文本样式必须写在 text 上、App 端变量穿透要先花三分钟验证、退回静态工具类路线。当用户问"uni-app x 怎么用这个库""App 端能用 @ds/dom 吗""theme.json 怎么生成""暗黑模式怎么接"时使用。
-agent_created: true
+description: 把令牌接到 uni-app x（uvue）——三个包各端可用性矩阵、为什么推荐构建期生成、gen-tokens.mjs 四个产物分别给谁、manifest 各平台都要开 darkmode + themeLocation、运行时用 uni.setAppTheme 与 uni.setStorageSync、ucss 只能用 class 选择器且文本样式必须写在 text 上、App 端变量穿透要先验证、退回静态工具类路线。当用户问"uni-app x 怎么用这个库""App 端能用 @ds/dom 吗""theme.json 怎么生成""暗黑模式怎么接"时使用。
+metadata:
+  pattern: pipeline
 ---
 
 # uni-app x 接入
 
-## 何时使用
+严格按 Step 1 → Step 5 走。**每步都有通过条件，不达标不要往下走。**
+
+**别指望在 App 端把这个包当运行时库用。** 推荐做法：构建期用 `@ds/core` 算出来落成文件，
+uni-app x 侧只消费这些文件。
+
+## 触发条件
 
 - 要在 uni-app x（uvue）工程里用本库的令牌
 - 要给 App 端 / 小程序 / Web 端做换肤
-- 判断某个包在某一端能不能用
+- 要判断某个包在某一端能不能用
 
-## 心智模型
-
-**别指望在 App 端把这个包当运行时库用。** 推荐做法：**构建期用 `@ds/core` 把令牌算出来，
-落成文件，uni-app x 侧只消费这些文件。**
+## Step 1 — 判端：这个包在这一端能不能用
 
 | 包 | App 端（uvue） | 小程序 | Web |
 | --- | --- | --- | --- |
@@ -29,26 +32,33 @@ agent_created: true
    元素对象，不是 `@ds/dom` 操作的 `document.documentElement`。注入 CSS 变量那条主通道从根上不成立
 2. **VDOM 模式没有 JS 引擎** —— 逻辑层是 UTS，编译成 Kotlin / Swift / ArkTS，`build/*.js` 没地方执行
 3. **CSS 是 web 的子集（ucss）** —— 不能用 `#id` / `[attr]` / 标签选择器，**只能用 class 选择器**；
-   文本样式不继承，必须写在 `<text>` 上；蒸汽模式下连关系选择器都不支持
+   文本样式不继承，必须写在 `<text>` 上
 
-## 工作流（推荐：构建期生成）
+- **通过条件：App 端只用「构建期生成」这条路，不在运行时 import 任何一个包。**
 
-1. **跑生成脚本**：
-   ```bash
-   node examples/uniappx/gen-tokens.mjs
-   ```
-   脚本在 Node 里直接 import `packages/core/build/index.js`（**先 `pnpm run build`**），
-   产出四个文件到 `examples/uniappx/generated/`：
+## Step 2 — 构建期生成
 
-   | 产物 | 给谁用 |
-   | --- | --- |
-   | `theme.json` | uni-app 的暗黑通道，`{ light: {...}, dark: {...} }`，值是实值 |
-   | `ds-tokens.web.css` | Web / 小程序：`:root` + `[data-ds-theme="dark"]` + `prefers-color-scheme` |
-   | `ds-tokens.app.css` | uvue App 端：换成 `.ds-theme-light` / `.ds-theme-dark` 类作用域 |
-   | `ds-tokens.uts` | UTS 逻辑层：`export const dsColorBg = '#ffffff'`，canvas / Draw API 传值用 |
+```bash
+node examples/uniappx/gen-tokens.mjs
+```
 
-2. **把 `theme.json` 拷到项目根目录**
-3. **manifest.json 各平台节点都要开**（漏一个那一端就不注入）：
+脚本在 Node 里直接 import `packages/core/build/index.js`，产出四个文件到
+`examples/uniappx/generated/`：
+
+| 产物 | 给谁用 |
+| --- | --- |
+| `theme.json` | uni-app 的暗黑通道，`{ light: {...}, dark: {...} }`，值是实值 |
+| `ds-tokens.web.css` | Web / 小程序：`:root` + `[data-ds-theme="dark"]` + `prefers-color-scheme` |
+| `ds-tokens.app.css` | uvue App 端：换成 `.ds-theme-light` / `.ds-theme-dark` 类作用域 |
+| `ds-tokens.uts` | UTS 逻辑层：`export const dsColorBg = '#ffffff'`，canvas / Draw API 传值用 |
+
+- **通过条件：四个产物都生成了**（脚本报找不到模块就是没 `pnpm run build`）
+- 产物里标了来源和版本号，可以放心提交
+
+## Step 3 — 落地到工程
+
+1. **把 `theme.json` 拷到项目根目录**
+2. **manifest.json 各平台节点都要开**（漏一个那一端就不注入）：
    ```json
    {
      "app-plus":    { "darkmode": true, "themeLocation": "theme.json" },
@@ -57,13 +67,7 @@ agent_created: true
      "h5":          { "darkmode": true, "themeLocation": "theme.json" }
    }
    ```
-4. **运行时切换走 uni 的 API**，不要自己操心「往哪注入」：
-   ```ts
-   uni.getAppBaseInfo().appTheme        // 'light' | 'dark' | 'auto'
-   uni.setAppTheme({ theme: 'dark' })   // 自动按 theme.json 注入
-   uni.onAppThemeChange(() => {})
-   ```
-5. **样式里用变量**（ucss 支持 `var()` / `url()` / `rgb()` / `rgba()` / `env()`）：
+3. **样式里用变量**（ucss 支持 `var()` / `url()` / `rgb()` / `rgba()` / `env()`）：
    ```vue
    <view class="card"><text class="title">标题</text></view>
    <style>
@@ -71,9 +75,10 @@ agent_created: true
    .title { color: var(--ds-color-fg); }
    </style>
    ```
-6. **持久化用 `uni.setStorageSync('ds-theme', 'dark')`**，别碰 `@ds/dom` 的 `storage.ts`
 
-## ⚠️ 动手前先花三分钟验证
+- **通过条件：四个平台节点都写了，`theme.json` 在根目录，样式只用 class 选择器。**
+
+## Step 4 — 验证 App 端变量穿透（gate）
 
 App 端自定义属性能否**沿节点树向下穿透**，官方文档没写。用一个页面试：
 
@@ -85,9 +90,20 @@ App 端自定义属性能否**沿节点树向下穿透**，官方文档没写。
 
 `.probe { color: var(--ds-color-fg) }`。写在 `.host` 上的变量如果 `text` 能拿到，方案成立。
 
-**不成立就退回静态工具类路线**：不在 App 端用变量，而是用 `@ds/core` 的 `class.ts`
-在构建期生成 `.ds-bg-surface { background-color: #f8fafc }` 这类实值工具类，运行时只切 class。
-这条路一定成立，代价是换主题得换一批 class 名。
+- **通过 → Step 5**
+- **不通过 → 退回静态工具类路线**：不在 App 端用变量，而是用 `@ds/core` 的 `class.ts`
+  在构建期生成 `.ds-bg-surface { background-color: #f8fafc }` 这类实值工具类，运行时只切 class。
+  这条路一定成立，代价是换主题得换一批 class 名
+
+## Step 5 — 运行时接线
+
+- **切换走 uni 的 API**，不要自己操心「往哪注入」：
+  ```ts
+  uni.getAppBaseInfo().appTheme        // 'light' | 'dark' | 'auto'
+  uni.setAppTheme({ theme: 'dark' })   // 自动按 theme.json 注入
+  uni.onAppThemeChange(() => {})
+  ```
+- **持久化用 `uni.setStorageSync('ds-theme', 'dark')`**，别碰 `@ds/dom` 的 `storage.ts`
 
 ## 硬规则
 
@@ -96,7 +112,7 @@ App 端自定义属性能否**沿节点树向下穿透**，官方文档没写。
 2. **文本样式写在 `<text>` 上** —— App 端样式不继承，写在 `<view>` 上不生效
 3. **不要用 `@ds/dom` / `@ds/vue2`** —— 这两包在 App 端与小程序端一个都用不了
 4. **持久化用 uni 的存储** —— `@ds/dom` 的 localStorage / cookie 适配器在 App 端全是空的
-5. **改令牌就重跑生成脚本**，产物里标了来源和版本号，可以放心提交
+5. **改令牌就重跑生成脚本**
 6. **别把 `@ds/core` 当 UTS 编译**（见下）
 
 ## 别把 core 源码当 UTS 编译
@@ -108,7 +124,7 @@ App 端自定义属性能否**沿节点树向下穿透**，官方文档没写。
 好消息是 core 的**运行时代码**极干净（有 IE10 约束守着：纯 ES5、无 Promise/Map/Set），
 卡点几乎全在类型层。但这仍然是一次重写加双份维护，不值得。
 
-## 常见坑
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
@@ -116,14 +132,14 @@ App 端自定义属性能否**沿节点树向下穿透**，官方文档没写。
 | 文字颜色不变 | 样式写在 `<view>` 上 | 写在 `<text>` 上 |
 | 某一端不注入暗黑 | manifest 漏了那个平台节点 | 四个节点都写 |
 | 刷新后主题跳回默认 | 用了 `@ds/dom` 的 storage | 用 `uni.setStorageSync` |
-| 生成脚本报找不到模块 | 没 `pnpm run build`（脚本 import 的是 `build/index.js`） | 先 build |
-| 想 `npm i @ds/core` | private workspace 包，`workspace:*` 装不到 | 走构建期生成（方案 A） |
+| 生成脚本报找不到模块 | 没 `pnpm run build` | 先 build |
+| 想 `npm i @ds/core` | private workspace 包，`workspace:*` 装不到 | 走构建期生成 |
 
 ## 检查清单
 
-- [ ] 令牌是构建期生成的，不是运行时引入的
+- [ ] Step 1 判过端，令牌是构建期生成的，不是运行时引入的
 - [ ] manifest 四个平台节点都开了 `darkmode` + `themeLocation`
 - [ ] `theme.json` 在项目根目录
 - [ ] 样式只用 class 选择器，文本样式在 `<text>` 上
 - [ ] 持久化走 `uni.setStorageSync`
-- [ ] 已验证 App 端变量能否沿节点树穿透（不能就退回工具类路线）
+- [ ] Step 4 的穿透验证做过（不能就退回工具类路线）

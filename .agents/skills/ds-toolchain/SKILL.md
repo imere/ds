@@ -1,36 +1,61 @@
 ---
 name: ds-toolchain
-description: ds-foundation 的构建与仓库运维——verify 的固定顺序（build 必须在测试前）、产物目录只有 packages/*/build 与 build/ 两处、pnpm 的三条规矩、SWC 负责降级 tsc 只出 d.ts、TypeScript 锁 6.0.3 别升 7、ESLint 里存着 Prettier 选项、产物扩展名为什么是 index.js + index.umd.cjs、改完库必须重新 build、本机 pnpm/coverage 的两个环境坑。当用户问"怎么构建""为什么测试挂了""产物在哪""能升 TS 7 吗""用 npm 还是 pnpm""跑一遍门禁"时使用。
-agent_created: true
+description: 构建与仓库运维的门禁流水线——verify 的固定顺序（build 必须在测试前）、产物只有 packages/*/build 与 build/ 两处、pnpm 三条规矩、SWC 降级 tsc 只出 d.ts、TypeScript 锁 6.0.3 别升 7、格式化只有 ESLint 一个执行者、改完库必须重新 build、公开仓库的写作红线。当用户问"怎么构建""为什么测试挂了""产物在哪""能升 TS 7 吗""用 npm 还是 pnpm""跑一遍门禁"时使用。
+metadata:
+  pattern: pipeline
 ---
 
-# 构建与仓库运维
+# 提交前门禁
 
-所有命令在仓库根跑。
+所有命令在仓库根跑。**Step 顺序不能改**，每步都有通过条件。
 
-## 何时使用
-
-- 改完代码要跑门禁 / 要提交
-- 构建失败、测试挂了、产物找不到
-- 想动工具链版本（TS / ESLint / pnpm / SWC）
-- 在本机上跑不动某个命令（两个已知环境坑见文末）
-
-## 工作流：提交前跑一遍
+## Step 1 — typecheck
 
 ```bash
-pnpm run verify     # typecheck → lint → build → coverage
+pnpm run typecheck     # tsc --noEmit，源码与测试各一个 project
 ```
 
-**顺序不能改**：`tests/es5.test.ts` 的 B 层验的是 `packages/*/build` 里的真实产物，
-没 build 时那 8 个用例自动跳过 —— 先跑测试等于只验了一半。
+- 通过条件：零错误
+
+## Step 2 — lint
+
+```bash
+pnpm run lint          # ESLint，含 Prettier 格式与 IE10 API 兼容
+pnpm run lint:fix      # 修格式
+```
+
+- 通过条件：零错误零警告
+
+## Step 3 — build
+
+```bash
+pnpm run build         # SWC 降 ES5 + Rollup 出 ESM / UMD
+pnpm run dts           # 出 .d.ts，四个包都要
+```
+
+- **通过条件：四个包的产物都出了**
+- **这一步必须排在测试前**：`tests/es5.test.ts` 的 B 层验的是 `packages/*/build` 里的真实产物，
+  没 build 时那 8 个用例自动跳过 —— 先跑测试等于只验了一半
+
+## Step 4 — coverage
+
+```bash
+pnpm run coverage      # vitest，带 100% 门槛（四项）
+```
+
+- 通过条件：四项全 100%
+
+## 一步到位
+
+```bash
+pnpm run verify        # typecheck → lint → build → coverage
+```
+
+## 其它命令
 
 | 命令 | 干什么 |
 | --- | --- |
-| `pnpm run typecheck` | `tsc --noEmit`，源码与测试各一个 project |
-| `pnpm run lint` / `lint:fix` | ESLint，含 Prettier 格式与 IE10 API 兼容 |
-| `pnpm run build` | SWC 降 ES5 + Rollup 出 ESM / UMD |
-| `pnpm run dts` | 出 `.d.ts`，四个包都要 |
-| `pnpm run test` / `coverage` | vitest；coverage 带 100% 门槛 |
+| `pnpm run test` | vitest（不带覆盖率门槛） |
 | `pnpm run es5` | 只跑 ES5 合规 |
 | `node scripts/check-jsdoc.mjs` | JSDoc 门禁（描述 + `@param` + `@returns`） |
 | `pnpm run clean` | 清 `packages/*/build` 与 `build/` 两处 |
@@ -72,20 +97,20 @@ pnpm run verify     # typecheck → lint → build → coverage
    （并把 Prettier 扩展列进 unwanted —— 它读不到选项，会用 Prettier 默认值重排，
    然后被 ESLint 判红）；`settings.json` 把 `source.fixAll.eslint` 挂到保存时，
    且**只留 ESLint 管不到的事**（ESLint 只处理 js/ts，md / yml / json / html 的
-   行尾、尾空格、结尾空行只能靠编辑器）。非 VS Code 用户手动对齐这三项即可
+   行尾、尾空格、结尾空行只能靠编辑器）
 7. **源码用最新语法，不迁就 IE10**（`no-var` / `prefer-const` 全开），降级是 SWC 的事
 8. **改完库必须重新 `pnpm run build`** —— demo-app 靠别名指向 `build/`，
    uniappx 生成脚本直接 import `packages/core/build/index.js`
 9. **新增函数必须有 JSDoc**（描述 + 逐个 `@param` + 非 void 的 `@returns`），
    `node scripts/check-jsdoc.mjs` 是门禁
 10. **本仓库是公开的**：任何写进文件的内容都会被公开。禁止出现在代码 / 注释 /
-    文档 / 提交信息里的：本机绝对路径、代理地址与端口、任何 token / PAT 及其前缀、
-    Windows 机器名。引用位置一律用仓库相对路径。这不只是纪律 —— 提交前有两道
-    钩子会拦（`gitleaks` + `scripts/secret-scan.mjs`），CI 扫全量历史
+    文档 / 提交信息里的：宿主环境的绝对路径、代理地址与端口、任何 token / PAT 及其前缀、
+    机器名。引用位置一律用仓库相对路径。这不只是纪律 —— 提交前有两道钩子会拦
+    （`gitleaks` + `scripts/secret-scan.mjs`），CI 扫全量历史
 11. 真误报在那一行末尾加 `secret-scan:ignore`（两个扫描器认同一个标记）；
     **扫出真凭据先吊销 / 轮换再谈删提交** —— 已推送的东西删不掉
 
-## 常见问题
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
@@ -95,21 +120,14 @@ pnpm run verify     # typecheck → lint → build → coverage
 | `prettier` CLI 格式化结果不对 | CLI 读不到 eslint.config.js 里的选项 | 用 `pnpm run lint:fix` |
 | `@ds/core` 在根里 require 不到 | pnpm 严格布局 | 根 devDependencies 也声明一份 `workspace:*` |
 | 示例页面没反应 | 库改了没重 build | `pnpm run build` |
-
-## 本机两个环境坑
-
-- **`pnpm install` 会被安全删除钩子拦**：pnpm 启动时要删 store 临时文件，
-  环境按每轮对话计数，累计约 50 次后报 `SAFE_DELETE_BULK_CONFIRM_REQUIRED`。
-  对策是**别硬试**，结束本轮让用户再发一条消息，计数重置后一次装完
-- **`coverage` 收尾清理同样会撞这个钩子**：配置里关了 `clean` / `cleanOnRerun`，
-  但**收尾那一次关不掉** —— `cleanAfterRun` 是 provider 的方法名不是配置项，写进去会被
-  tsc 报 TS2769。若命令非 0 退出，报告其实已经写好，
-  看 `build/coverage/coverage-summary.json`；要清目录用 `mv` 改名而不是 `rm -rf`
+| `pnpm install` 报 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` | 宿主环境的批量删除保护按轮次计数 | 别硬试，下一轮再装 |
+| coverage 非 0 退出但报告有了 | 收尾清理撞了同一个保护 | 看 `build/coverage/coverage-summary.json`；要清目录用 `mv` 不用 `rm -rf` |
 
 ## 检查清单
 
-- [ ] `pnpm run verify` 全绿（build 在测试之前）
+- [ ] Step 1→4 顺序跑完，全绿（build 在测试之前）
 - [ ] `node scripts/check-jsdoc.mjs` 通过
 - [ ] 产物落在 `packages/*/build/`，覆盖率落在 `build/coverage/`
 - [ ] 改了库 → 重新 build → 示例能跑
 - [ ] 没动 TS / ESLint 的大版本
+- [ ] 提交内容里没有宿主环境路径 / 代理 / 凭据

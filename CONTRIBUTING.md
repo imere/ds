@@ -9,6 +9,10 @@
 - **[`.agents/skills/`](.agents/skills/)** —— 维护这个仓库的人看的：包怎么分层、构建与工具链、
   测试门禁、IE10 检查、仓库运维。
 
+每份都按一种编写模式组织（tool-wrapper / generator / reviewer / inversion / pipeline），
+标在 `SKILL.md` 的 `metadata.pattern` 里 —— 改内容时别把模式的骨架改没了（比如 pipeline 的
+每步「通过条件」、reviewer 的「严重性分级」、inversion 的阶段 gate）。
+
 ---
 
 ## 一、先把环境跑通

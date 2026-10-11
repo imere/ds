@@ -1,21 +1,26 @@
 ---
 name: ds-token-import
-description: 把 W3C DTCG / Figma 导出的令牌 JSON 转成 ds-foundation 的扁平令牌表——fromW3C / fromFigma 的选项、CLI 用法、别名 {a.b.c} 解析、$root 是组默认值不是元数据、com.figma.scopes 决定单位语义、STROKE_FLOAT 恒为 px、给 vw/cqw 必须传 factors、issues 为空才算干净。当用户问"怎么导入 figma tokens""转换出来的键名太长了""别名没接上""为什么 vw 没换算""unit 怎么选""结果里一堆 xxx-raw-value 是怎么来的"时使用。
-agent_created: true
+description: 把 W3C DTCG / Figma 导出的令牌 JSON 转成扁平令牌表——先判形状（树形还是扁平映射）、fromW3C / fromFigma 的选项、CLI 用法、别名 {a.b.c} 解析、$root 是组默认值不是元数据、com.figma.scopes 决定单位语义、STROKE_FLOAT 恒为 px、给 vw/cqw 必须传 factors、issues 为空才算干净。当用户问"怎么导入 figma tokens""转换出来的键名太长了""别名没接上""为什么 vw 没换算""unit 怎么选""结果里一堆 xxx-raw-value 是怎么来的"时使用。
+metadata:
+  pattern: pipeline
 ---
 
 # 导入设计稿令牌
 
-## 何时使用
+严格按 Step 1 → Step 6 走。**每步都有通过条件，不达标不要往下走。**
+
+## 触发条件
 
 - 手上有一份 Figma / Tokens Studio 导出的 `*.tokens.json`
 - 想把 W3C DTCG 格式的令牌接进本库
 - 转换结果的键名、单位、别名不对，要排查
-- 结果里出现一堆 `xxx-raw-value` / `xxx-css-value` 这种带后缀的键（形状喂错入口，见下）
+- 结果里出现一堆 `xxx-raw-value` / `xxx-css-value` 这种带后缀的键
 
-## 先判形状：树，还是扁平映射
+## Step 1 — 判形状：树，还是扁平映射
 
-两个入口都只认**树形的 DTCG**：一层组一层令牌嵌套，令牌的值写在 `$value` / `value` 里。
+- 输入：待导入的 JSON
+- 动作：看顶层是不是「一层组一层令牌」的嵌套，令牌值写在 `$value` / `value` 里
+- **通过条件：确认是树形 DTCG 才继续**
 
 另一种常见交付是**扁平映射**：顶层键本身就是 `color/bg/container` 这种路径，值是
 一段带若干描述字段的记录。它**不是** DTCG，喂给 `fromW3C` / `fromFigma` 会出这种事：
@@ -25,36 +30,48 @@ agent_created: true
 - 于是产出 `'xxx-raw-value'`、`'xxx-css-value'` 这种把字段名拼进路径的键
 - **而 `issues` 是空的** —— 它没有「错」可报，全程合法，只是结果全是垃圾
 
-所以：看到一堆带字段名后缀的键，就是进口用错了，不要去修键值。**本库目前不认这种形状**
-（要不要为它加一个入口，取决于它是不是真有多个独立来源 —— 只有一份私有样本驱动的需求
-不该进公共 API）。真要消费，先在调用方把它折成 DTCG 树，再走 `fromW3C`。
+**不通过就停在这里。** 看到一堆带字段名后缀的键，说明进口用错了，不要去修键值。
+本库目前不认这种形状（要不要为它加一个入口，取决于它是不是真有多个独立来源 ——
+只有一份私有样本驱动的需求不该进公共 API）。真要消费，先在调用方把它折成 DTCG 树，再走 Step 2。
 
-## 心智模型
+## Step 2 — 转一次，先看体检报告
 
-```
-源：{ "$type": "color", "$value": {...} } 树形，值可能是对象 / 裸数字 / {a.b.c} 引用
-   ↓ fromW3C / fromFigma（只做格式翻译，不做语义映射）
-{ tokens: { 'color-blue-500': '#4096ff' }, issues: [], aliases: 365 }
-   ↓ 可选：rescaleTokens / remify 换单位
-进 createTheme 或扁平令牌表
-```
+- 输入：树形 JSON
+- 动作：
+  ```js
+  const { tokens, issues, aliases } = fromFigma(json)   // 或 fromW3C
+  ```
+- **通过条件：`issues` 是空数组。** 断链别名、未知类型逐条都在里面，非空就先按条修
 
-## 工作流
+## Step 3 — 挑子树
 
-1. **先跑一次看体检报告**：
-   ```js
-   const { tokens, issues, aliases } = fromFigma(json)   // 或 fromW3C
-   ```
-   `issues` 是空数组才算干净；断链别名、未知类型逐条都在里面
-2. **用 `include` / `exclude` 挑子树**（点分路径前缀），别整棵吞：
-   ```js
-   fromFigma(json, { include: ['color'], exclude: ['deprecated'] })
-   ```
-3. **改键名** —— 转换器不会猜语义，`button-bg-brand-solid-default` 翻出来还是同名。
-   它该叫 `color-brand` 是你的设计决策
-4. **定单位**：默认 px（源就是 px）；要 rem 就 `unit: 'rem'`；
-   要 vw / cqw 必须同时给 `factors`
-5. **可选命令行**：`node scripts/convert-tokens.mjs Default.tokens.json --unit=rem --include=color,space > tokens.json`
+- 动作：用点分路径前缀挑，别整棵吞
+  ```js
+  fromFigma(json, { include: ['color'], exclude: ['deprecated'] })
+  ```
+- 通过条件：产出的键集合是你要的那部分，没有整棵树的噪声
+
+## Step 4 — 改键名（这一步是设计决策，不是转换）
+
+- 动作：把 `button-bg-brand-solid-default` 这类名字对齐到本库的 `category-role`
+- **通过条件：每个键都有 `category-role` 的完整命名，没有裸色值**
+- 转换器不会猜语义 —— 它翻出来还是同名。它该叫 `color-brand` 是你的决定
+
+## Step 5 — 定单位
+
+- 动作：默认 px（源就是 px）；要 rem 就 `unit: 'rem'`；要 vw / cqw **必须同时给 `factors`**
+- 通过条件：
+  - 描边宽度仍是 px
+  - 环境相关单位都带了 `factors`
+  - 所有半透明色是逗号语法 `rgba(r, g, b, a)`
+
+## Step 6 — 收尾校验
+
+- 可选命令行：
+  ```bash
+  node scripts/convert-tokens.mjs Default.tokens.json --unit=rem --include=color,space > tokens.json
+  ```
+- 通过条件：见下方检查清单全勾
 
 ## 选项
 
@@ -70,8 +87,7 @@ agent_created: true
 
 ## 硬规则
 
-1. **只做格式翻译，不做语义映射** —— 别期待它帮你把设计稿命名对齐到本库的
-   `category-role`；那是你的设计决策
+1. **只做格式翻译，不做语义映射** —— 别期待它帮你把设计稿命名对齐到本库的 `category-role`
 2. **`$root` 是一条真令牌，不是元数据**：`input.height.$root` 会翻成 `input-height-root`，
    别名里写 `{input.height.$root}` 也能接上
 3. **组里恰好有子令牌叫 `value` 时不能误判**：判据是「除 `value` 外还有对象型子键 → 是组」
@@ -83,7 +99,7 @@ agent_created: true
    并在 `issues` 里记一条。换个单位符号冒充换算过的值，比老实说「换不了」糟得多
 7. **半透明色落成逗号语法 `rgba(r, g, b, a)`**（IE10 认，空格斜杠语法会丢声明）
 
-## 常见坑
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
@@ -96,9 +112,9 @@ agent_created: true
 
 ## 检查清单
 
+- [ ] Step 1 判过形状，确认是树形（不是扁平映射）
 - [ ] `issues` 是空数组
-- [ ] 键名已按本库的 `category-role` 对齐（转换器不会替你做）
-- [ ] 单位选择已确定，环境相关单位给了 `factors`
+- [ ] 键名已按本库的 `category-role` 对齐
 - [ ] 描边宽度仍是 px
 - [ ] 半透明色是逗号语法
-- [ ] 三份真实样本（Primitive 274 / Semantic 250 / Component 2160 条）能 0 问题跑完
+- [ ] 环境相关单位给了 `factors`

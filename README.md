@@ -21,7 +21,8 @@ Design System 底层包：**token / class / theme**，最低支持 **IE10**（�
 > - **维护这个仓库** → **[`.agents/skills/`](.agents/skills/)**：分层决策、构建与工具链、
 >   测试门禁、IE10 检查、仓库运维，共 5 份。
 >
-> 本文件与 `docs/architecture.md` 是它们的出处。
+> 每份都按一种编写模式组织（tool-wrapper / generator / reviewer / inversion / pipeline），
+> 标在各自 `SKILL.md` 的 `metadata.pattern` 里。本文件与 `docs/architecture.md` 是它们的出处。
 
 > 包怎么分层、令牌怎么流动、单位怎么走、每条设计决策为什么这么定，见
 > **[docs/architecture.md](docs/architecture.md)**。本文是用法手册。

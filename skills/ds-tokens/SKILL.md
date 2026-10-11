@@ -1,22 +1,25 @@
 ---
 name: ds-tokens
-description: 使用或自建 @ds/tokens 的指南——它只有值没有算法（主题/强调色/种子/断点/尺度/语义映射 + 从 core 转出的转换与单位原语）、六个必传参数分别对应什么、怎么照它的形状写一份自己的设计语言、官方主题为什么不含 brand 一族、defaultSeed 必须完整不能稀疏。当用户问"官方令牌有哪些""怎么换成自己的配色""themes/accents/scales 该传什么""能不能只引 core 不引 tokens""brand 色为什么没有"时使用。
-agent_created: true
+description: 照 @ds/tokens 的形状生成一套自己的设计语言——它只有值没有算法（主题/强调色/种子/断点/尺度/语义映射）、六个必传参数分别对应什么、官方主题为什么不含 brand 一族、defaultSeed 必须完整不能稀疏。当用户问"官方令牌有哪些""怎么换成自己的配色""themes/accents/scales 该传什么""能不能只引 core 不引 tokens""brand 色为什么没有"时使用。
+metadata:
+  pattern: generator
 ---
 
-# @ds/tokens
+# 生成一套设计语言（照 @ds/tokens 的形状）
 
 **只有值没有算法。** 中性色用 slate 还是 gray、强调色是靛蓝还是品牌红、断点取 768 还是 750、
 间距走 4px 还是 8px —— 全在这里；算法一个都不在这里。
 
-## 何时使用
+## 触发条件
 
-- 要起一套新设计语言（照它的形状写一份）
+- 要起一套新设计语言（照官方形状写一份）
 - 要给 `createThemeManager` / `Vue.use(DsVue2, …)` 凑齐六个必传参数
 - 想知道官方那套令牌里到底有什么
-- 从 core 转出的转换 / 单位原语（本包也转出了一份，方便按包取用）
+- 要找从 core 转出的转换 / 单位原语（本包也转出了一份）
 
-## 心智模型
+## Step 1 — 加载形状模板
+
+模板就是官方这套导出的形状。**六个必传参数，一个都不能少**：
 
 ```
 @ds/tokens ──> 六个必传参数 ──> createThemeManager / Vue.use(DsVue2, …)
@@ -31,8 +34,6 @@ agent_created: true
 依赖方向是 **tokens → core**，而 **dom 不知道 tokens 存在** —— 这些值是**参数传进去**的，
 不是 import 进来的。所以换设计语言不用改 dom / vue2。
 
-## 导出清单
-
 | 导出 | 说明 |
 | --- | --- |
 | `lightTokens` / `darkTokens` | 令牌表 |
@@ -43,19 +44,33 @@ agent_created: true
 | `defaultScales` / `defaultScaleRules` / `defaultUtilities` / `defaultSemanticMap` | class 层四件套 |
 | `fromW3C` / `fromFigma` / `remify` / `pxToRem` / 单位原语 | 从 `@ds/core` 转出的一份 |
 
-## 工作流：换成自己的设计语言
+## Step 2 — 问用户要缺失的变量
+
+**缺什么就问，不要替用户猜。** 至少要问到的：
+
+| 变量 | 落到哪个导出 | 没给会怎样 |
+| --- | --- | --- |
+| 品牌主色 | `accents`（用 core 的 `makeAccent()` 生成一族） | 界面上没有 `color-brand`（不是 bug） |
+| 明暗两套配色 | `themes` | 换主题没反应 |
+| 间距 / 尺度基准 | `defaultScales` + `defaultScaleRules` | primitive class 还是官方那套数 |
+| 断点 | `defaultBreakpoints` | 响应式断点是官方的数 |
+| 语义映射 | `defaultSemanticMap` | `color-bg-*` 变不出 `.ds-bg-*` |
+
+用户给了部分就只填部分，**没给的保留官方那份**，不要自创一套尺度。
+
+## Step 3 — 按模板填每一处
 
 1. **起一份最省事的办法是拿官方垫底再改**，别从零写：
    ```js
    deriveTokens(mergeTree(defaultSeed, { color: { brand: '#0ea5e9' } }))
    ```
 2. **改主题** → 复制 `lightTokens` / `darkTokens` 的形状改值，走 `createTheme()`
-3. **改品牌色** → 用 `makeAccent('#0ea5e9')`（工厂在 core，它是算法）生成一族，塞进 `accents`
+3. **改品牌色** → `makeAccent('#0ea5e9')`（工厂在 core，它是算法）生成一族，塞进 `accents`
 4. **改尺度** → 复制 `defaultScales` / `defaultScaleRules` / `defaultUtilities`
 5. **改语义映射** → `defaultSemanticMap` 决定 `color-bg-*` 怎么变成 `.ds-bg-*`
 6. **凑齐六个参数传进去**，一个都不能少（不传编译期就红）
 
-## 硬规则
+## 风格规则
 
 1. **官方两套主题不含 brand 一族** —— 品牌色只由 accent 提供。所以 `accents: {}` 时
    令牌表里就是没有 `color-brand`，**不是缺漏**
@@ -66,7 +81,7 @@ agent_created: true
 4. **别把值写进 core**：判断标准是「换一套设计语言时它要不要改」
 5. **不引这个包也行** —— 照它的形状自己写一份，`@ds/core` 与 `@ds/dom` 完全不依赖它
 
-## 常见坑
+## 坑表
 
 | 现象 | 原因 | 解法 |
 | --- | --- | --- |
