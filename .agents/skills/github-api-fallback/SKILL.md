@@ -20,7 +20,7 @@ curl -s -m 8 -o /dev/null -w "direct_api=%{http_code}\n"   https://api.github.co
 | 探测结果 | 怎么推 |
 | --- | --- |
 | `direct_github=200` | 正常 `git push <带令牌的 origin URL> main` |
-| 代理活着（`-x` 那条 200） | `http_proxy=... https_proxy=... git push ...` |
+| 代理活着（`-x` 那条 200） | `http_proxy=... https_proxy=... git push ...`，**并显式 `git config http.version HTTP/1.1`** |
 | 只有 `api.github.com` 通 | **走 Step 2 起的 Git Data API**，不要反复试 push |
 
 - 通过条件：拿到至少一条活路。可达性会**隔天漂移**：昨天直连通、今天可能就得走 API ——
